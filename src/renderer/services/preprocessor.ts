@@ -52,7 +52,7 @@ export function preprocess(rawName: string): PreprocessResult {
   // Extract year
   const yearMatch = rawName.match(YEAR_REGEX);
   let year: number | null = null;
-  if (yearMatch) {
+  if (yearMatch?.[1]) {
     const y = parseInt(yearMatch[1], 10);
     if (y >= 1900 && y <= 2099) {
       year = y;
@@ -61,8 +61,8 @@ export function preprocess(rawName: string): PreprocessResult {
 
   // Extract season/episode
   const seMatch = rawName.match(SEASON_EPISODE_REGEX);
-  const season = seMatch ? parseInt(seMatch[1], 10) : null;
-  const episode = seMatch ? parseInt(seMatch[2], 10) : null;
+  const season = seMatch?.[1] ? parseInt(seMatch[1], 10) : null;
+  const episode = seMatch?.[2] ? parseInt(seMatch[2], 10) : null;
 
   // Clean title: remove noise
   let cleanTitle = rawName;
