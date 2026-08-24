@@ -1,7 +1,6 @@
 import { Worker } from 'worker_threads';
 import { randomUUID } from 'crypto';
 import type { BrowserWindow } from 'electron';
-import * as path from 'path';
 import type { IngestStartInput } from '../../shared/types/ipc';
 import type { IngestWorkerMessage } from '../../shared/types/ingest';
 
@@ -42,7 +41,6 @@ export class IngestOrchestrator {
     }
 
     const jobId = randomUUID();
-    const workerPath = path.resolve(__dirname, '../workers/ingest-worker.js');
 
     // In test/dev mode, the worker file might not be compiled yet
     // We'll use a mock worker for now

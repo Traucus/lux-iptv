@@ -40,7 +40,7 @@ export class SemaphoreQueue {
    * Includes random jitter to prevent thundering herd.
    */
   getBackoff(attempt: number): number {
-    const base = RETRY_BACKOFF_MS[attempt] ?? RETRY_BACKOFF_MS[RETRY_BACKOFF_MS.length - 1];
+    const base = RETRY_BACKOFF_MS[attempt] ?? RETRY_BACKOFF_MS[RETRY_BACKOFF_MS.length - 1]!;
     const jitter = Math.floor(Math.random() * JITTER_MAX_MS);
     return base + jitter;
   }

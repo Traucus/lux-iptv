@@ -84,10 +84,12 @@ export async function searchByImdbId(imdbId: string, apiKey: string): Promise<Tm
   const data = await tmdbFetch<TmdbFindResult>(`/find/${imdbId}?external_source=imdb_id`, apiKey);
 
   if (data.movie_results.length > 0) {
-    return toTmdbMatch({ ...data.movie_results[0], media_type: 'movie' }, 1.0);
+    const result = data.movie_results[0]!;
+    return toTmdbMatch({ ...result, media_type: 'movie' }, 1.0);
   }
   if (data.tv_results.length > 0) {
-    return toTmdbMatch({ ...data.tv_results[0], media_type: 'tv' }, 1.0);
+    const result = data.tv_results[0]!;
+    return toTmdbMatch({ ...result, media_type: 'tv' }, 1.0);
   }
 
   throw new TmdbNotFoundError();
@@ -107,7 +109,7 @@ export async function searchMovie(query: string, year: number | null, apiKey: st
   }
 
   // Calculate confidence based on popularity and vote count
-  const top = data.results[0];
+  const top = data.results[0]!;
   const confidence = calculateConfidence(top);
   return toTmdbMatch({ ...top, media_type: 'movie' }, confidence);
 }
@@ -125,7 +127,7 @@ export async function searchTv(query: string, year: number | null, apiKey: strin
     throw new TmdbNotFoundError();
   }
 
-  const top = data.results[0];
+  const top = data.results[0]!;
   const confidence = calculateConfidence(top);
   return toTmdbMatch({ ...top, media_type: 'tv' }, confidence);
 }
@@ -141,7 +143,7 @@ export async function searchMulti(query: string, apiKey: string): Promise<TmdbMa
     throw new TmdbNotFoundError();
   }
 
-  const top = data.results[0];
+  const top = data.results[0]!;
   const confidence = calculateConfidence(top);
   return toTmdbMatch(top, confidence);
 }

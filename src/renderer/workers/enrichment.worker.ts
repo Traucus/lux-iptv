@@ -10,9 +10,9 @@ import {
   TmdbNotFoundError,
   TmdbRateLimitError,
 } from '../services/tmdb-client';
-import { upsertEnrichment, getPendingEnrichments } from '../db/enrichment';
+import { upsertEnrichment } from '../db/enrichment';
 import { set as setNegativeCache } from '../db/negative-cache';
-import type { TmdbMatch, EnrichmentRecord } from '../../shared/types/tmdb';
+import type { TmdbMatch } from '../../shared/types/tmdb';
 
 declare const self: DedicatedWorkerGlobalScope;
 export {};
@@ -20,7 +20,6 @@ export {};
 const HYDRATION_CONCURRENCY = 5;
 const CONFIDENCE_AUTO_PERSIST = 0.85;
 const MIN_VOTE_COUNT = 5;
-const NEGATIVE_CACHE_TTL_DAYS = 30;
 const MAX_RETRY_ATTEMPTS = 3;
 
 let tmdbKey: string | null = null;

@@ -1,14 +1,6 @@
 import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
 import Database from 'better-sqlite3';
-import { Worker } from 'worker_threads';
-import * as path from 'path';
-import { fileURLToPath } from 'url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-// We test the worker logic directly by importing the handler
-// Since worker_threads are hard to test in vitest, we'll test the core logic
-import { processM3UEntries, type IngestCounts } from '../../src/main/workers/ingest-worker';
+import { processM3UEntries } from '../../src/main/workers/ingest-worker';
 
 describe('ingest-worker', () => {
   describe('processM3UEntries', () => {

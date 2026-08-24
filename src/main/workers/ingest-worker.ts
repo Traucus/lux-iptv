@@ -1,6 +1,6 @@
 import { parentPort, workerData } from 'worker_threads';
 import type Database from 'better-sqlite3';
-import { classify, type ContentType } from '../services/classifier';
+import { classify } from '../services/classifier';
 import type { M3UEntry } from '../services/m3u-client';
 
 export interface IngestCounts {
