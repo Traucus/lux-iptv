@@ -1,4 +1,6 @@
 import type Database from 'better-sqlite3';
+import { readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 export type Migration = {
   sql: string;
@@ -30,10 +32,32 @@ export function migrate(db: Database.Database, migrations: Migration[]): void {
     .sort((a, b) => a.version - b.version);
 
   for (const migration of pending) {
-    db.exec(migration.sql);
+    // Remove schema_version creation from migration SQL (we manage it ourselves)
+    const cleanedSql = migration.sql
+      .split('--> statement-breakpoint')
+      .filter((stmt) => !stmt.includes('CREATE TABLE `schema_version`'))
+      .join('');
+    if (cleanedSql.trim()) {
+      db.exec(cleanedSql);
+    }
     db.prepare('INSERT INTO schema_version (version, applied_at) VALUES (?, ?)').run(
       migration.version,
       Date.now(),
     );
   }
+}
+
+/**
+ * Loads migration files from the migrations directory.
+ * Each .sql file is parsed as a migration with version = file sequence number.
+ */
+export function loadMigrations(migrationsDir: string): Migration[] {
+  const files = readdirSync(migrationsDir)
+    .filter((f) => f.endsWith('.sql'))
+    .sort();
+
+  return files.map((file, index) => {
+    const sql = readFileSync(join(migrationsDir, file), 'utf-8');
+    return { sql, version: index + 1 };
+  });
 }
