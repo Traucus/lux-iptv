@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022"],
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "types": ["node"],
+    "noEmit": false
+  },
+  "include": ["src/licensing-api/**/*.ts", "src/shared/**/*.ts"],
+  "exclude": ["node_modules", "dist", "**/*.test.ts"]
+}

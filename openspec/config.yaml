@@ -1,0 +1,88 @@
+# OpenSpec Configuration for Lux IPTV
+# Project: iptv
+# Mode: hybrid (Engram + OpenSpec)
+
+project:
+  name: "Lux IPTV"
+  slug: "iptv"
+  description: "Premium IPTV Player - Next-gen desktop application for streaming Live TV, VOD, and Series"
+  version: "0.1.0"
+  created_at: "2026-08-23"
+
+stack:
+  frontend:
+    framework: "React"
+    bundler: "Vite"
+    styling: "Tailwind CSS"
+    language: "TypeScript"
+  backend:
+    licensing:
+      runtime: "Node.js 20 LTS"
+      framework: "Fastify"
+      database: "PostgreSQL 16"
+      orm: "Drizzle ORM"
+      deployment: "Docker Compose (dev) → PM2 + nginx + Let's Encrypt (prod)"
+  desktop:
+    framework: "Electron"
+    node_version: "20 LTS"
+  testing:
+    unit: "Vitest"
+    e2e: "Playwright"
+    strict_tdd: true
+  package_manager: "npm"
+
+architecture:
+  pattern: "Hexagonal Architecture"
+  ui_pattern: "Atomic Design + Container-Presentational"
+  data_flow: "Unidirectional (React state + IndexedDB)"
+
+features:
+  - "Multi-profile management (up to 5 profiles)"
+  - "Xtream Codes & M3U/M3U8 playlist ingestion"
+  - "Live TV with EPG guide"
+  - "VOD (Movies) with resume playback"
+  - "Series with season/episode hierarchy"
+  - "Parental control with PIN"
+  - "Global search with virtual keyboard"
+  - "TMDB metadata enrichment"
+  - "HWID-based licensing system"
+  - "10-Foot UI for TV/remote control"
+
+ui_design:
+  stitch_project_id: "13689263770000742462"
+  design_system: "Cinematic Glass"
+  screens_count: 11
+  theme: "Dark premium (zinc-950 base)"
+  accent_color: "Electric blue (#2563eb)"
+  font: "Roboto/Inter"
+
+documentation:
+  - path: "Documentos/input_user/iptv-ai-dev-spec.md"
+    type: "technical_spec"
+    description: "Complete technical specifications (DOC-1 to DOC-8)"
+  - path: "Documentos/input_user/iptv-ui-prototypes.md"
+    type: "ui_prototypes"
+    description: "8 screen prototypes with D-Pad navigation"
+
+testing_capabilities:
+  strict_tdd: true
+  test_command: "vitest"
+  test_coverage: "vitest --coverage"
+  e2e_command: "playwright test"
+  linter: "eslint"
+  type_checker: "tsc --noEmit"
+  formatter: "prettier"
+
+security:
+  credentials_handling: "env.local gitignored"
+  hwid_storage: "encrypted local file"
+  api_keys: "user-provided, encrypted in IndexedDB"
+
+next_phases:
+  - "explore: Define project structure and initial setup"
+  - "spec: Write detailed specifications for each module"
+  - "design: Create technical design documents"
+  - "tasks: Break down into implementation tasks"
+  - "apply: Implement with TDD"
+  - "verify: Run test suites and validation"
+  - "archive: Document completed features"

@@ -1,0 +1,34 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: lux-iptv-postgres
+    restart: unless-stopped
+    # Read POSTGRES_* vars from .env.local (gitignored). If .env.local doesn't exist,
+    # fall back to defaults below.
+    env_file:
+      - .env.local
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-iptv}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-iptv}
+      POSTGRES_DB: ${POSTGRES_DB:-iptv_licensing}
+    ports:
+      - '${POSTGRES_PORT:-5434}:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-iptv} -d ${POSTGRES_DB:-iptv_licensing}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - lux-network
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  lux-network:
+    driver: bridge

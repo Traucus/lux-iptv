@@ -1,0 +1,99 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-primary: 59 130 246;
+    --color-surface: 10 10 15;
+  }
+
+  * {
+    @apply border-white/10;
+  }
+
+  body {
+    @apply bg-surface text-white font-sans antialiased;
+    font-feature-settings: 'rlig' 1, 'calt' 1;
+  }
+
+  /* Custom scrollbar for cinematic look */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-white/20 rounded-full hover:bg-white/30 transition-colors;
+  }
+}
+
+@layer components {
+  /* Glassmorphism utilities */
+  .glass {
+    @apply bg-glass backdrop-blur-md border border-white/10 shadow-glass;
+  }
+
+  .glass-light {
+    @apply bg-glass-light backdrop-blur-sm border border-white/5 shadow-glass-sm;
+  }
+
+  .glass-medium {
+    @apply bg-glass-medium backdrop-blur-md border border-white/10 shadow-glass;
+  }
+
+  .glass-heavy {
+    @apply bg-glass-heavy backdrop-blur-lg border border-white/20 shadow-glass-lg;
+  }
+
+  /* Glow effects */
+  .glow {
+    @apply shadow-glow;
+  }
+
+  .glow-sm {
+    @apply shadow-glow-sm;
+  }
+
+  /* Gradient text */
+  .text-gradient {
+    @apply bg-gradient-to-r from-primary-400 to-primary-600 bg-clip-text text-transparent;
+  }
+
+  /* Button variants */
+  .btn-primary {
+    @apply px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-medium transition-all duration-200 shadow-glow-sm hover:shadow-glow;
+  }
+
+  .btn-glass {
+    @apply px-4 py-2 glass hover:bg-glass-light text-white rounded-lg font-medium transition-all duration-200;
+  }
+
+  /* Input styles */
+  .input-glass {
+    @apply px-4 py-2 bg-glass backdrop-blur-md border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500/50 transition-all duration-200;
+  }
+}
+
+@layer utilities {
+  /* Animation utilities */
+  .animate-delay-100 {
+    animation-delay: 100ms;
+  }
+
+  .animate-delay-200 {
+    animation-delay: 200ms;
+  }
+
+  .animate-delay-300 {
+    animation-delay: 300ms;
+  }
+
+  .animate-delay-500 {
+    animation-delay: 500ms;
+  }
+}

@@ -1,0 +1,87 @@
+# ============================================
+# Dependencies
+# ============================================
+node_modules/
+.pnp
+.pnp.js
+
+# ============================================
+# Build output
+# ============================================
+dist/
+build/
+out/
+*.tsbuildinfo
+
+# ============================================
+# Electron
+# ============================================
+release/
+*.app
+*.exe
+*.dmg
+*.deb
+*.rpm
+*.snap
+
+# ============================================
+# Environment files (NEVER commit secrets)
+# ============================================
+.env
+.env.local
+.env.*.local
+.env.production
+.env.staging
+
+# Keep .env.example committed (it's the public template)
+!.env.example
+
+# ============================================
+# Testing
+# ============================================
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
+.vitest-cache/
+
+# ============================================
+# Logs
+# ============================================
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+logs/
+
+# ============================================
+# OS / Editor
+# ============================================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ============================================
+# Cache / Temp
+# ============================================
+.cache/
+.tmp/
+.temp/
+
+# ============================================
+# OpenSpec / SDD
+# ============================================
+# openspec/changes/ may contain work-in-progress not yet merged
+# Keep proposals, specs, archive committed
+openspec/changes/*/tasks.md.bak
+
+# ============================================
+# Stitch MCP output cache (if generated locally)
+# ============================================
+stitch-output/
+*.stitch.bak
