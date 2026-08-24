@@ -1,0 +1,111 @@
+// ─── Error Codes ──────────────────────────────────────────────────────────────
+export const ErrorCodes = [
+  'INVALID_INPUT',
+  'NOT_FOUND',
+  'DB_CORRUPTED',
+  'INGEST_IN_PROGRESS',
+  'AUTH_FAILED',
+  'NETWORK',
+  'TMDB_RATE_LIMIT',
+  'INTERNAL',
+] as const;
+
+export type ErrorCode = (typeof ErrorCodes)[number];
+
+// ─── IPC Response Types ───────────────────────────────────────────────────────
+export type IpcSuccess<T> = { data: T; error?: undefined };
+export type IpcError = { data?: undefined; error: { code: ErrorCode; message: string; details?: unknown } };
+export type IpcResult<T> = IpcSuccess<T> | IpcError;
+
+// ─── Ingest ───────────────────────────────────────────────────────────────────
+export type IngestSource = 'xtream' | 'm3u';
+
+export type IngestStartInput = {
+  source: IngestSource;
+  credentials?: { server: string; username: string; password: string };
+  url?: string;
+  listName: string;
+};
+
+export type IngestStartOutput = { jobId: string };
+
+export type IngestCancelInput = { jobId: string };
+
+export type IngestProgressInput = { jobId: string };
+
+export type IngestProgress = {
+  phase: string;
+  percent: number;
+  counts: { live: number; movies: number; series: number; radio: number; total: number };
+};
+
+// ─── Catalog ──────────────────────────────────────────────────────────────────
+export type CatalogType = 'live' | 'movie' | 'series';
+
+export type CatalogListInput = {
+  type: CatalogType;
+  limit?: number;
+  offset?: number;
+  search?: string;
+};
+
+export type CatalogListOutput = {
+  items: CatalogItem[];
+  total: number;
+};
+
+export type CatalogGetByIdInput = {
+  type: CatalogType;
+  id: number;
+};
+
+export type CatalogItem = {
+  id: number;
+  name: string;
+  url: string;
+  groupTitle: string | null;
+  cover: string | null;
+  year: number | null;
+  enrichmentStatus: 'pending' | 'enriched' | 'not_found' | 'error';
+};
+
+export type SeriesDetail = {
+  series: CatalogItem;
+  seasons: Array<{
+    seasonNumber: number;
+    episodes: CatalogItem[];
+  }>;
+};
+
+// ─── Enrichment ───────────────────────────────────────────────────────────────
+export type EnrichmentStatus = {
+  queueLength: number;
+  lastEnrichedAt: number | null;
+  isRunning: boolean;
+};
+
+// ─── TMDB ─────────────────────────────────────────────────────────────────────
+export type TmdbKeyInput = { key: string };
+export type TmdbKeyOutput = { valid: boolean };
+export type TmdbKeyPlainOutput = { key: string } | null;
+
+// ─── LuxAPI Interface ─────────────────────────────────────────────────────────
+export interface LuxAPI {
+  // Ingest
+  'ingest:start': (input: IngestStartInput) => Promise<IpcResult<IngestStartOutput>>;
+  'ingest:cancel': (input: IngestCancelInput) => Promise<IpcResult<void>>;
+  'ingest:getProgress': (input: IngestProgressInput) => Promise<IpcResult<IngestProgress>>;
+  'ingest:onProgress': (cb: (progress: IngestProgress) => void) => () => void;
+
+  // Catalog
+  'catalog:list': (input: CatalogListInput) => Promise<IpcResult<CatalogListOutput>>;
+  'catalog:getById': (input: CatalogGetByIdInput) => Promise<IpcResult<CatalogItem | SeriesDetail>>;
+
+  // Enrichment
+  'enrichment:getStatus': () => Promise<IpcResult<EnrichmentStatus>>;
+
+  // TMDB
+  'tmdb:setKey': (input: TmdbKeyInput) => Promise<IpcResult<TmdbKeyOutput>>;
+  'tmdb:hasKey': () => Promise<IpcResult<boolean>>;
+  'tmdb:clearKey': () => Promise<IpcResult<void>>;
+}
