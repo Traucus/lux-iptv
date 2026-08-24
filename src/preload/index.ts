@@ -1,36 +1,37 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
-/**
- * Preload script for Lux IPTV
- * Exposes safe APIs to the renderer process via contextBridge
- */
+const luxAPI = {
+  ingest: {
+    start: (input: unknown) => ipcRenderer.invoke('ingest:start', input),
+    cancel: (input: unknown) => ipcRenderer.invoke('ingest:cancel', input),
+    getProgress: (input: unknown) => ipcRenderer.invoke('ingest:getProgress', input),
+    onProgress: (cb: (progress: unknown) => void) => {
+      const listener = (_event: unknown, progress: unknown) => cb(progress);
+      ipcRenderer.on('ingest:progress', listener);
+      return () => {
+        ipcRenderer.removeListener('ingest:progress', listener);
+      };
+    },
+  },
+  catalog: {
+    list: (input: unknown) => ipcRenderer.invoke('catalog:list', input),
+    getById: (input: unknown) => ipcRenderer.invoke('catalog:getById', input),
+  },
+  enrichment: {
+    getStatus: () => ipcRenderer.invoke('enrichment:getStatus'),
+  },
+  tmdb: {
+    setKey: (input: unknown) => ipcRenderer.invoke('tmdb:setKey', input),
+    hasKey: () => ipcRenderer.invoke('tmdb:hasKey'),
+    clearKey: () => ipcRenderer.invoke('tmdb:clearKey'),
+  },
+};
 
-// TODO: Define IPC channels and expose them safely
-// Example:
-// contextBridge.exposeInMainWorld('electronAPI', {
-//   licensing: {
-//     activate: (key: string) => ipcRenderer.invoke('licensing:activate', key),
-//     validate: () => ipcRenderer.invoke('licensing:validate'),
-//   },
-//   player: {
-//     loadPlaylist: (url: string) => ipcRenderer.invoke('player:loadPlaylist', url),
-//   },
-//   system: {
-//     getMachineId: () => ipcRenderer.invoke('system:getMachineId'),
-//     getVersion: () => ipcRenderer.invoke('system:getVersion'),
-//   },
-// });
-
-// Placeholder: expose a minimal API for type checking
-contextBridge.exposeInMainWorld('luxAPI', {
-  ping: () => ipcRenderer.invoke('ping'),
-});
+contextBridge.exposeInMainWorld('luxAPI', luxAPI);
 
 // Type declaration for the exposed API
 declare global {
   interface Window {
-    luxAPI: {
-      ping: () => Promise<string>;
-    };
+    luxAPI: typeof luxAPI;
   }
 }
