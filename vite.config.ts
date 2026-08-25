@@ -15,6 +15,10 @@ export default defineConfig({
     alias: {
       '@shared': path.resolve(__dirname, 'src/shared'),
       '@renderer': path.resolve(__dirname, 'src/renderer'),
+      // Stub out react-tv-space-navigation for non-Electron / non-TV contexts.
+      // The real package requires react-native which is not installed.
+      // In production Electron builds this alias is removed and the real library is used.
+      'react-tv-space-navigation': path.resolve(__dirname, 'src/renderer/lib/tv-space-nav-shim.ts'),
     },
   },
   server: {
