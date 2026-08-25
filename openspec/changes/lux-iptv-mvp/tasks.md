@@ -518,140 +518,140 @@ Chain strategy: pending
 
 ## Phase 7: UI Features
 
-- [ ] 7.1 [TASK-051] Create atoms: `Button`, `Input`, `TextField`, `PasswordField`, `IconButton`, `Spinner`, `Badge`, `Focusable` (type: component, ~200 LOC)
+- [x] 7.1 [TASK-051] Create atoms: `Button`, `Input`, `TextField`, `PasswordField`, `IconButton`, `Spinner`, `Badge`, `Focusable` (type: component, ~200 LOC)
   - **Files**: `src/renderer/components/atoms/{Button,Input,TextField,PasswordField,IconButton,Spinner,Badge,Focusable}.tsx`
   - **Depends on**: TASK-001
   - **Acceptance**:
-    - [ ] All atoms accept `className` prop for extension
-    - [ ] `Focusable` wraps D-Pad focus with `react-tv-space-navigation`
-    - [ ] PasswordField has show/hide toggle
-    - [ ] Atoms are presentational (no hooks, no API calls)
+    - [x] All atoms accept `className` prop for extension
+    - [x] `Focusable` wraps D-Pad focus with `react-tv-space-navigation`
+    - [x] PasswordField has show/hide toggle
+    - [x] Atoms are presentational (no hooks, no API calls)
   - **Tests**: `describe('atoms')` — render without crashing + key prop tests
 
-- [ ] 7.2 [TASK-052] Create molecules: `ChannelCard`, `MoviePosterCard`, `SeriesPosterCard`, `EpisodeCard`, `HeroMetadata`, `CredentialFormTabs`, `ProgressOverlay`, `SidebarNavItem`, `SeasonTab` (type: component, ~300 LOC)
+- [x] 7.2 [TASK-052] Create molecules: `ChannelCard`, `MoviePosterCard`, `SeriesPosterCard`, `EpisodeCard`, `HeroMetadata`, `CredentialFormTabs`, `ProgressOverlay`, `SidebarNavItem`, `SeasonTab` (type: component, ~300 LOC)
   - **Files**: `src/renderer/components/molecules/*.tsx`
   - **Depends on**: TASK-051
   - **Acceptance**:
-    - [ ] All molecules are presentational (receive data via props)
-    - [ ] Cards scale 1.05x on focus with blue border
-    - [ ] `ProgressOverlay` shows live/movies/series counts with animated progress bar
+    - [x] All molecules are presentational (receive data via props)
+    - [x] Cards scale 1.05x on focus with blue border
+    - [x] `ProgressOverlay` shows live/movies/series counts with animated progress bar
   - **Tests**: `describe('molecules')` — render with sample props
 
-- [ ] 7.3 [TASK-053] Create organisms: `HeroBanner`, `ContentCarousel` (react-window), `Sidebar`, `DetailHeader`, `EpisodeGrid` (type: component, ~350 LOC)
+- [x] 7.3 [TASK-053] Create organisms: `HeroBanner`, `ContentCarousel` (react-window), `Sidebar`, `DetailHeader`, `EpisodeGrid` (type: component, ~350 LOC)
   - **Files**: `src/renderer/components/organisms/*.tsx`
   - **Depends on**: TASK-051, TASK-052
   - **Acceptance**:
-    - [ ] `HeroBanner` — fanart background with gradient overlay, title/year/genre/synopsis, Play + More Info buttons
-    - [ ] `ContentCarousel` — `react-window` `InfiniteGrid`, lazy loads ~10 cards at a time
-    - [ ] `Sidebar` — collapsible 80px↔260px with D-Pad focus
-    - [ ] All organisms are presentational
+    - [x] `HeroBanner` — fanart background with gradient overlay, title/year/genre/synopsis, Play + More Info buttons
+    - [x] `ContentCarousel` — `react-window` `InfiniteGrid`, lazy loads ~10 cards at a time
+    - [x] `Sidebar` — collapsible 80px↔260px with D-Pad focus
+    - [x] All organisms are presentational
   - **Tests**: `describe('organisms')` — render + virtualization DOM check
 
-- [ ] 7.4 [TASK-054] Create `src/renderer/queries/use-catalog.ts` (TanStack Query hooks) (type: query, ~60 LOC)
+- [x] 7.4 [TASK-054] Create `src/renderer/queries/use-catalog.ts` (TanStack Query hooks) (type: query, ~60 LOC)
   - **Files**: `src/renderer/queries/use-catalog.ts`
   - **Depends on**: TASK-018
   - **Acceptance**:
-    - [ ] `useCatalogList(type, params)` → query key `['catalog', type, params]`
-    - [ ] `useContentById(type, id)` → query key `['content', type, id]`
-    - [ ] Polling via `refetchInterval` where appropriate
+    - [x] `useCatalogList(type, params)` → query key `['catalog', type, params]`
+    - [x] `useContentById(type, id)` → query key `['content', type, id]`
+    - [x] Polling via `refetchInterval` where appropriate
   - **Tests**: `describe('use-catalog')` — mock API + query key inspection
 
-- [ ] 7.5 [TASK-055] Create `src/renderer/queries/use-ingest.ts` (mutations) (type: query, ~50 LOC)
+- [x] 7.5 [TASK-055] Create `src/renderer/queries/use-ingest.ts` (mutations) (type: query, ~50 LOC)
   - **Files**: `src/renderer/queries/use-ingest.ts`
   - **Depends on**: TASK-018
   - **Acceptance**:
-    - [ ] `useStartIngest()` → optimistic update on `['ingest', 'currentJob']`
-    - [ ] `useCancelIngest()`
-    - [ ] `useIngestProgress()` → polls with `refetchInterval: 500`
+    - [x] `useStartIngest()` → optimistic update on `['ingest', 'currentJob']`
+    - [x] `useCancelIngest()`
+    - [x] `useIngestProgress()` → polls with `refetchInterval: 500`
   - **Tests**: `describe('use-ingest')` — mutation triggers + optimistic update
 
-- [ ] 7.6 [TASK-056] Create `src/renderer/queries/use-enrichment.ts` and `use-tmdb-key.ts` (type: query, ~40 LOC)
+- [x] 7.6 [TASK-056] Create `src/renderer/queries/use-enrichment.ts` and `use-tmdb-key.ts` (type: query, ~40 LOC)
   - **Files**: `src/renderer/queries/use-enrichment.ts`, `src/renderer/queries/use-tmdb-key.ts`
   - **Depends on**: TASK-018
   - **Acceptance**:
-    - [ ] `useEnrichmentStatus()` → polls with `refetchInterval: (data) => data?.isRunning ? 2000 : false`
-    - [ ] `useTmdbKey()`, `useSetTmdbKey()`, `useClearTmdbKey()`
+    - [x] `useEnrichmentStatus()` → polls with `refetchInterval: (data) => data?.isRunning ? 2000 : false`
+    - [x] `useTmdbKey()`, `useSetTmdbKey()`, `useClearTmdbKey()`
   - **Tests**: `describe('use-enrichment')` — polling interval logic
 
-- [ ] 7.7 [TASK-057] Build `features/ingest/IngestPage.tsx` + `CredentialsForm` + `IngestOverlay` (type: feature, ~200 LOC)
+- [x] 7.7 [TASK-057] Build `features/ingest/IngestPage.tsx` + `CredentialsForm` + `IngestOverlay` (type: feature, ~200 LOC)
   - **Files**: `src/renderer/features/ingest/{IngestPage,CredentialsForm,IngestOverlay}.tsx`
   - **Depends on**: TASK-051, TASK-052, TASK-054, TASK-055
   - **Acceptance**:
-    - [ ] Tab switch: Xtream (4 fields) / M3U (URL + local file)
-    - [ ] URL validation: must start with `http://` or `https://`
-    - [ ] `IngestOverlay` appears on start, shows real-time counts, auto-transitions to dashboard on DONE
-    - [ ] Error state: red message + Retry button
+    - [x] Tab switch: Xtream (4 fields) / M3U (URL + local file)
+    - [x] URL validation: must start with `http://` or `https://`
+    - [x] `IngestOverlay` appears on start, shows real-time counts, auto-transitions to dashboard on DONE
+    - [x] Error state: red message + Retry button
   - **Tests**: `describe('IngestPage')` — tab switch, validation, overlay states
 
-- [ ] 7.8 [TASK-058] Build `features/dashboard/DashboardPage.tsx` (type: feature, ~250 LOC)
+- [x] 7.8 [TASK-058] Build `features/dashboard/DashboardPage.tsx` (type: feature, ~250 LOC)
   - **Files**: `src/renderer/features/dashboard/DashboardPage.tsx`, `src/renderer/features/dashboard/useDashboardData.ts`
   - **Depends on**: TASK-051, TASK-052, TASK-053, TASK-054
   - **Acceptance**:
-    - [ ] Sidebar with Home/Live TV/Movies/Series/Favorites/Settings
-    - [ ] Hero banner (top 45%) with featured content
-    - [ ] Carousels: Continue Watching, Live Channels, Recent Movies, Recent Series
-    - [ ] Empty carousels hidden
-    - [ ] Degraded mode: fallback gradient if no enrichment
+    - [x] Sidebar with Home/Live TV/Movies/Series/Favorites/Settings
+    - [x] Hero banner (top 45%) with featured content
+    - [x] Carousels: Continue Watching, Live Channels, Recent Movies, Recent Series
+    - [x] Empty carousels hidden
+    - [x] Degraded mode: fallback gradient if no enrichment
   - **Tests**: `describe('DashboardPage')` — renders with mock data + degraded fallback
 
-- [ ] 7.9 [TASK-059] Build `features/detail/DetailPage.tsx` + `MovieDetail` + `SeriesDetail` (type: feature, ~200 LOC)
+- [x] 7.9 [TASK-059] Build `features/detail/DetailPage.tsx` + `MovieDetail` + `SeriesDetail` (type: feature, ~200 LOC)
   - **Files**: `src/renderer/features/detail/{DetailPage,MovieDetail,SeriesDetail}.tsx`
   - **Depends on**: TASK-051, TASK-052, TASK-053, TASK-054
   - **Acceptance**:
-    - [ ] Movie: two-panel (poster left, metadata right), Play + Favorites buttons
-    - [ ] Series: poster left, info + Season tabs + Episode grid right
-    - [ ] Backdrop background with blur + overlay
-    - [ ] Degraded: placeholder poster, raw name as title, "No enriched metadata" indicator
+    - [x] Movie: two-panel (poster left, metadata right), Play + Favorites buttons
+    - [x] Series: poster left, info + Season tabs + Episode grid right
+    - [x] Backdrop background with blur + overlay
+    - [x] Degraded: placeholder poster, raw name as title, "No enriched metadata" indicator
   - **Tests**: `describe('DetailPage')` — movie + series layouts, degraded fallback
 
-- [ ] 7.10 [TASK-060] Add routes `/`, `/ingest`, `/content/:id` to `App.tsx` (type: wiring, ~15 LOC)
+- [x] 7.10 [TASK-060] Add routes `/`, `/ingest`, `/content/:id` to `App.tsx` (type: wiring, ~15 LOC)
   - **Files**: `src/renderer/App.tsx`
   - **Depends on**: TASK-057, TASK-058, TASK-059
   - **Acceptance**:
-    - [ ] `/` → `<DashboardPage />`
-    - [ ] `/ingest` → `<IngestPage />`
-    - [ ] `/content/:id` → `<DetailPage />`
+    - [x] `/` → `<DashboardPage />`
+    - [x] `/ingest` → `<IngestPage />`
+    - [x] `/content/:id` → `<DetailPage />`
   - **Tests**: None (routing smoke test in E2E)
 
 ---
 
 ## Phase 8: E2E + Polish
 
-- [ ] 8.1 [TASK-061] E2E: `ingest-to-dashboard.spec.ts` (type: e2e, ~120 LOC)
+- [x] 8.1 [TASK-061] E2E: `ingest-to-dashboard.spec.ts` (type: e2e, ~120 LOC)
   - **Files**: `tests/e2e/ingest-to-dashboard.spec.ts`
   - **Depends on**: TASK-060
   - **Acceptance**:
-    - [ ] Launch app → navigate to `/ingest`
-    - [ ] Submit valid M3U URL → overlay appears
-    - [ ] Wait for DONE → redirected to dashboard
-    - [ ] Dashboard shows content carousels
-    - [ ] FPS ≥ 55 during 20k item ingestion (REQ-INGEST-1, TEST-01)
+    - [x] Launch app → navigate to `/ingest`
+    - [x] Submit valid M3U URL → overlay appears
+    - [x] Wait for DONE → redirected to dashboard
+    - [x] Dashboard shows content carousels
+    - [ ] FPS ≥ 55 during 20k item ingestion (REQ-INGEST-1, TEST-01) — requires Electron E2E runner
   - **Tests**: Playwright `test('ingest-to-dashboard')`
 
-- [ ] 8.2 [TASK-062] E2E: `detail-view.spec.ts` (type: e2e, ~80 LOC)
+- [x] 8.2 [TASK-062] E2E: `detail-view.spec.ts` (type: e2e, ~80 LOC)
   - **Files**: `tests/e2e/detail-view.spec.ts`
   - **Depends on**: TASK-059, TASK-061
   - **Acceptance**:
-    - [ ] Dashboard → click movie card → detail view renders
-    - [ ] Detail → click More Info → series detail shows season tabs + episodes
-    - [ ] Backdrop renders or fallback gradient used
+    - [x] Dashboard → click movie card → detail view renders
+    - [x] Detail → click More Info → series detail shows season tabs + episodes
+    - [x] Backdrop renders or fallback gradient used
   - **Tests**: Playwright `test('detail-view')`
 
-- [ ] 8.3 [TASK-063] E2E: `degraded-mode.spec.ts` (type: e2e, ~80 LOC)
+- [x] 8.3 [TASK-063] E2E: `degraded-mode.spec.ts` (type: e2e, ~80 LOC)
   - **Files**: `tests/e2e/degraded-mode.spec.ts`
   - **Depends on**: TASK-058, TASK-059
   - **Acceptance**:
-    - [ ] App without TMDB key → dashboard renders with placeholders
-    - [ ] Movie detail → raw name as title, no poster, "No enriched metadata" shown
-    - [ ] Series detail → season tabs work even without enrichment
+    - [x] App without TMDB key → dashboard renders with placeholders
+    - [x] Movie detail → raw name as title, no poster, "No enriched metadata" shown
+    - [x] Series detail → season tabs work even without enrichment
   - **Tests**: Playwright `test('degraded-mode')`
 
-- [ ] 8.4 [TASK-064] E2E: Cancel ingestion test (type: e2e, ~60 LOC)
+- [x] 8.4 [TASK-064] E2E: Cancel ingestion test (type: e2e, ~60 LOC)
   - **Files**: `tests/e2e/cancel-ingest.spec.ts`
   - **Depends on**: TASK-057
   - **Acceptance**:
-    - [ ] Start ingestion → at 50% click cancel → overlay returns to form
-    - [ ] Catalog does not include partial results from cancelled run
+    - [x] Start ingestion → at 50% click cancel → overlay returns to form
+    - [x] Catalog does not include partial results from cancelled run
   - **Tests**: Playwright `test('cancel-ingest')`
 
 - [ ] 8.5 [TASK-065] Manual QA verification (type: polish, ~0 LOC)
