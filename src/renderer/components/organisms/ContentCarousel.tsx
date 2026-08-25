@@ -1,5 +1,5 @@
 import React from 'react';
-import { Grid } from 'react-window';
+import { Grid, type GridProps } from 'react-window';
 
 /**
  * ContentCarousel organism — virtualized horizontal carousel using react-window Grid.
@@ -26,6 +26,10 @@ interface CarouselCellExtraProps<T> {
   cardWidth: number;
 }
 
+type CarouselCellComponentProps<T> = GridProps<CarouselCellExtraProps<T>>['cellComponent'] extends React.ComponentType<infer P>
+  ? P
+  : never;
+
 export function ContentCarousel<T>({
   title,
   items,
@@ -43,7 +47,7 @@ export function ContentCarousel<T>({
       <h2 className="text-xl font-semibold text-white mb-3 px-4">{title}</h2>
       <div className="relative">
         <Grid<CarouselCellExtraProps<T>>
-          cellComponent={CarouselCell as React.ComponentType<{ ariaIndex: number; items: T[]; renderItem: (i: T, n: number) => React.ReactElement; cardWidth: number; style: React.CSSProperties }>}
+          cellComponent={CarouselCell as GridProps<CarouselCellExtraProps<T>>['cellComponent']}
           cellProps={{ items, renderItem, cardWidth }}
           columnCount={items.length}
           columnWidth={cardWidth + 16}
@@ -57,27 +61,22 @@ export function ContentCarousel<T>({
   );
 }
 
-function CarouselCell<T>({
-  items,
-  renderItem,
-  cardWidth,
-  ariaIndex,
-  style,
-}: {
-  ariaIndex: number;
-  items: T[];
-  renderItem: (item: T, index: number) => React.ReactElement;
-  cardWidth: number;
-  style: React.CSSProperties;
-}): React.ReactElement {
-  const item = items[ariaIndex];
+function CarouselCell<T>(props: CarouselCellComponentProps<T>): React.ReactElement {
+  const { items, renderItem, cardWidth, columnIndex, style } = props as unknown as {
+    items: T[];
+    renderItem: (item: T, index: number) => React.ReactElement;
+    cardWidth: number;
+    columnIndex: number;
+    style: React.CSSProperties;
+  };
+  const item = items[columnIndex];
   if (!item) return <div style={style} />;
   return (
     <div
       style={{ ...style, paddingInline: 8, boxSizing: 'border-box' }}
-      data-aria-index={ariaIndex}
+      data-aria-index={columnIndex}
     >
-      <div style={{ width: cardWidth }}>{renderItem(item, ariaIndex)}</div>
+      <div style={{ width: cardWidth }}>{renderItem(item, columnIndex)}</div>
     </div>
   );
 }

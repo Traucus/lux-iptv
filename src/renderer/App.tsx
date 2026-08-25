@@ -1,22 +1,26 @@
 import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { IngestPage } from './features/ingest/IngestPage';
+import { DashboardPage } from './features/dashboard/DashboardPage';
+import { DetailPage } from './features/detail/DetailPage';
 
 /**
- * Main application component
- * TODO: Add routing, layout, and feature components
+ * Application root component.
+ * Routes:
+ *   /             → DashboardPage (Screen 3)
+ *   /ingest       → IngestPage (Screen 2)
+ *   /content/:id  → DetailPage (Screen 4)
  */
 function App(): React.ReactElement {
   return (
-    <div className="min-h-screen bg-surface text-white">
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center space-y-4">
-          <h1 className="text-display-lg font-bold text-primary-500">Lux IPTV</h1>
-          <p className="text-gray-400">Cinematic IPTV Player</p>
-          <div className="mt-8 px-6 py-3 bg-glass backdrop-blur-md rounded-lg border border-white/10 shadow-glass">
-            <p className="text-sm text-gray-300">Application initialized successfully</p>
-          </div>
-        </div>
-      </div>
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<DashboardPage />} />
+        <Route path="/ingest" element={<IngestPage />} />
+        <Route path="/content/:id" element={<DetailPage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 

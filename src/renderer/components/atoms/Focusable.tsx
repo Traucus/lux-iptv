@@ -40,10 +40,11 @@ export function Focusable({
       onSelect={disabled ? undefined : onSelect}
       onFocus={onFocus}
       onBlur={onBlur}
-      className={classes}
-      aria-label={rest['aria-label']}
+      style={{ flexDirection: 'column' }}
+      viewProps={{ className: classes }}
+      {...(rest['aria-label'] ? { 'aria-label': rest['aria-label'] } : {})}
     >
-      {children}
+      {children as React.ReactElement}
     </SpatialNavigationFocusableView>
   );
 }

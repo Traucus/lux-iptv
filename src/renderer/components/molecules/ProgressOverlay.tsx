@@ -55,9 +55,9 @@ export function ProgressOverlay({
         <ProgressBar value={percent} showPercent className="mb-6" />
 
         <div className="grid grid-cols-3 gap-3 mb-6">
-          <CountCard label="Live TV" value={counts.live} phase={phase} target="live" />
-          <CountCard label="Movies" value={counts.movies} phase={phase} target="movies" />
-          <CountCard label="Series" value={counts.series} phase={phase} target="series" />
+          <CountCard label="Live TV" value={counts.live} active={isPhaseActive(phase, 'live')} />
+          <CountCard label="Movies" value={counts.movies} active={isPhaseActive(phase, 'movies')} />
+          <CountCard label="Series" value={counts.series} active={isPhaseActive(phase, 'series')} />
         </div>
 
         <p className="text-xs text-gray-400 text-center uppercase tracking-wide mb-6">
@@ -90,20 +90,17 @@ export function ProgressOverlay({
 function CountCard({
   label,
   value,
-  phase,
-  target,
+  active,
 }: {
   label: string;
   value: number;
-  phase: IngestPhase;
-  target: 'live' | 'movies' | 'series';
+  active: boolean;
 }): React.ReactElement {
-  const isActive = isPhaseActive(phase, target);
   return (
     <div
       className={[
         'p-3 rounded-lg text-center border transition-colors',
-        isActive ? 'bg-primary-500/15 border-primary-500/40' : 'bg-glass border-white/10',
+        active ? 'bg-primary-500/15 border-primary-500/40' : 'bg-glass border-white/10',
       ].join(' ')}
     >
       <p className="text-xs text-gray-400 mb-1">{label}</p>
@@ -112,9 +109,9 @@ function CountCard({
   );
 }
 
-function isPhaseActive(phase: IngestPhase, target: 'live' | 'movies' | 'series'): boolean {
-  if (phase === 'FETCH' || phase === 'ITEMS' || phase === 'CLASSIFY' || phase === 'PERSIST') return true;
-  return false;
+function isPhaseActive(_phase: IngestPhase, _target: 'live' | 'movies' | 'series'): boolean {
+  // Active during ingest work phases; reserved for future per-type state tracking.
+  return true;
 }
 
 export default ProgressOverlay;

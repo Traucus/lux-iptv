@@ -22,7 +22,7 @@ export function useStartIngest(): UseMutationResult<
   IngestStartInput
 > {
   const qc = useQueryClient();
-  return useMutation<{ jobId: string }, Error, IngestStartInput>({
+  return useMutation<{ jobId: string }, Error, IngestStartInput, { previous: IngestJobSnapshot | null | undefined }>({
     mutationFn: async (input: IngestStartInput) => {
       const result = await api.ingest.start(input);
       if (result.error) {
@@ -30,7 +30,7 @@ export function useStartIngest(): UseMutationResult<
       }
       return result.data;
     },
-    onMutate: async (input) => {
+    onMutate: async () => {
       // Optimistic: mark a pending job
       await qc.cancelQueries({ queryKey: ['ingest', 'currentJob'] });
       const previous = qc.getQueryData<IngestJobSnapshot | null>(['ingest', 'currentJob']);
