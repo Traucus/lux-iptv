@@ -301,8 +301,11 @@ export class StreamProxyService {
       await this.fetchAndStream(originUrl, headers, res, cacheKey);
     } catch (error) {
       this.emitError('STREAM_TIMEOUT', `Failed to fetch stream: ${error}`);
-      res.writeHead(502, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Upstream timeout' }));
+      // Only send response if not already sent by fetchAndStream
+      if (!res.headersSent) {
+        res.writeHead(502, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Upstream timeout' }));
+      }
     }
   }
 
@@ -323,6 +326,7 @@ export class StreamProxyService {
       } as any);
       (request as any).setTimeout(DEFAULT_TIMEOUT_MS);
       let responseReceived = false;
+      let responseSent = false;
       let responseBuffer: Buffer[] = [];
       let responseContentType = '';
       let responseStatusCode = 0;
@@ -343,19 +347,25 @@ export class StreamProxyService {
           // Check for error status codes
           if (responseStatusCode >= 500) {
             this.emitError('STREAM_TIMEOUT', `Upstream returned ${responseStatusCode}`);
-            res.writeHead(502, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: 'Upstream error' }));
+            if (!responseSent) {
+              responseSent = true;
+              res.writeHead(502, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ error: 'Upstream error' }));
+            }
             resolve();
             return;
           }
 
           // Stream to client
-          res.writeHead(responseStatusCode, {
-            'Content-Type': responseContentType,
-            'Content-Length': body.length,
-            'Cache-Control': isManifestContentType(responseContentType) ? 'public, max-age=30' : 'no-cache',
-          });
-          res.end(body);
+          if (!responseSent) {
+            responseSent = true;
+            res.writeHead(responseStatusCode, {
+              'Content-Type': responseContentType,
+              'Content-Length': body.length,
+              'Cache-Control': isManifestContentType(responseContentType) ? 'public, max-age=30' : 'no-cache',
+            });
+            res.end(body);
+          }
 
           // Cache manifest responses
           if (isManifestContentType(responseContentType)) {
@@ -369,8 +379,11 @@ export class StreamProxyService {
       request.on('error', (error) => {
         if (!responseReceived) {
           this.emitError('NETWORK', `Network error: ${error.message}`);
-          res.writeHead(503, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Network error' }));
+          if (!responseSent) {
+            responseSent = true;
+            res.writeHead(503, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Network error' }));
+          }
         }
         reject(error);
       });
