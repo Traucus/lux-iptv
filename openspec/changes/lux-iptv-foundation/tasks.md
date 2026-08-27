@@ -219,23 +219,23 @@ Chain strategy: **stacked-to-main**
 
 ### Phase 6: G5 Stream Proxy
 
-- [ ] **TASK-042** *(RED → GREEN)*: Write `tests/unit/stream-proxy.test.ts` — start service on ephemeral port, mock outbound `net.request`, assert header injection, cache hit/miss, TTL expiry, redirect-follow, timeout, error IPC
+- [x] **TASK-042** *(RED → GREEN)*: Write `tests/unit/stream-proxy.test.ts` — start service on ephemeral port, mock outbound `net.request`, assert header injection, cache hit/miss, TTL expiry, redirect-follow, timeout, error IPC
   - Type: `test` | LOC: ~180 | Dependencies: TASK-034, TASK-029
   - Tests: `vitest run tests/unit/stream-proxy.test.ts`
 
-- [ ] **TASK-043**: Implement `src/main/services/stream-proxy.ts` — `StreamProxyService` class with `start(db)`, `stop()`, `lookupHeaders()`, manifest cache (30s TTL, 50-entry LRU bound), `/proxy/:type/:id` and `/proxy/health` routes
+- [x] **TASK-043**: Implement `src/main/services/stream-proxy.ts` — `StreamProxyService` class with `start(db)`, `stop()`, `lookupHeaders()`, manifest cache (30s TTL, 50-entry LRU bound), `/proxy/:type/:id` and `/proxy/health` routes
   - Type: `logic` | LOC: ~200 | Dependencies: TASK-042 (tests written first)
   - Tests: `vitest run tests/unit/stream-proxy.test.ts`
 
-- [ ] **TASK-044** *(RED → GREEN)*: Write `tests/integration/proxy-e2e.test.ts` — spin up service, `http.get` to `/proxy/:type/:id`, validate response body matches mocked origin
+- [x] **TASK-044** *(RED → GREEN)*: Write `tests/integration/proxy-e2e.test.ts` — spin up service, `http.get` to `/proxy/:type/:id`, validate response body matches mocked origin
   - Type: `e2e` | LOC: ~80 | Dependencies: TASK-043
   - Tests: `vitest run tests/integration/proxy-e2e.test.ts`
 
-- [ ] **TASK-045**: Wire `StreamProxyService` into main process startup in `src/main/index.ts` — start on app ready, stop on quit
+- [x] **TASK-045**: Wire `StreamProxyService` into main process startup in `src/main/index.ts` — start on app ready, stop on quit
   - Type: `wiring` | LOC: ~25 | Dependencies: TASK-043, TASK-044
   - Tests: Integration test covers it
 
-- [ ] **TASK-046** *(RED → GREEN)*: Write `tests/unit/proxy-header-whitelist.test.ts` asserting invalid header keys are rejected (security: header injection safety)
+- [x] **TASK-046** *(RED → GREEN)*: Write `tests/unit/proxy-header-whitelist.test.ts` asserting invalid header keys are rejected (security: header injection safety)
   - Type: `test` | LOC: ~40 | Dependencies: TASK-043
   - Tests: `vitest run tests/unit/proxy-header-whitelist.test.ts`
 

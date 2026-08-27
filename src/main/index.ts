@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, ipcMain } from 'electron';
 import { join } from 'node:path';
 import { createDb } from './db/client';
 import { migrate, loadMigrations } from './db/migrate';
@@ -6,10 +6,12 @@ import { registerHandlers } from './ipc';
 import { IngestOrchestrator } from './services/ingest-orchestrator';
 import { createTmdbKeyVault } from './services/tmdb-key';
 import { readHwAccelOverride } from './config/hw-accel';
+import { StreamProxyService } from './services/stream-proxy';
 
 let mainWindow: BrowserWindow | null = null;
 let dbHandle: ReturnType<typeof createDb> | null = null;
 let ingestOrchestrator: IngestOrchestrator | null = null;
+let streamProxyService: StreamProxyService | null = null;
 
 // Configure hardware acceleration BEFORE `app.whenReady()` — the policy
 // decision is irreversible after that point.
@@ -79,7 +81,7 @@ function createWindow(): void {
   });
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   // Run database migration before creating window
   try {
     const dbPath = join(app.getPath('userData'), 'catalog.db');
@@ -97,12 +99,20 @@ app.whenReady().then(() => {
     ingestOrchestrator = new IngestOrchestrator(mainWindow);
     const tmdbVault = createTmdbKeyVault(join(app.getPath('userData'), 'tmdb.key'));
 
+    // Start the stream proxy service (G5)
+    streamProxyService = new StreamProxyService();
+    await streamProxyService.start(dbHandle.sqlite);
+    streamProxyService.setIpcMain(ipcMain);
+
     // Register every IPC channel in one shot.
     registerHandlers({
       mainWindow,
       db: dbHandle.sqlite,
       ingestOrchestrator,
       tmdbVault,
+      getProxiedBaseUrl: () => streamProxyService!.getPort()
+        ? `http://127.0.0.1:${streamProxyService!.getPort()}`
+        : undefined,
     });
   } catch (err) {
     console.error('Fatal: database migration failed', err);
@@ -119,7 +129,9 @@ app.whenReady().then(() => {
   });
 });
 
-app.on('before-quit', () => {
+app.on('before-quit', async () => {
+  await streamProxyService?.stop();
+  streamProxyService = null;
   dbHandle?.sqlite.close();
   dbHandle = null;
   ingestOrchestrator = null;
