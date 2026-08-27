@@ -1,5 +1,6 @@
 import { Worker } from 'worker_threads';
 import { randomUUID } from 'crypto';
+import { join } from 'node:path';
 import type { BrowserWindow } from 'electron';
 import type { IngestStartInput } from '../../shared/types/ipc';
 import type { IngestWorkerMessage } from '../../shared/types/ingest';
@@ -19,7 +20,54 @@ interface JobState {
   worker: Worker;
 }
 
+interface WorkerInput {
+  jobId: string;
+  source: 'xtream' | 'm3u';
+  url?: string;
+  credentials?: { server: string; username: string; password: string };
+  dbPath: string;
+}
+
+/**
+ * Resolves the path to the compiled ingest-worker file.
+ * - Production: dist/main/workers/ingest-worker.js (this file at
+ *   dist/main/services/ingest-orchestrator.js → ../workers/ingest-worker.js)
+ * - Tests: tests run against the source tree (src/main/workers/ingest-worker.ts).
+ *   Vitest can load .ts files, so the .ts path is also valid there.
+ *
+ * Tests can override the path via the static `setWorkerPath` method.
+ */
+function resolveDefaultWorkerPath(): string {
+  // When running tests, vitest uses ts-node-style loading and we can point at
+  // the source .ts file directly. When running in production the compiled
+  // .js file is at ../workers/ingest-worker.js relative to this module.
+  if (__dirname.includes('dist') || __dirname.includes('node_modules')) {
+    return join(__dirname, '..', 'workers', 'ingest-worker.js');
+  }
+  return join(__dirname, '..', 'workers', 'ingest-worker.ts');
+}
+
 export class IngestOrchestrator {
+  private static workerPath: string = resolveDefaultWorkerPath();
+  private static dbPath: string | undefined = undefined;
+
+  /**
+   * Override the path used to spawn the ingest worker. Intended for tests;
+   * production code uses the resolved default.
+   */
+  static setWorkerPath(path: string): void {
+    IngestOrchestrator.workerPath = path;
+  }
+
+  /**
+   * Override the SQLite DB path passed to the worker. When unset, the worker
+   * is spawned without a dbPath and `runIngestion` reports DB_ERROR. Tests
+   * can leave this unset since the unit tests don't exercise the worker.
+   */
+  static setDbPath(dbPath: string | undefined): void {
+    IngestOrchestrator.dbPath = dbPath;
+  }
+
   private currentJob: JobState | null = null;
   private readonly mainWindow: BrowserWindow;
 
@@ -42,9 +90,33 @@ export class IngestOrchestrator {
 
     const jobId = randomUUID();
 
-    // In test/dev mode, the worker file might not be compiled yet
-    // We'll use a mock worker for now
-    const worker = this.createWorker(jobId, input);
+    // Spawn the real ingest worker thread. The worker reads its configuration
+    // (source, url, credentials, dbPath) from workerData and reports progress
+    // / done / error via parentPort messages.
+    const workerInput: WorkerInput = {
+      jobId,
+      source: input.source,
+      url: input.url,
+      credentials: input.credentials,
+      dbPath: IngestOrchestrator.dbPath ?? '',
+    };
+
+    let worker: Worker;
+    try {
+      worker = new Worker(IngestOrchestrator.workerPath, { workerData: workerInput });
+    } catch (err) {
+      // If the worker file is missing or unspawnable (e.g. in unit tests
+      // where the path points to a non-existent file), surface a friendly
+      // error to the renderer instead of crashing the orchestrator.
+      const message = err instanceof Error ? err.message : 'Failed to spawn ingest worker';
+      this.mainWindow.webContents.send('ingest:error', {
+        jobId,
+        code: 'INTERNAL',
+        message,
+        retryable: false,
+      });
+      throw err;
+    }
 
     this.currentJob = {
       jobId,
@@ -107,6 +179,10 @@ export class IngestOrchestrator {
       }
     });
 
+    // Kick off the worker. The worker auto-starts on START and reports
+    // progress / done / error through the message handler above.
+    worker.postMessage({ type: 'START' });
+
     return { jobId };
   }
 
@@ -125,32 +201,5 @@ export class IngestOrchestrator {
       jobId: this.currentJob.jobId,
       ...this.currentJob.progress,
     };
-  }
-
-  private createWorker(jobId: string, input: IngestStartInput): Worker {
-    // For now, create a mock worker that simulates the ingestion
-    // In production, this would load the actual worker file
-    const worker = new Worker(
-      `
-      const { parentPort } = require('worker_threads');
-      parentPort.on('message', (msg) => {
-        if (msg.type === 'CANCEL') {
-          parentPort.postMessage({ type: 'DONE', jobId: '${jobId}', counts: { live: 0, movies: 0, series: 0, radio: 0, total: 0, aborted: true }, durationMs: 0 });
-        }
-        if (msg.type === 'START') {
-          // Simulate some work
-          setTimeout(() => {
-            parentPort.postMessage({ type: 'DONE', jobId: '${jobId}', counts: { live: 0, movies: 0, series: 0, radio: 0, total: 0 }, durationMs: 100 });
-          }, 10);
-        }
-      });
-      `,
-      { eval: true, workerData: { jobId, input } },
-    );
-
-    // Send START message
-    worker.postMessage({ type: 'START', payload: { source: input.source, entries: [] } });
-
-    return worker;
   }
 }

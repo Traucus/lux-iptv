@@ -1,7 +1,6 @@
 // ─── Catalog DTOs ─────────────────────────────────────────────────────────────
 // These match the Drizzle schema columns for each table.
-
-export type EnrichmentStatusValue = 'pending' | 'enriched' | 'not_found' | 'error';
+// Enrichment state lives in IndexedDB (`content_enrichment`), not here.
 
 export interface LiveChannel {
   id: number;
@@ -12,7 +11,6 @@ export interface LiveChannel {
   tvgId: string | null;
   tvgLogo: string | null;
   streamType: string;
-  enrichmentStatus: EnrichmentStatusValue;
   addedAt: number;
 }
 
@@ -25,7 +23,6 @@ export interface VodMovie {
   cover: string | null;
   streamType: string;
   year: number | null;
-  enrichmentStatus: EnrichmentStatusValue;
   addedAt: number;
 }
 
@@ -37,7 +34,6 @@ export interface Series {
   cover: string | null;
   streamType: string;
   year: number | null;
-  enrichmentStatus: EnrichmentStatusValue;
   addedAt: number;
 }
 
@@ -49,6 +45,5 @@ export interface Episode {
   season: number;
   episode: number;
   cover: string | null;
-  enrichmentStatus: EnrichmentStatusValue;
   addedAt: number;
 }

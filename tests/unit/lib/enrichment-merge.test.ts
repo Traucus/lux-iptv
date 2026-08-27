@@ -27,7 +27,6 @@ function makeItem(overrides: Partial<CatalogItem> = {}): CatalogItem {
     groupTitle: 'Sci-Fi',
     cover: 'http://m3u/cover.jpg',
     year: 1999,
-    enrichmentStatus: 'enriched',
     ...overrides,
   };
 }
@@ -139,6 +138,32 @@ describe('mergeEnrichment', () => {
   it('exposes the overview as the synopsis', () => {
     const merged = mergeEnrichment(makeItem(), makeEnrichment());
     expect(merged.overview).toBe('A hacker discovers reality is a simulation.');
+  });
+
+  it('maps enrichment "succeeded" to enrichmentStatus "enriched"', () => {
+    const merged = mergeEnrichment(makeItem(), makeEnrichment({ enrichmentStatus: 'succeeded' }));
+    expect(merged.enrichmentStatus).toBe('enriched');
+  });
+
+  it('maps enrichment "not_found" to enrichmentStatus "not_found"', () => {
+    const merged = mergeEnrichment(makeItem(), makeEnrichment({ enrichmentStatus: 'not_found' }));
+    expect(merged.enrichmentStatus).toBe('not_found');
+  });
+
+  it('maps enrichment "failed" to enrichmentStatus "error"', () => {
+    const merged = mergeEnrichment(makeItem(), makeEnrichment({ enrichmentStatus: 'failed' }));
+    expect(merged.enrichmentStatus).toBe('error');
+  });
+
+  it('maps pending/queued/fetching enrichment to enrichmentStatus "pending"', () => {
+    expect(mergeEnrichment(makeItem(), makeEnrichment({ enrichmentStatus: 'pending' })).enrichmentStatus).toBe('pending');
+    expect(mergeEnrichment(makeItem(), makeEnrichment({ enrichmentStatus: 'queued' })).enrichmentStatus).toBe('pending');
+    expect(mergeEnrichment(makeItem(), makeEnrichment({ enrichmentStatus: 'fetching' })).enrichmentStatus).toBe('pending');
+  });
+
+  it('returns enrichmentStatus "pending" when no enrichment record is provided', () => {
+    const merged = mergeEnrichment(makeItem(), null);
+    expect(merged.enrichmentStatus).toBe('pending');
   });
 
   it('exposes the voteAverage for the rating display', () => {

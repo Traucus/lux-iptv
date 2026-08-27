@@ -71,7 +71,7 @@ describe('DetailPage', () => {
 
   it('renders movie detail with degraded indicator when not enriched', async () => {
     mockApi.catalog.getById.mockResolvedValue({
-      data: { id: 1, name: 'Raw Title', url: 'http://x', groupTitle: 'Drama', cover: null, year: null, enrichmentStatus: 'pending' },
+      data: { id: 1, name: 'Raw Title', url: 'http://x', groupTitle: 'Drama', cover: null, year: null },
     });
     const { wrapper } = setup('/content/1');
     render(<DetailPage />, { wrapper });
@@ -85,18 +85,18 @@ describe('DetailPage', () => {
   it('renders series detail with season tabs', async () => {
     mockApi.catalog.getById.mockResolvedValue({
       data: {
-        series: { id: 1, name: 'Breaking Bad', url: '', groupTitle: null, cover: null, year: 2008, enrichmentStatus: 'enriched' },
+        series: { id: 1, name: 'Breaking Bad', url: '', groupTitle: null, cover: null, year: 2008 },
         seasons: [
           {
             seasonNumber: 1,
             episodes: [
-              { id: 100, seriesId: 1, name: 'Pilot', url: '', season: 1, episode: 1, cover: null, enrichmentStatus: 'enriched', addedAt: 0 },
+              { id: 100, seriesId: 1, name: 'Pilot', url: '', season: 1, episode: 1, cover: null, addedAt: 0 },
             ],
           },
           {
             seasonNumber: 2,
             episodes: [
-              { id: 200, seriesId: 1, name: 'Ep2', url: '', season: 2, episode: 2, cover: null, enrichmentStatus: 'enriched', addedAt: 0 },
+              { id: 200, seriesId: 1, name: 'Ep2', url: '', season: 2, episode: 2, cover: null, addedAt: 0 },
             ],
           },
         ],
@@ -115,13 +115,13 @@ describe('DetailPage', () => {
   it('renders episode numbers from the Episode DTO, not the SQLite id', async () => {
     mockApi.catalog.getById.mockResolvedValue({
       data: {
-        series: { id: 1, name: 'Severance', url: '', groupTitle: null, cover: null, year: 2022, enrichmentStatus: 'pending' },
+        series: { id: 1, name: 'Severance', url: '', groupTitle: null, cover: null, year: 2022 },
         seasons: [
           {
             seasonNumber: 1,
             episodes: [
               // id=42 is a fake PK; the real episode number is 7.
-              { id: 42, seriesId: 1, name: 'Defiant Jazz', url: '', season: 1, episode: 7, cover: null, enrichmentStatus: 'pending', addedAt: 0 },
+              { id: 42, seriesId: 1, name: 'Defiant Jazz', url: '', season: 1, episode: 7, cover: null, addedAt: 0 },
             ],
           },
         ],

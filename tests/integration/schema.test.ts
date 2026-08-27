@@ -24,7 +24,6 @@ describe('schema', () => {
         tvg_id TEXT,
         tvg_logo TEXT,
         stream_type TEXT NOT NULL DEFAULT 'live',
-        enrichment_status TEXT NOT NULL DEFAULT 'pending',
         added_at INTEGER NOT NULL
       );
       CREATE UNIQUE INDEX IF NOT EXISTS live_xtream_id_uq ON live_channels(xtream_id) WHERE xtream_id IS NOT NULL;
@@ -40,7 +39,6 @@ describe('schema', () => {
         cover TEXT,
         stream_type TEXT NOT NULL DEFAULT 'movie',
         year INTEGER,
-        enrichment_status TEXT NOT NULL DEFAULT 'pending',
         added_at INTEGER NOT NULL
       );
       CREATE UNIQUE INDEX IF NOT EXISTS vod_xtream_id_uq ON vod_movies(xtream_id) WHERE xtream_id IS NOT NULL;
@@ -55,7 +53,6 @@ describe('schema', () => {
         cover TEXT,
         stream_type TEXT NOT NULL DEFAULT 'series',
         year INTEGER,
-        enrichment_status TEXT NOT NULL DEFAULT 'pending',
         added_at INTEGER NOT NULL
       );
       CREATE UNIQUE INDEX IF NOT EXISTS series_xtream_id_uq ON series(xtream_id) WHERE xtream_id IS NOT NULL;
@@ -70,7 +67,6 @@ describe('schema', () => {
         season INTEGER NOT NULL,
         episode INTEGER NOT NULL,
         cover TEXT,
-        enrichment_status TEXT NOT NULL DEFAULT 'pending',
         added_at INTEGER NOT NULL
       );
       CREATE INDEX IF NOT EXISTS episodes_series_idx ON episodes(series_id);
@@ -98,8 +94,9 @@ describe('schema', () => {
     expect(columns).toContain('tvg_id');
     expect(columns).toContain('tvg_logo');
     expect(columns).toContain('stream_type');
-    expect(columns).toContain('enrichment_status');
     expect(columns).toContain('added_at');
+    // Enrichment state lives in IndexedDB, not SQLite
+    expect(columns).not.toContain('enrichment_status');
   });
 
   it('creates vod_movies table with correct columns', () => {
@@ -110,7 +107,7 @@ describe('schema', () => {
     expect(columns).toContain('url');
     expect(columns).toContain('cover');
     expect(columns).toContain('year');
-    expect(columns).toContain('enrichment_status');
+    expect(columns).not.toContain('enrichment_status');
   });
 
   it('creates series table with correct columns', () => {
@@ -118,7 +115,13 @@ describe('schema', () => {
     const columns = (info as Array<{ name: string }>).map((c) => c.name);
     expect(columns).toContain('id');
     expect(columns).toContain('name');
-    expect(columns).toContain('enrichment_status');
+    expect(columns).not.toContain('enrichment_status');
+  });
+
+  it('creates episodes table without enrichment_status column', () => {
+    const info = db.prepare("PRAGMA table_info('episodes')").all();
+    const columns = (info as Array<{ name: string }>).map((c) => c.name);
+    expect(columns).not.toContain('enrichment_status');
   });
 
   it('creates episodes table with FK to series', () => {

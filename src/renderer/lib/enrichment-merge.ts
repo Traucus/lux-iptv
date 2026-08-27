@@ -138,6 +138,12 @@ export function isEnrichmentSucceeded(record: ContentEnrichmentRecord | null | u
  * data with TMDB metadata from IndexedDB. The output is always a fully-typed
  * view: when no enrichment exists the enriched fields are null/empty and the
  * caller can detect degraded mode via `enrichmentStatus === 'enriched'`.
+ *
+ * The enrichment status is sourced exclusively from IndexedDB (the catalog
+ * schema in SQLite no longer carries enrichment state). When the renderer has
+ * a ContentEnrichmentRecord, `enrichmentStatus` is derived from it; when no
+ * record exists yet (still loading or never enqueued), we report 'pending' so
+ * the UI can avoid a flash of "enriched" before IndexedDB resolves.
  */
 export function mergeEnrichment(
   item: CatalogItem,
@@ -146,6 +152,7 @@ export function mergeEnrichment(
 ): EnrichedCatalogItem {
   const opts: Required<MergeEnrichmentOptions> = { ...DEFAULT_MERGE_OPTIONS, ...options };
   const hasEnrichment = isEnrichmentSucceeded(enrichment);
+  const enrichmentStatus = deriveEnrichmentStatus(enrichment);
 
   const tmdbPosterUrl = hasEnrichment
     ? buildTmdbImageUrl(enrichment!.posterPath, opts.posterSize)
@@ -173,6 +180,7 @@ export function mergeEnrichment(
 
   return {
     ...item,
+    enrichmentStatus,
     year: releaseYear,
     overview,
     posterUrl,
@@ -181,6 +189,35 @@ export function mergeEnrichment(
     runtime,
     genres,
   };
+}
+
+/**
+ * deriveEnrichmentStatus — maps the renderer-side ContentEnrichmentRecord
+ * state machine to the catalog-facing `CatalogEnrichmentStatus` value.
+ *
+ * Mapping:
+ *   - succeeded → 'enriched'
+ *   - not_found → 'not_found'
+ *   - failed    → 'error'
+ *   - pending/queued/fetching (or no record) → 'pending'
+ */
+function deriveEnrichmentStatus(
+  enrichment: ContentEnrichmentRecord | null | undefined,
+): EnrichedCatalogItem['enrichmentStatus'] {
+  if (!enrichment) return 'pending';
+  switch (enrichment.enrichmentStatus) {
+    case 'succeeded':
+      return 'enriched';
+    case 'not_found':
+      return 'not_found';
+    case 'failed':
+      return 'error';
+    case 'pending':
+    case 'queued':
+    case 'fetching':
+    default:
+      return 'pending';
+  }
 }
 
 // ─── Batch enrichment map ─────────────────────────────────────────────────────

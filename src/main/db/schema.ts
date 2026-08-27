@@ -13,10 +13,6 @@ export const liveChannels = sqliteTable(
     tvgId: text('tvg_id'),
     tvgLogo: text('tvg_logo'),
     streamType: text('stream_type').notNull().default('live'),
-    enrichmentStatus: text('enrichment_status')
-      .notNull()
-      .default('pending')
-      .$type<'pending' | 'enriched' | 'not_found' | 'error'>(),
     addedAt: integer('added_at').notNull(),
   },
   (t) => ({
@@ -40,10 +36,6 @@ export const vodMovies = sqliteTable(
     cover: text('cover'),
     streamType: text('stream_type').notNull().default('movie'),
     year: integer('year'),
-    enrichmentStatus: text('enrichment_status')
-      .notNull()
-      .default('pending')
-      .$type<'pending' | 'enriched' | 'not_found' | 'error'>(),
     addedAt: integer('added_at').notNull(),
   },
   (t) => ({
@@ -66,10 +58,6 @@ export const series = sqliteTable(
     cover: text('cover'),
     streamType: text('stream_type').notNull().default('series'),
     year: integer('year'),
-    enrichmentStatus: text('enrichment_status')
-      .notNull()
-      .default('pending')
-      .$type<'pending' | 'enriched' | 'not_found' | 'error'>(),
     addedAt: integer('added_at').notNull(),
   },
   (t) => ({
@@ -94,10 +82,6 @@ export const episodes = sqliteTable(
     season: integer('season').notNull(),
     episode: integer('episode').notNull(),
     cover: text('cover'),
-    enrichmentStatus: text('enrichment_status')
-      .notNull()
-      .default('pending')
-      .$type<'pending' | 'enriched' | 'not_found' | 'error'>(),
     addedAt: integer('added_at').notNull(),
   },
   (t) => ({

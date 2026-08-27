@@ -56,14 +56,6 @@
           "notNull": false,
           "autoincrement": false
         },
-        "enrichment_status": {
-          "name": "enrichment_status",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "'pending'"
-        },
         "added_at": {
           "name": "added_at",
           "type": "integer",
@@ -175,14 +167,6 @@
           "notNull": true,
           "autoincrement": false,
           "default": "'live'"
-        },
-        "enrichment_status": {
-          "name": "enrichment_status",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "'pending'"
         },
         "added_at": {
           "name": "added_at",
@@ -305,14 +289,6 @@
           "notNull": false,
           "autoincrement": false
         },
-        "enrichment_status": {
-          "name": "enrichment_status",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "'pending'"
-        },
         "added_at": {
           "name": "added_at",
           "type": "integer",
@@ -409,14 +385,6 @@
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
-        },
-        "enrichment_status": {
-          "name": "enrichment_status",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "'pending'"
         },
         "added_at": {
           "name": "added_at",

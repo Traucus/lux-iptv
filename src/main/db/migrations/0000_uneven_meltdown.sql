@@ -6,7 +6,6 @@ CREATE TABLE `episodes` (
 	`season` integer NOT NULL,
 	`episode` integer NOT NULL,
 	`cover` text,
-	`enrichment_status` text DEFAULT 'pending' NOT NULL,
 	`added_at` integer NOT NULL,
 	FOREIGN KEY (`series_id`) REFERENCES `series`(`id`) ON UPDATE no action ON DELETE cascade
 );
@@ -23,7 +22,6 @@ CREATE TABLE `live_channels` (
 	`tvg_id` text,
 	`tvg_logo` text,
 	`stream_type` text DEFAULT 'live' NOT NULL,
-	`enrichment_status` text DEFAULT 'pending' NOT NULL,
 	`added_at` integer NOT NULL
 );
 --> statement-breakpoint
@@ -44,7 +42,6 @@ CREATE TABLE `series` (
 	`cover` text,
 	`stream_type` text DEFAULT 'series' NOT NULL,
 	`year` integer,
-	`enrichment_status` text DEFAULT 'pending' NOT NULL,
 	`added_at` integer NOT NULL
 );
 --> statement-breakpoint
@@ -60,7 +57,6 @@ CREATE TABLE `vod_movies` (
 	`cover` text,
 	`stream_type` text DEFAULT 'movie' NOT NULL,
 	`year` integer,
-	`enrichment_status` text DEFAULT 'pending' NOT NULL,
 	`added_at` integer NOT NULL
 );
 --> statement-breakpoint

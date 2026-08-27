@@ -17,12 +17,12 @@ test.describe('ingest-to-dashboard flow', () => {
   test.beforeEach(async ({ page }) => {
     // Mock the IPC bridge before the app loads
     await page.addInitScript(() => {
-      type CatalogItem = { id: number; name: string; url: string; groupTitle: string | null; cover: string | null; year: number | null; enrichmentStatus: 'pending' | 'enriched' | 'not_found' | 'error' };
+      type CatalogItem = { id: number; name: string; url: string; groupTitle: string | null; cover: string | null; year: number | null };
 
       const fakeItems: CatalogItem[] = [
-        { id: 1, name: 'Inception', url: 'http://x/1', groupTitle: 'Drama', cover: null, year: 2010, enrichmentStatus: 'enriched' },
-        { id: 2, name: 'Breaking Bad', url: 'http://x/2', groupTitle: 'Drama', cover: null, year: 2008, enrichmentStatus: 'enriched' },
-        { id: 3, name: 'CNN', url: 'http://x/3', groupTitle: 'News', cover: null, year: null, enrichmentStatus: 'pending' },
+        { id: 1, name: 'Inception', url: 'http://x/1', groupTitle: 'Drama', cover: null, year: 2010 },
+        { id: 2, name: 'Breaking Bad', url: 'http://x/2', groupTitle: 'Drama', cover: null, year: 2008 },
+        { id: 3, name: 'CNN', url: 'http://x/3', groupTitle: 'News', cover: null, year: null },
       ];
 
       (window as unknown as { luxAPI: unknown }).luxAPI = {

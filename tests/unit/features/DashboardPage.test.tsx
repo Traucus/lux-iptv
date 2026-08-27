@@ -118,7 +118,7 @@ describe('DashboardPage', () => {
   it('renders movie carousels when content is present', async () => {
     mockApi.catalog.list.mockImplementation(async (input: { type: string }) => {
       if (input.type === 'movie') {
-        return { data: { items: [{ id: 1, name: 'Inception', url: '', groupTitle: null, cover: null, year: 2010, enrichmentStatus: 'enriched' }], total: 1 } };
+        return { data: { items: [{ id: 1, name: 'Inception', url: '', groupTitle: null, cover: null, year: 2010 }], total: 1 } };
       }
       return { data: { items: [], total: 0 } };
     });
@@ -159,7 +159,6 @@ describe('DashboardPage', () => {
                 groupTitle: null,
                 cover: null,
                 year: 1999,
-                enrichmentStatus: 'enriched',
               },
             ],
             total: 1,

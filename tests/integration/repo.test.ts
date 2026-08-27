@@ -18,7 +18,6 @@ describe('repo', () => {
         tvg_id TEXT,
         tvg_logo TEXT,
         stream_type TEXT NOT NULL DEFAULT 'live',
-        enrichment_status TEXT NOT NULL DEFAULT 'pending',
         added_at INTEGER NOT NULL
       );
       CREATE TABLE vod_movies (
@@ -30,7 +29,6 @@ describe('repo', () => {
         cover TEXT,
         stream_type TEXT NOT NULL DEFAULT 'movie',
         year INTEGER,
-        enrichment_status TEXT NOT NULL DEFAULT 'pending',
         added_at INTEGER NOT NULL
       );
     `);

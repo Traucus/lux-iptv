@@ -19,7 +19,6 @@ describe('ingest-worker', () => {
           tvg_id TEXT,
           tvg_logo TEXT,
           stream_type TEXT NOT NULL DEFAULT 'live',
-          enrichment_status TEXT NOT NULL DEFAULT 'pending',
           added_at INTEGER NOT NULL
         );
         CREATE TABLE vod_movies (
@@ -31,7 +30,6 @@ describe('ingest-worker', () => {
           cover TEXT,
           stream_type TEXT NOT NULL DEFAULT 'movie',
           year INTEGER,
-          enrichment_status TEXT NOT NULL DEFAULT 'pending',
           added_at INTEGER NOT NULL
         );
         CREATE TABLE series (
@@ -43,7 +41,6 @@ describe('ingest-worker', () => {
           cover TEXT,
           stream_type TEXT NOT NULL DEFAULT 'series',
           year INTEGER,
-          enrichment_status TEXT NOT NULL DEFAULT 'pending',
           added_at INTEGER NOT NULL
         );
         CREATE TABLE episodes (
@@ -54,7 +51,6 @@ describe('ingest-worker', () => {
           season INTEGER NOT NULL,
           episode INTEGER NOT NULL,
           cover TEXT,
-          enrichment_status TEXT NOT NULL DEFAULT 'pending',
           added_at INTEGER NOT NULL
         );
       `);
@@ -111,6 +107,16 @@ describe('ingest-worker', () => {
       const row = db.prepare('SELECT name, group_title FROM live_channels WHERE url = ?').get('https://stream.example.com/live/cnn-dedupe') as { name: string; group_title: string };
       expect(row.name).toBe('CNN Updated');
       expect(row.group_title).toBe('News HD');
+    });
+
+    it('does NOT insert enrichment_status (enrichment lives in IndexedDB)', () => {
+      const entries = [
+        { name: 'CNN', url: 'https://stream.example.com/channels/cnn-noenrich', groupTitle: 'News', tvgId: 'cnn', tvgLogo: null },
+      ];
+      processM3UEntries(db, entries);
+
+      const columns = (db.prepare("PRAGMA table_info('live_channels')").all() as Array<{ name: string }>).map((c) => c.name);
+      expect(columns).not.toContain('enrichment_status');
     });
   });
 });

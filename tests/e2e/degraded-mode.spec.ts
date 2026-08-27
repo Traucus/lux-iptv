@@ -10,9 +10,9 @@ test.describe('degraded-mode flow', () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => {
       const items = [
-        { id: 1, name: 'Raw Title 1', url: 'http://x/1', groupTitle: 'Movies', cover: null, year: null, enrichmentStatus: 'pending' },
-        { id: 2, name: 'Raw Title 2', url: 'http://x/2', groupTitle: 'Movies', cover: null, year: null, enrichmentStatus: 'pending' },
-        { id: 3, name: 'Raw Series', url: 'http://x/3', groupTitle: 'Drama', cover: null, year: null, enrichmentStatus: 'pending' },
+        { id: 1, name: 'Raw Title 1', url: 'http://x/1', groupTitle: 'Movies', cover: null, year: null },
+        { id: 2, name: 'Raw Title 2', url: 'http://x/2', groupTitle: 'Movies', cover: null, year: null },
+        { id: 3, name: 'Raw Series', url: 'http://x/3', groupTitle: 'Drama', cover: null, year: null },
       ];
 
       (window as unknown as { luxAPI: unknown }).luxAPI = {
@@ -79,10 +79,10 @@ test.describe('degraded-mode flow', () => {
             if (input.type === 'series') {
               return {
                 data: {
-                  series: { id: 3, name: 'Raw Series', url: 'http://x/3', groupTitle: 'Drama', cover: null, year: null, enrichmentStatus: 'pending' },
+                  series: { id: 3, name: 'Raw Series', url: 'http://x/3', groupTitle: 'Drama', cover: null, year: null },
                   seasons: [
-                    { seasonNumber: 1, episodes: [{ id: 10, name: 'S1E1', url: 'http://x/s1e1', groupTitle: null, cover: null, year: null, enrichmentStatus: 'pending' }] },
-                    { seasonNumber: 2, episodes: [{ id: 20, name: 'S2E1', url: 'http://x/s2e1', groupTitle: null, cover: null, year: null, enrichmentStatus: 'pending' }] },
+                    { seasonNumber: 1, episodes: [{ id: 10, name: 'S1E1', url: 'http://x/s1e1', groupTitle: null, cover: null, year: null }] },
+                    { seasonNumber: 2, episodes: [{ id: 20, name: 'S2E1', url: 'http://x/s2e1', groupTitle: null, cover: null, year: null }] },
                   ],
                 },
               };

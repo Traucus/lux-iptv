@@ -10,17 +10,17 @@ test.describe('detail-view flow', () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => {
       const fakeMovies = [
-        { id: 1, name: 'Inception', url: 'http://x/1', groupTitle: 'Drama', cover: 'http://x/poster.jpg', year: 2010, enrichmentStatus: 'enriched' },
+        { id: 1, name: 'Inception', url: 'http://x/1', groupTitle: 'Drama', cover: 'http://x/poster.jpg', year: 2010 },
       ];
       const fakeSeries = {
-        series: { id: 1000000000, name: 'Breaking Bad', url: 'http://x/sb', groupTitle: 'Drama', cover: null, year: 2008, enrichmentStatus: 'enriched' },
+        series: { id: 1000000000, name: 'Breaking Bad', url: 'http://x/sb', groupTitle: 'Drama', cover: null, year: 2008 },
         seasons: [
           { seasonNumber: 1, episodes: [
-            { id: 100, name: 'Pilot', url: 'http://x/sb-s1e1', groupTitle: null, cover: null, year: null, enrichmentStatus: 'enriched' },
-            { id: 101, name: "Cat's in the Bag…", url: 'http://x/sb-s1e2', groupTitle: null, cover: null, year: null, enrichmentStatus: 'enriched' },
+            { id: 100, name: 'Pilot', url: 'http://x/sb-s1e1', groupTitle: null, cover: null, year: null },
+            { id: 101, name: "Cat's in the Bag…", url: 'http://x/sb-s1e2', groupTitle: null, cover: null, year: null },
           ] },
           { seasonNumber: 2, episodes: [
-            { id: 200, name: 'Seven Thirty-Seven', url: 'http://x/sb-s2e1', groupTitle: null, cover: null, year: null, enrichmentStatus: 'enriched' },
+            { id: 200, name: 'Seven Thirty-Seven', url: 'http://x/sb-s2e1', groupTitle: null, cover: null, year: null },
           ] },
         ],
       };

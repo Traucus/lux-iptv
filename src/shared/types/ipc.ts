@@ -7,12 +7,17 @@ export type Episode = {
   season: number;
   episode: number;
   cover: string | null;
-  enrichmentStatus: 'pending' | 'enriched' | 'not_found' | 'error';
   addedAt: number;
 };
 
 // ─── Enriched CatalogItem (after merging TMDB enrichment from IndexedDB) ──────
+// The renderer computes enrichmentStatus from the IndexedDB enrichment record
+// (content_enrichment store). The catalog schema in SQLite does NOT carry
+// enrichment state — it lives alongside the TMDB payload in IndexedDB.
+export type CatalogEnrichmentStatus = 'pending' | 'enriched' | 'not_found' | 'error';
+
 export interface EnrichedCatalogItem extends CatalogItem {
+  enrichmentStatus: CatalogEnrichmentStatus;
   overview: string | null;
   posterUrl: string | null;
   backdropUrl: string | null;
@@ -89,7 +94,6 @@ export type CatalogItem = {
   groupTitle: string | null;
   cover: string | null;
   year: number | null;
-  enrichmentStatus: 'pending' | 'enriched' | 'not_found' | 'error';
 };
 
 export type SeriesDetail = {

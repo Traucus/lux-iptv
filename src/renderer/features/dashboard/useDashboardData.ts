@@ -109,6 +109,7 @@ export function useDashboardData(): DashboardData {
       return (
         merged[0] ?? {
           ...item,
+          enrichmentStatus: 'pending',
           overview: null,
           posterUrl: null,
           backdropUrl: null,

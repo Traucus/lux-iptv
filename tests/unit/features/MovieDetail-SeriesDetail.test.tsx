@@ -108,7 +108,6 @@ describe('SeriesDetailView', () => {
     season: 1,
     episode: 1,
     cover: null,
-    enrichmentStatus: 'enriched',
     addedAt: 0,
   };
 
@@ -121,7 +120,6 @@ describe('SeriesDetailView', () => {
         groupTitle: null,
         cover: null,
         year: 2022,
-        enrichmentStatus: 'enriched',
       },
       seasons: [
         {

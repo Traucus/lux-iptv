@@ -31,9 +31,9 @@ export function SeriesDetailView({
   onPlay,
   onAddToFavorites,
 }: SeriesDetailProps): React.ReactElement {
-  const enriched = series.series.enrichmentStatus === 'enriched';
   const view: EnrichedCatalogItem = enrichedSeries ?? {
     ...series.series,
+    enrichmentStatus: 'pending',
     overview: null,
     posterUrl: null,
     backdropUrl: null,
@@ -41,6 +41,7 @@ export function SeriesDetailView({
     runtime: null,
     genres: series.series.groupTitle ? [series.series.groupTitle] : [],
   };
+  const enriched = view.enrichmentStatus === 'enriched';
 
   const sortedSeasons = [...series.seasons].sort((a, b) => a.seasonNumber - b.seasonNumber);
   const initialSeason = sortedSeasons[0]?.seasonNumber ?? 1;
