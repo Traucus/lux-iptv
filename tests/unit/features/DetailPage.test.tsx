@@ -1,6 +1,9 @@
 // @vitest-environment happy-dom
 /**
  * DetailPage behavior tests — verifies degraded mode and series vs movie layouts.
+ * Also covers the verify-report fixes: episode numbers from the Episode DTO
+ * (not the SQLite primary key), enriched metadata merging, and the detail
+ * fanart/backdrop wiring.
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -84,8 +87,18 @@ describe('DetailPage', () => {
       data: {
         series: { id: 1, name: 'Breaking Bad', url: '', groupTitle: null, cover: null, year: 2008, enrichmentStatus: 'enriched' },
         seasons: [
-          { seasonNumber: 1, episodes: [{ id: 100, name: 'Pilot', url: '', groupTitle: null, cover: null, year: null, enrichmentStatus: 'enriched' }] },
-          { seasonNumber: 2, episodes: [{ id: 200, name: 'Ep2', url: '', groupTitle: null, cover: null, year: null, enrichmentStatus: 'enriched' }] },
+          {
+            seasonNumber: 1,
+            episodes: [
+              { id: 100, seriesId: 1, name: 'Pilot', url: '', season: 1, episode: 1, cover: null, enrichmentStatus: 'enriched', addedAt: 0 },
+            ],
+          },
+          {
+            seasonNumber: 2,
+            episodes: [
+              { id: 200, seriesId: 1, name: 'Ep2', url: '', season: 2, episode: 2, cover: null, enrichmentStatus: 'enriched', addedAt: 0 },
+            ],
+          },
         ],
       },
     });
@@ -97,6 +110,31 @@ describe('DetailPage', () => {
       expect(screen.getByText(/Season 1/i)).toBeTruthy();
       expect(screen.getByText(/Season 2/i)).toBeTruthy();
     });
+  });
+
+  it('renders episode numbers from the Episode DTO, not the SQLite id', async () => {
+    mockApi.catalog.getById.mockResolvedValue({
+      data: {
+        series: { id: 1, name: 'Severance', url: '', groupTitle: null, cover: null, year: 2022, enrichmentStatus: 'pending' },
+        seasons: [
+          {
+            seasonNumber: 1,
+            episodes: [
+              // id=42 is a fake PK; the real episode number is 7.
+              { id: 42, seriesId: 1, name: 'Defiant Jazz', url: '', season: 1, episode: 7, cover: null, enrichmentStatus: 'pending', addedAt: 0 },
+            ],
+          },
+        ],
+      },
+    });
+    const { wrapper } = setup('/content/1000000000');
+    render(<DetailPage />, { wrapper });
+
+    // The fix for verify report #2: "Ep. 7" comes from ep.episode, not ep.id=42.
+    await waitFor(() => {
+      expect(screen.getByText(/Ep\. 7 — Defiant Jazz/i)).toBeTruthy();
+    });
+    expect(screen.queryByText(/Ep\. 42 — Defiant Jazz/i)).toBeNull();
   });
 
   it('shows error state on API failure', async () => {

@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Spinner } from '../../components/atoms/Spinner';
 import { Button } from '../../components/atoms/Button';
 import { useContentById } from '../../queries/use-catalog';
+import { useEnrichedContent } from './useEnrichedContent';
 import { MovieDetail } from './MovieDetail';
 import { SeriesDetailView } from './SeriesDetail';
 import type { CatalogItem, CatalogType, SeriesDetail } from '../../../shared/types/ipc';
@@ -14,7 +15,8 @@ function isSeriesDetail(value: CatalogItem | SeriesDetail): value is SeriesDetai
 /**
  * DetailPage — Screen 4 detail view.
  * Routes /content/:id to either Movie or Series detail based on the type.
- * Falls back to degraded mode if no enrichment.
+ * Loads IndexedDB enrichment so the synopsis, genres, backdrop, and rating
+ * are displayed when available. Falls back to degraded mode otherwise.
  */
 export function DetailPage(): React.ReactElement {
   const { id } = useParams<{ id: string }>();
@@ -54,15 +56,64 @@ export function DetailPage(): React.ReactElement {
 
   if (isSeriesDetail(data)) {
     return (
-      <main className="min-h-screen bg-surface">
-        <SeriesDetailView series={data} onPlay={() => undefined} onAddToFavorites={() => undefined} />
-      </main>
+      <SeriesDetailPage data={data} onBack={() => navigate('/')} />
     );
   }
 
   return (
+    <MovieDetailPage item={data as CatalogItem} onBack={() => navigate('/')} />
+  );
+}
+
+function MovieDetailPage({ item, onBack }: { item: CatalogItem; onBack: () => void }): React.ReactElement {
+  // The enrichment hook may return null while the IndexedDB read is still
+  // pending. We only show a spinner for that brief moment; once the record
+  // is available (or we know it doesn't exist) we render the detail view.
+  const { enriched, isEnrichmentLoading } = useEnrichedContent(item, { optimisticFromStatus: true });
+  if (!enriched) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-surface">
+        <Spinner size="lg" label={isEnrichmentLoading ? 'Loading enrichment' : 'Loading detail'} />
+      </div>
+    );
+  }
+  return (
     <main className="min-h-screen bg-surface">
-      <MovieDetail item={data as CatalogItem} onPlay={() => undefined} onAddToFavorites={() => undefined} />
+      <div className="px-4 py-2">
+        <Button onClick={onBack} variant="glass" size="sm">
+          ← Back
+        </Button>
+      </div>
+      <MovieDetail
+        item={enriched}
+        onPlay={() => undefined}
+        onAddToFavorites={() => undefined}
+      />
+    </main>
+  );
+}
+
+function SeriesDetailPage({ data, onBack }: { data: SeriesDetail; onBack: () => void }): React.ReactElement {
+  const { enriched, isEnrichmentLoading } = useEnrichedContent(data.series, { optimisticFromStatus: true });
+  return (
+    <main className="min-h-screen bg-surface">
+      <div className="px-4 py-2">
+        <Button onClick={onBack} variant="glass" size="sm">
+          ← Back
+        </Button>
+      </div>
+      {isEnrichmentLoading && !enriched ? (
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <Spinner size="lg" label="Loading enrichment" />
+        </div>
+      ) : (
+        <SeriesDetailView
+          series={data}
+          enrichedSeries={enriched}
+          onPlay={() => undefined}
+          onAddToFavorites={() => undefined}
+        />
+      )}
     </main>
   );
 }

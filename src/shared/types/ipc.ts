@@ -1,3 +1,26 @@
+// ─── Episode (series detail payload) ──────────────────────────────────────────
+export type Episode = {
+  id: number;
+  seriesId: number;
+  name: string;
+  url: string;
+  season: number;
+  episode: number;
+  cover: string | null;
+  enrichmentStatus: 'pending' | 'enriched' | 'not_found' | 'error';
+  addedAt: number;
+};
+
+// ─── Enriched CatalogItem (after merging TMDB enrichment from IndexedDB) ──────
+export interface EnrichedCatalogItem extends CatalogItem {
+  overview: string | null;
+  posterUrl: string | null;
+  backdropUrl: string | null;
+  voteAverage: number | null;
+  runtime: number | null;
+  genres: string[];
+}
+
 // ─── Error Codes ──────────────────────────────────────────────────────────────
 export const ErrorCodes = [
   'INVALID_INPUT',
@@ -73,7 +96,7 @@ export type SeriesDetail = {
   series: CatalogItem;
   seasons: Array<{
     seasonNumber: number;
-    episodes: CatalogItem[];
+    episodes: Episode[];
   }>;
 };
 

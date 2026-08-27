@@ -21,6 +21,18 @@ export interface ContentEnrichmentRecord {
   enrichmentStatus: 'pending' | 'queued' | 'fetching' | 'succeeded' | 'failed' | 'not_found';
   attempts: number;
   lastAttemptAt: number | null;
+  /**
+   * TMDB genre IDs. Optional so older records (or records that never
+   * captured this) remain readable. The renderer resolves IDs to display
+   * names via a built-in map.
+   */
+  genreIds?: number[];
+  /**
+   * Runtime in minutes (movie length or typical episode length for series).
+   * Optional; the renderer formats this as "Xh Ym" or omits the field when
+   * missing per REQ-DEGRADED-3.
+   */
+  runtime?: number;
 }
 
 export interface NegativeCacheRecord {

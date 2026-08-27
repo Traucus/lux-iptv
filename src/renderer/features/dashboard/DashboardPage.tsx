@@ -8,35 +8,35 @@ import { ChannelCard, type ChannelCardData } from '../../components/molecules/Ch
 import { MoviePosterCard, type MoviePosterData } from '../../components/molecules/MoviePosterCard';
 import { SeriesPosterCard, type SeriesPosterData } from '../../components/molecules/SeriesPosterCard';
 import { useDashboardData } from './useDashboardData';
-import type { CatalogItem } from '../../../shared/types/ipc';
+import type { EnrichedCatalogItem } from '../../../shared/types/ipc';
 
-function itemToMovie(item: CatalogItem): MoviePosterData {
+function itemToMovie(item: EnrichedCatalogItem): MoviePosterData {
   return {
     id: item.id,
     name: item.name,
     year: item.year,
-    posterPath: item.cover,
+    posterPath: item.posterUrl ?? item.cover,
     enriched: item.enrichmentStatus === 'enriched',
   };
 }
 
-function itemToSeries(item: CatalogItem): SeriesPosterData {
+function itemToSeries(item: EnrichedCatalogItem): SeriesPosterData {
   return {
     id: item.id,
     name: item.name,
     year: item.year,
-    posterPath: item.cover,
+    posterPath: item.posterUrl ?? item.cover,
     seasonCount: 1,
     enriched: item.enrichmentStatus === 'enriched',
   };
 }
 
-function itemToChannel(item: CatalogItem): ChannelCardData {
+function itemToChannel(item: EnrichedCatalogItem): ChannelCardData {
   return {
     id: item.id,
     name: item.name,
     groupTitle: item.groupTitle,
-    logo: item.cover,
+    logo: item.posterUrl ?? item.cover,
     currentProgram: null,
   };
 }
@@ -44,6 +44,9 @@ function itemToChannel(item: CatalogItem): ChannelCardData {
 /**
  * DashboardPage — Screen 3 home dashboard with sidebar + hero + carousels.
  * Empty carousels are hidden. Degraded mode = empty data + fallback gradient hero.
+ *
+ * Featured content (hero) reads from IndexedDB enrichment so the synopsis,
+ * backdrop, and rating are populated when TMDB has hydrated the record.
  */
 export function DashboardPage(): React.ReactElement {
   const navigate = useNavigate();
@@ -55,7 +58,7 @@ export function DashboardPage(): React.ReactElement {
     else if (section === 'home') navigate('/');
   };
 
-  const featured: CatalogItem | undefined = data.recentMovies.items[0];
+  const featured: EnrichedCatalogItem | undefined = data.recentMovies[0];
 
   return (
     <div className="min-h-screen bg-surface flex">
@@ -75,11 +78,11 @@ export function DashboardPage(): React.ReactElement {
                 data={{
                   title: featured.name,
                   year: featured.year,
-                  genres: featured.groupTitle ? [featured.groupTitle] : [],
-                  synopsis: null,
-                  rating: null,
+                  genres: featured.genres,
+                  synopsis: featured.overview,
+                  rating: featured.voteAverage,
                 }}
-                backdropUrl={null}
+                backdropUrl={featured.backdropUrl}
                 onPlay={() => navigate(`/content/${featured.id}`)}
                 onMoreInfo={() => navigate(`/content/${featured.id}`)}
               />
@@ -89,7 +92,7 @@ export function DashboardPage(): React.ReactElement {
 
             <ContentCarousel
               title="Continue Watching"
-              items={data.continueWatching.items.map(itemToMovie)}
+              items={data.continueWatching.map(itemToMovie)}
               renderItem={(movie) => (
                 <MoviePosterCard
                   key={movie.id}
@@ -101,7 +104,7 @@ export function DashboardPage(): React.ReactElement {
 
             <ContentCarousel
               title="Live Channels"
-              items={data.liveChannels.items.map(itemToChannel)}
+              items={data.liveChannels.map(itemToChannel)}
               renderItem={(ch) => (
                 <ChannelCard key={ch.id} channel={ch} />
               )}
@@ -109,7 +112,7 @@ export function DashboardPage(): React.ReactElement {
 
             <ContentCarousel
               title="Recent Movies"
-              items={data.recentMovies.items.map(itemToMovie)}
+              items={data.recentMovies.map(itemToMovie)}
               renderItem={(movie) => (
                 <MoviePosterCard
                   key={movie.id}
@@ -121,7 +124,7 @@ export function DashboardPage(): React.ReactElement {
 
             <ContentCarousel
               title="Recent Series"
-              items={data.recentSeries.items.map(itemToSeries)}
+              items={data.recentSeries.map(itemToSeries)}
               renderItem={(series) => (
                 <SeriesPosterCard
                   key={series.id}
