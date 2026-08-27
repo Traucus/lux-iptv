@@ -87,3 +87,4 @@ stitch-output/
 *.stitch.bak
 .codegraph/
 .atl/.skill-registry.cache.json
+*:Zone.Identifier
