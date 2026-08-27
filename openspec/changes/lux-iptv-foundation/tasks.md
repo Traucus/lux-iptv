@@ -245,119 +245,119 @@ Chain strategy: **stacked-to-main**
 
 ### Phase 7: G6 Player Core — Infrastructure
 
-- [ ] **TASK-047**: Install `hls.js` npm package
+- [x] **TASK-047**: Install `hls.js` npm package
   - Type: `setup` | LOC: ~1 | Dependencies: TASK-034
   - Tests: None
 
-- [ ] **TASK-048** *(RED → GREEN)*: Write `tests/unit/hls-client.test.ts` — mock hls.js, assert resilience loop: 1s/2s/4s backoff on NetworkError, 3 retries, `recoverMediaError()` on MediaError, emits `fatal` after exhausted retries
+- [x] **TASK-048** *(RED → GREEN)*: Write `tests/unit/hls-client.test.ts` — mock hls.js, assert resilience loop: 1s/2s/4s backoff on NetworkError, 3 retries, `recoverMediaError()` on MediaError, emits `fatal` after exhausted retries
   - Type: `test` | LOC: ~120 | Dependencies: TASK-047
   - Tests: `vitest run tests/unit/hls-client.test.ts`
 
-- [ ] **TASK-049**: Implement `src/renderer/services/hls-client.ts` — `HlsClient` class wrapping hls.js, `load()`, `destroy()`, `on/off`, `audioTracks/subtitleTracks/levels` getters
+- [x] **TASK-049**: Implement `src/renderer/services/hls-client.ts` — `HlsClient` class wrapping hls.js, `load()`, `destroy()`, `on/off`, `audioTracks/subtitleTracks/levels` getters
   - Type: `component` | LOC: ~80 | Dependencies: TASK-048 (tests written first)
   - Tests: `vitest run tests/unit/hls-client.test.ts`
 
-- [ ] **TASK-050** *(RED → GREEN)*: Write `tests/unit/media-engine.test.ts` — engine selection: hls.js for HLS/DASH/TS/unknown, native for MP4; resilience loop test
+- [x] **TASK-050** *(RED → GREEN)*: Write `tests/unit/media-engine.test.ts` — engine selection: hls.js for HLS/DASH/TS/unknown, native for MP4; resilience loop test
   - Type: `test` | LOC: ~100 | Dependencies: TASK-049
   - Tests: `vitest run tests/unit/media-engine.test.ts`
 
-- [ ] **TASK-051**: Implement `src/renderer/services/media-engine.ts` — `MediaEngine` class with `EngineKind`, engine selection, resilience loop, event emitter
+- [x] **TASK-051**: Implement `src/renderer/services/media-engine.ts` — `MediaEngine` class with `EngineKind`, engine selection, resilience loop, event emitter
   - Type: `component` | LOC: ~100 | Dependencies: TASK-050 (tests written first)
   - Tests: `vitest run tests/unit/media-engine.test.ts`
 
-- [ ] **TASK-052** *(RED → GREEN)*: Write `tests/unit/next-episode.test.ts` — same-season next, cross-season next, last-episode returns null
+- [x] **TASK-052** *(RED → GREEN)*: Write `tests/unit/next-episode.test.ts` — same-season next, cross-season next, last-episode returns null
   - Type: `test` | LOC: ~50 | Dependencies: TASK-029
   - Tests: `vitest run tests/unit/next-episode.test.ts`
 
-- [ ] **TASK-053**: Implement `src/renderer/features/player/next-episode.ts` — `resolveNextEpisode(current, seasons): Episode|null`
+- [x] **TASK-053**: Implement `src/renderer/features/player/next-episode.ts` — `resolveNextEpisode(current, seasons): Episode|null`
   - Type: `logic` | LOC: ~30 | Dependencies: TASK-052 (tests written first)
   - Tests: `vitest run tests/unit/next-episode.test.ts`
 
-- [ ] **TASK-054** *(RED → GREEN)*: Write `tests/unit/resume.test.ts` — IndexedDB via `fake-indexeddb`, getPosition/setPosition/clearPosition, throttled writes
+- [x] **TASK-054** *(RED → GREEN)*: Write `tests/unit/resume.test.ts` — IndexedDB via `fake-indexeddb`, getPosition/setPosition/clearPosition, throttled writes
   - Type: `test` | LOC: ~80 | Dependencies: TASK-013 (from PR1)
   - Tests: `vitest run tests/unit/resume.test.ts`
 
-- [ ] **TASK-055**: Implement `src/renderer/db/playback-resume.ts` — IndexedDB store using `idb`, `getPosition`, `setPosition`, `clearPosition`
+- [x] **TASK-055**: Implement `src/renderer/db/playback-resume.ts` — IndexedDB store using `idb`, `getPosition`, `setPosition`, `clearPosition`
   - Type: `component` | LOC: ~60 | Dependencies: TASK-054 (tests written first)
   - Tests: `vitest run tests/unit/resume.test.ts`
 
-- [ ] **TASK-056**: Implement `src/renderer/lib/fps-monitor.ts` — `requestAnimationFrame` loop, 60-frame rolling average, console.warn if avg < 55 for 2s
+- [x] **TASK-056**: Implement `src/renderer/lib/fps-monitor.ts` — `requestAnimationFrame` loop, 60-frame rolling average, console.warn if avg < 55 for 2s
   - Type: `component` | LOC: ~30 | Dependencies: —
   - Tests: None (monitor only)
 
 ### Phase 8: G6 Player Core — UI Components
 
-- [ ] **TASK-057** *(RED → GREEN)*: Write `tests/unit/seek-bar.test.ts` — pointer drag on bar, RTL pointer events, D-Pad ±10s, accessibility `role="slider"`
+- [x] **TASK-057** *(RED → GREEN)*: Write `tests/unit/seek-bar.test.ts` — pointer drag on bar, RTL pointer events, D-Pad ±10s, accessibility `role="slider"`
   - Type: `test` | LOC: ~80 | Dependencies: TASK-015 (from PR1)
   - Tests: `vitest run tests/unit/seek-bar.test.ts`
 
-- [ ] **TASK-058**: Implement `src/renderer/components/molecules/osd/SeekBar.tsx` — pointer drag, D-Pad keys, buffer visualization, accessibility attributes
+- [x] **TASK-058**: Implement `src/renderer/components/molecules/osd/SeekBar.tsx` — pointer drag, D-Pad keys, buffer visualization, accessibility attributes
   - Type: `component` | LOC: ~90 | Dependencies: TASK-057 (tests written first)
   - Tests: `vitest run tests/unit/seek-bar.test.ts`
 
-- [ ] **TASK-059** *(RED → GREEN)*: Write `tests/unit/osd-auto-hide.test.ts` — fake timers, visibility flips after 4s inactivity, resets on mousemove/keydown/pointerdown/wheel
+- [x] **TASK-059** *(RED → GREEN)*: Write `tests/unit/osd-auto-hide.test.ts` — fake timers, visibility flips after 4s inactivity, resets on mousemove/keydown/pointerdown/wheel
   - Type: `test` | LOC: ~50 | Dependencies: TASK-015 (from PR1)
   - Tests: `vitest run tests/unit/osd-auto-hide.test.ts`
 
-- [ ] **TASK-060**: Implement `src/renderer/hooks/useIdleOSD.ts` — `useIdleOSD(ms)` hook returning `{visible: boolean}`
+- [x] **TASK-060**: Implement `src/renderer/hooks/useIdleOSD.ts` — `useIdleOSD(ms)` hook returning `{visible: boolean}`
   - Type: `component` | LOC: ~25 | Dependencies: TASK-059 (tests written first)
   - Tests: `vitest run tests/unit/osd-auto-hide.test.ts`
 
-- [ ] **TASK-061**: Implement `src/renderer/components/molecules/osd/OsdTopBar.tsx` — back arrow, title, resolution/audio badge
+- [x] **TASK-061**: Implement `src/renderer/components/molecules/osd/OsdTopBar.tsx` — back arrow, title, resolution/audio badge
   - Type: `component` | LOC: ~40 | Dependencies: TASK-060
   - Tests: None (UI component)
 
-- [ ] **TASK-062**: Implement `src/renderer/components/molecules/osd/OsdControls.tsx` — rewind-10, play/pause, fwd-10, audio, subtitle, aspect buttons
+- [x] **TASK-062**: Implement `src/renderer/components/molecules/osd/OsdControls.tsx` — rewind-10, play/pause, fwd-10, audio, subtitle, aspect buttons
   - Type: `component` | LOC: ~60 | Dependencies: TASK-061
   - Tests: None (UI component)
 
-- [ ] **TASK-063**: Implement `src/renderer/components/molecules/osd/TrackSelectorModal.tsx` — dual list (audio + subtitles)
+- [x] **TASK-063**: Implement `src/renderer/components/molecules/osd/TrackSelectorModal.tsx` — dual list (audio + subtitles)
   - Type: `component` | LOC: ~50 | Dependencies: TASK-062
   - Tests: None (UI component)
 
-- [ ] **TASK-064**: Implement `src/renderer/components/molecules/osd/AspectRatioSelector.tsx` — cycles `16:9 → 4:3 → Zoom → Fit` via `data-aspect`
+- [x] **TASK-064**: Implement `src/renderer/components/molecules/osd/AspectRatioSelector.tsx` — cycles `16:9 → 4:3 → Zoom → Fit` via `data-aspect`
   - Type: `component` | LOC: ~40 | Dependencies: TASK-062
   - Tests: None (UI component)
 
-- [ ] **TASK-065** *(RED → GREEN)*: Write `tests/unit/next-episode-card.test.ts` — 10s countdown, navigate on expiry, dismiss via ESC/Back
+- [x] **TASK-065** *(RED → GREEN)*: Write `tests/unit/next-episode-card.test.ts` — 10s countdown, navigate on expiry, dismiss via ESC/Back
   - Type: `test` | LOC: ~50 | Dependencies: TASK-052, TASK-053
   - Tests: `vitest run tests/unit/next-episode-card.test.ts`
 
-- [ ] **TASK-066**: Implement `src/renderer/components/molecules/osd/NextEpisodeCard.tsx` — countdown, navigate on expiry, dismiss
+- [x] **TASK-066**: Implement `src/renderer/components/molecules/osd/NextEpisodeCard.tsx` — countdown, navigate on expiry, dismiss
   - Type: `component` | LOC: ~60 | Dependencies: TASK-065 (tests written first), TASK-053
   - Tests: `vitest run tests/unit/next-episode-card.test.ts`
 
-- [ ] **TASK-067** *(RED → GREEN)*: Write `tests/unit/video-player.test.ts` — mount, engine created/destroyed, spinner during recovering, error UI on fatal
+- [x] **TASK-067** *(RED → GREEN)*: Write `tests/unit/video-player.test.ts` — mount, engine created/destroyed, spinner during recovering, error UI on fatal
   - Type: `test` | LOC: ~80 | Dependencies: TASK-051, TASK-060
   - Tests: `vitest run tests/unit/video-player.test.ts`
 
-- [ ] **TASK-068**: Implement `src/renderer/components/organisms/VideoPlayer.tsx` — full-bleed `<video>`, MediaEngine ref, OSD overlay, focus management, auto-hide timer
+- [x] **TASK-068**: Implement `src/renderer/components/organisms/VideoPlayer.tsx` — full-bleed `<video>`, MediaEngine ref, OSD overlay, focus management, auto-hide timer
   - Type: `component` | LOC: ~120 | Dependencies: TASK-067 (tests written first), TASK-051, TASK-058, TASK-060, TASK-061, TASK-062, TASK-064, TASK-066
   - Tests: `vitest run tests/unit/video-player.test.ts`
 
-- [ ] **TASK-069** *(RED → GREEN)*: Write `tests/unit/player-page.test.ts` — kind='live' hides SeekBar + resume; kind='movie'/'episode' shows full OSD + resume; invalid type → Navigate to="/"
+- [x] **TASK-069** *(RED → GREEN)*: Write `tests/unit/player-page.test.ts` — kind='live' hides SeekBar + resume; kind='movie'/'episode' shows full OSD + resume; invalid type → Navigate to="/"
   - Type: `test` | LOC: ~70 | Dependencies: TASK-055, TASK-068
   - Tests: `vitest run tests/unit/player-page.test.ts`
 
-- [ ] **TASK-070**: Implement `src/renderer/features/player/PlayerPage.tsx` — URL params → catalog query → source resolution → VideoPlayer; live vs VOD branching; ResumeDialog
+- [x] **TASK-070**: Implement `src/renderer/features/player/PlayerPage.tsx` — URL params → catalog query → source resolution → VideoPlayer; live vs VOD branching; ResumeDialog
   - Type: `component` | LOC: ~100 | Dependencies: TASK-069 (tests written first), TASK-029, TASK-034, TASK-051, TASK-055, TASK-068
   - Tests: `vitest run tests/unit/player-page.test.ts`
 
-- [ ] **TASK-071** *(RED → GREEN)*: Write `tests/e2e/player-playback.spec.ts` — Playwright with m3u8Server fixture, assert `<video>` events fire
+- [x] **TASK-071** *(RED → GREEN)*: Write `tests/e2e/player-playback.spec.ts` — Playwright with m3u8Server fixture, assert `<video>` events fire
   - Type: `e2e` | LOC: ~60 | Dependencies: TASK-017 (from PR1), TASK-019 (from PR1), TASK-068, TASK-070
   - Tests: `npx playwright test tests/e2e/player-playback.spec.ts`
 
 ### Phase 9: G6 Player Core — IPC Wiring
 
-- [ ] **TASK-072**: Implement `player:getNextEpisode` IPC handler in `src/main/ipc/handlers/player.ts` — resolve from DB using `resolveNextEpisode` logic
+- [x] **TASK-072**: Implement `player:getNextEpisode` IPC handler in `src/main/ipc/handlers/player.ts` — resolve from DB using `resolveNextEpisode` logic
   - Type: `logic` | LOC: ~40 | Dependencies: TASK-053, TASK-034
   - Tests: Covered by integration test
 
-- [ ] **TASK-073**: Implement `player:getProxiedUrl` IPC handler in `src/main/ipc/handlers/player.ts` — look up row, return `http://127.0.0.1:{port}/proxy/{type}/{id}`
+- [x] **TASK-073**: Implement `player:getProxiedUrl` IPC handler in `src/main/ipc/handlers/player.ts` — look up row, return `http://127.0.0.1:{port}/proxy/{type}/{id}`
   - Type: `logic` | LOC: ~30 | Dependencies: TASK-043, TASK-034
   - Tests: Covered by proxy integration test
 
-- [ ] **TASK-074**: Wire `player:reportProgress` + `player:reportError` in `src/main/ipc/handlers/player.ts` (logging only)
+- [x] **TASK-074**: Wire `player:reportProgress` + `player:reportError` in `src/main/ipc/handlers/player.ts` (logging only)
   - Type: `logic` | LOC: ~25 | Dependencies: TASK-034
   - Tests: None (logging only)
 
