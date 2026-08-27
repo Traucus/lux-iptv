@@ -13,6 +13,13 @@ export const liveChannels = sqliteTable(
     tvgId: text('tvg_id'),
     tvgLogo: text('tvg_logo'),
     streamType: text('stream_type').notNull().default('live'),
+    httpHeaders: text('http_headers', { mode: 'json' })
+      .$type<Record<string, string>>()
+      .notNull()
+      .default({}),
+    mediaFormat: text('media_format', { enum: ['hls', 'mp4', 'dash', 'ts', 'unknown'] })
+      .notNull()
+      .default('unknown'),
     addedAt: integer('added_at').notNull(),
   },
   (t) => ({
@@ -35,6 +42,13 @@ export const vodMovies = sqliteTable(
     groupTitle: text('group_title'),
     cover: text('cover'),
     streamType: text('stream_type').notNull().default('movie'),
+    httpHeaders: text('http_headers', { mode: 'json' })
+      .$type<Record<string, string>>()
+      .notNull()
+      .default({}),
+    mediaFormat: text('media_format', { enum: ['hls', 'mp4', 'dash', 'ts', 'unknown'] })
+      .notNull()
+      .default('unknown'),
     year: integer('year'),
     addedAt: integer('added_at').notNull(),
   },
@@ -57,6 +71,13 @@ export const series = sqliteTable(
     groupTitle: text('group_title'),
     cover: text('cover'),
     streamType: text('stream_type').notNull().default('series'),
+    httpHeaders: text('http_headers', { mode: 'json' })
+      .$type<Record<string, string>>()
+      .notNull()
+      .default({}),
+    mediaFormat: text('media_format', { enum: ['hls', 'mp4', 'dash', 'ts', 'unknown'] })
+      .notNull()
+      .default('unknown'),
     year: integer('year'),
     addedAt: integer('added_at').notNull(),
   },
@@ -82,6 +103,13 @@ export const episodes = sqliteTable(
     season: integer('season').notNull(),
     episode: integer('episode').notNull(),
     cover: text('cover'),
+    httpHeaders: text('http_headers', { mode: 'json' })
+      .$type<Record<string, string>>()
+      .notNull()
+      .default({}),
+    mediaFormat: text('media_format', { enum: ['hls', 'mp4', 'dash', 'ts', 'unknown'] })
+      .notNull()
+      .default('unknown'),
     addedAt: integer('added_at').notNull(),
   },
   (t) => ({

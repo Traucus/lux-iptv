@@ -7,6 +7,17 @@ export default defineConfig({
     environment: 'node',
     include: ['src/**/*.test.ts', 'src/**/*.test.tsx', 'tests/**/*.test.ts', 'tests/**/*.test.tsx'],
     exclude: ['node_modules', 'dist', 'release', 'tests/e2e/**'],
+    // Per-file environment overrides for the player surface area.
+    // Player tests touch `window`, `document`, `HTMLMediaElement` — they
+    // need a DOM-ish environment. We default to `happy-dom` (lighter than
+    // jsdom) for everything under `tests/unit/player/**` and the renderer
+    // `src/renderer/features/player/**`. Tests that want a different
+    // environment (e.g. `node`) can override with a
+    // `// @vitest-environment node` docblock at the top of the file.
+    environmentMatchGlobs: [
+      ['tests/unit/player/**', 'happy-dom'],
+      ['src/renderer/features/player/**', 'happy-dom'],
+    ],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
