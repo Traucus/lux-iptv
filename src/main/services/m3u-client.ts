@@ -1,7 +1,7 @@
 import { parsePlaylist } from 'iptv-m3u-playlist-parser';
 import * as fs from 'fs';
 import * as path from 'path';
-import type { MediaFormat } from '../../shared/types/player';
+import type { MediaFormat } from '../../shared/types/player.js';
 
 /**
  * HTTP request hints captured from M3U `Entry.http` (EXTVLCOPT).

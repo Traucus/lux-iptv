@@ -5,9 +5,44 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; media-src 'self' blob:; connect-src 'self'; worker-src 'self' blob:;"
+      content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; media-src 'self' blob:; connect-src 'self' ws: http:; worker-src 'self' blob:; img-src 'self' data:;"
     />
     <title>Lux IPTV</title>
+    <script>
+      // Browser mock for window.luxAPI when running outside Electron
+      if (!window.luxAPI) {
+        var noop = function() { return Promise.resolve({ data: undefined }); };
+        var noopSub = function() { return function() {}; };
+        window.luxAPI = {
+          ingest: {
+            start: function() { return Promise.resolve({ data: { jobId: 'mock-job' } }); },
+            cancel: noop,
+            getProgress: function() { return Promise.resolve({ data: { phase: 'DONE', percent: 100, counts: { live: 0, movies: 0, series: 0, radio: 0, total: 0 } } }); },
+            onProgress: noopSub,
+          },
+          catalog: {
+            list: function() { return Promise.resolve({ data: { items: [], total: 0 } }); },
+            getById: function() { return Promise.resolve({ data: undefined }); },
+          },
+          enrichment: {
+            getStatus: function() { return Promise.resolve({ data: { queueLength: 0, lastEnrichedAt: null, isRunning: false } }); },
+          },
+          tmdb: {
+            setKey: function() { return Promise.resolve({ data: { valid: false } }); },
+            hasKey: function() { return Promise.resolve({ data: false }); },
+            clearKey: noop,
+          },
+          player: {
+            getSource: noop,
+            getProxiedUrl: noop,
+            reportError: noop,
+            reportProgress: noop,
+            getNextEpisode: function() { return Promise.resolve({ data: null }); },
+          },
+        };
+        console.info('[dev] luxAPI mock installed (browser mode)');
+      }
+    </script>
   </head>
   <body class="bg-surface text-white font-sans antialiased">
     <div id="root"></div>

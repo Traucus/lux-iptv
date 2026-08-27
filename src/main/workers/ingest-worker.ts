@@ -1,10 +1,14 @@
 import { parentPort, workerData } from 'worker_threads';
-import { join } from 'node:path';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 import Database from 'better-sqlite3';
-import { migrate } from '../db/migrate';
-import { classify } from '../services/classifier';
-import { fetchM3U } from '../services/m3u-client';
-import type { M3UEntry, M3UEntryHttpHints } from '../services/m3u-client';
+import { migrate } from '../db/migrate.js';
+import { classify } from '../services/classifier.js';
+import { fetchM3U } from '../services/m3u-client.js';
+import type { M3UEntry, M3UEntryHttpHints } from '../services/m3u-client.js';
 
 export interface IngestCounts {
   live: number;
@@ -241,7 +245,7 @@ export async function runIngestion(data: IngestWorkerData): Promise<IngestCounts
     // Run migrations so the schema is in place when the worker opens a fresh
     // catalog. The migrate() helper is idempotent — applying the same set
     // repeatedly is a no-op.
-    const { loadMigrations } = await import('../db/migrate');
+    const { loadMigrations } = await import('../db/migrate.js');
     const migrationsDir = getMigrationsDir();
     const migrations = loadMigrations(migrationsDir);
     migrate(db, migrations);

@@ -1,7 +1,8 @@
-import * as fs from 'fs';
-import { machineIdSync } from 'node-machine-id';
-import { encrypt, decrypt } from './encryption';
-import { validateKey } from './tmdb-validate';
+import * as fs from 'node:fs';
+import pkg from 'node-machine-id';
+const { machineIdSync } = pkg;
+import { encrypt, decrypt } from './encryption.js';
+import { validateKey } from './tmdb-validate.js';
 
 export interface TmdbKeyVault {
   setTmdbKey(plain: string): Promise<{ valid: boolean }>;

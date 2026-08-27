@@ -1,9 +1,13 @@
 import { Worker } from 'worker_threads';
 import { randomUUID } from 'crypto';
-import { join } from 'node:path';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 import type { BrowserWindow } from 'electron';
-import type { IngestStartInput } from '../../shared/types/ipc';
-import type { IngestWorkerMessage } from '../../shared/types/ingest';
+import type { IngestStartInput } from '../../shared/types/ipc.js';
+import type { IngestWorkerMessage } from '../../shared/types/ingest.js';
 
 interface JobState {
   jobId: string;

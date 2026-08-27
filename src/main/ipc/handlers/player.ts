@@ -1,14 +1,14 @@
 import type { IpcMain } from 'electron';
 import type Database from 'better-sqlite3';
-import type { Episode, IpcResult } from '../../../shared/types/ipc';
-import type { MediaFormat } from '../../../shared/types/player';
+import type { Episode, IpcResult } from '../../../shared/types/ipc.js';
+import type { MediaFormat } from '../../../shared/types/player.js';
 import {
   PlayerGetSourceInputSchema,
   PlayerReportErrorInputSchema,
   PlayerReportProgressInputSchema,
   PlayerGetNextEpisodeInputSchema,
   PlayerGetProxiedUrlInputSchema,
-} from '../../../shared/schemas/player';
+} from '../../../shared/schemas/player.js';
 
 /**
  * Player IPC handlers.

@@ -1,7 +1,7 @@
 import type { IpcMain } from 'electron';
-import { TmdbKeyInputSchema } from '../../../shared/schemas/tmdb';
-import type { IpcResult } from '../../../shared/types/ipc';
-import type { TmdbKeyVault } from '../../services/tmdb-key';
+import { TmdbKeyInputSchema } from '../../../shared/schemas/tmdb.js';
+import type { IpcResult } from '../../../shared/types/ipc.js';
+import type { TmdbKeyVault } from '../../services/tmdb-key.js';
 
 function invalidInput(details: unknown): IpcResult<never> {
   return { error: { code: 'INVALID_INPUT', message: 'Invalid input', details } };

@@ -1,5 +1,5 @@
 import type { IpcMain } from 'electron';
-import type { IpcResult, EnrichmentStatus } from '../../../shared/types/ipc';
+import type { IpcResult, EnrichmentStatus } from '../../../shared/types/ipc.js';
 
 // Status is updated by the renderer via IPC
 let currentStatus: EnrichmentStatus = {

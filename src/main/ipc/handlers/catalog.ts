@@ -1,13 +1,13 @@
 import type { IpcMain } from 'electron';
 import type Database from 'better-sqlite3';
-import type { CatalogListInputParsed, CatalogGetByIdInputParsed } from '../../../shared/schemas/catalog';
+import type { CatalogListInputParsed, CatalogGetByIdInputParsed } from '../../../shared/schemas/catalog.js';
 import type {
   CatalogItem,
   CatalogListOutput,
   SeriesDetail,
   CatalogType,
-} from '../../../shared/types/ipc';
-import { CatalogListInputSchema, CatalogGetByIdInputSchema } from '../../../shared/schemas/catalog';
+} from '../../../shared/types/ipc.js';
+import { CatalogListInputSchema, CatalogGetByIdInputSchema } from '../../../shared/schemas/catalog.js';
 
 /**
  * Catalog IPC handler — exposes paginated reads against the SQLite catalog DB

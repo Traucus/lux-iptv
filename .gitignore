@@ -85,3 +85,5 @@ openspec/changes/*/tasks.md.bak
 # ============================================
 stitch-output/
 *.stitch.bak
+.codegraph/
+.atl/.skill-registry.cache.json

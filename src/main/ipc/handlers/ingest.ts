@@ -1,7 +1,7 @@
 import type { IpcMain } from 'electron';
-import { IngestStartInputSchema, IngestCancelInputSchema, IngestProgressInputSchema } from '../../../shared/schemas/ingest';
-import type { IpcResult } from '../../../shared/types/ipc';
-import type { IngestOrchestrator } from '../../services/ingest-orchestrator';
+import { IngestStartInputSchema, IngestCancelInputSchema, IngestProgressInputSchema } from '../../../shared/schemas/ingest.js';
+import type { IpcResult } from '../../../shared/types/ipc.js';
+import type { IngestOrchestrator } from '../../services/ingest-orchestrator.js';
 
 function invalidInput(details: unknown): IpcResult<never> {
   return { error: { code: 'INVALID_INPUT', message: 'Invalid input', details } };

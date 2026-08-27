@@ -1,26 +1,20 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
-import { join } from 'node:path';
-import { createDb } from './db/client';
-import { migrate, loadMigrations } from './db/migrate';
-import { registerHandlers } from './ipc';
-import { IngestOrchestrator } from './services/ingest-orchestrator';
-import { createTmdbKeyVault } from './services/tmdb-key';
-import { readHwAccelOverride } from './config/hw-accel';
-import { StreamProxyService } from './services/stream-proxy';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+import { createDb } from './db/client.js';
+import { migrate, loadMigrations } from './db/migrate.js';
+import { registerHandlers } from './ipc/index.js';
+import { IngestOrchestrator } from './services/ingest-orchestrator.js';
+import { createTmdbKeyVault } from './services/tmdb-key.js';
+import { StreamProxyService } from './services/stream-proxy.js';
 
 let mainWindow: BrowserWindow | null = null;
 let dbHandle: ReturnType<typeof createDb> | null = null;
 let ingestOrchestrator: IngestOrchestrator | null = null;
 let streamProxyService: StreamProxyService | null = null;
-
-// Configure hardware acceleration BEFORE `app.whenReady()` — the policy
-// decision is irreversible after that point.
-{
-  const decision = readHwAccelOverride();
-  if (decision.shouldDisable) {
-    app.disableHardwareAcceleration();
-  }
-}
 
 /**
  * Resolves the preload script path. The compiled main bundle lives at

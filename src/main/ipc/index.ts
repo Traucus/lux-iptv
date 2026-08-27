@@ -1,13 +1,13 @@
 import type { BrowserWindow } from 'electron';
 import { ipcMain } from 'electron';
-import type { IngestOrchestrator } from '../services/ingest-orchestrator';
-import type { TmdbKeyVault } from '../services/tmdb-key';
+import type { IngestOrchestrator } from '../services/ingest-orchestrator.js';
+import type { TmdbKeyVault } from '../services/tmdb-key.js';
 import type Database from 'better-sqlite3';
-import { registerIngestHandlers } from './handlers/ingest';
-import { registerTmdbHandlers } from './handlers/tmdb';
-import { registerEnrichmentHandlers } from './handlers/enrichment';
-import { registerCatalogHandlers } from './handlers/catalog';
-import { registerPlayerHandlers } from './handlers/player';
+import { registerIngestHandlers } from './handlers/ingest.js';
+import { registerTmdbHandlers } from './handlers/tmdb.js';
+import { registerEnrichmentHandlers } from './handlers/enrichment.js';
+import { registerCatalogHandlers } from './handlers/catalog.js';
+import { registerPlayerHandlers } from './handlers/player.js';
 
 export type HandlerContext = {
   mainWindow: BrowserWindow;
