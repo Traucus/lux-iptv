@@ -15,6 +15,7 @@ export interface SeriesDetailProps {
    */
   enrichedSeries?: EnrichedCatalogItem | null;
   onPlay?: () => void;
+  onSelectEpisode?: (episode: Episode) => void;
   onAddToFavorites?: () => void;
 }
 
@@ -29,6 +30,7 @@ export function SeriesDetailView({
   series,
   enrichedSeries,
   onPlay,
+  onSelectEpisode,
   onAddToFavorites,
 }: SeriesDetailProps): React.ReactElement {
   const view: EnrichedCatalogItem = enrichedSeries ?? {
@@ -178,7 +180,15 @@ export function SeriesDetailView({
             />
           ))}
         </div>
-        <EpisodeGrid episodes={episodes} />
+        <EpisodeGrid
+          episodes={episodes}
+          onSelectEpisode={onSelectEpisode ? (ep) => {
+            const originalEpisode = currentSeason?.episodes.find((e) => e.id === ep.id);
+            if (originalEpisode && onSelectEpisode) {
+              onSelectEpisode(originalEpisode);
+            }
+          } : undefined}
+        />
       </section>
     </article>
   );

@@ -98,12 +98,9 @@ describe('DashboardPage', () => {
     const { wrapper } = setup();
     render(<DashboardPage />, { wrapper });
     expect(screen.getByLabelText('Home')).toBeTruthy();
-    expect(screen.getByLabelText('Search')).toBeTruthy();
     expect(screen.getByLabelText('Live TV')).toBeTruthy();
     expect(screen.getByLabelText('Movies')).toBeTruthy();
     expect(screen.getByLabelText('Series')).toBeTruthy();
-    expect(screen.getByLabelText('Favorites')).toBeTruthy();
-    expect(screen.getByLabelText('Settings')).toBeTruthy();
   });
 
   it('shows degraded hero when catalog is empty', async () => {

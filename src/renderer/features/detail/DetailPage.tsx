@@ -56,16 +56,16 @@ export function DetailPage(): React.ReactElement {
 
   if (isSeriesDetail(data)) {
     return (
-      <SeriesDetailPage data={data} onBack={() => navigate('/')} />
+      <SeriesDetailPage data={data} onBack={() => navigate('/')} navigate={navigate} />
     );
   }
 
   return (
-    <MovieDetailPage item={data as CatalogItem} onBack={() => navigate('/')} />
+    <MovieDetailPage item={data as CatalogItem} onBack={() => navigate('/')} navigate={navigate} />
   );
 }
 
-function MovieDetailPage({ item, onBack }: { item: CatalogItem; onBack: () => void }): React.ReactElement {
+function MovieDetailPage({ item, onBack, navigate }: { item: CatalogItem; onBack: () => void; navigate: ReturnType<typeof useNavigate> }): React.ReactElement {
   // The enrichment hook may return null while the IndexedDB read is still
   // pending. We only show a spinner for that brief moment; once the record
   // is available (or we know it doesn't exist) we render the detail view.
@@ -86,14 +86,14 @@ function MovieDetailPage({ item, onBack }: { item: CatalogItem; onBack: () => vo
       </div>
       <MovieDetail
         item={enriched}
-        onPlay={() => undefined}
+        onPlay={() => navigate(`/watch/movie/${item.id}`)}
         onAddToFavorites={() => undefined}
       />
     </main>
   );
 }
 
-function SeriesDetailPage({ data, onBack }: { data: SeriesDetail; onBack: () => void }): React.ReactElement {
+function SeriesDetailPage({ data, onBack, navigate }: { data: SeriesDetail; onBack: () => void; navigate: ReturnType<typeof useNavigate> }): React.ReactElement {
   const { enriched, isEnrichmentLoading } = useEnrichedContent(data.series, { optimisticFromStatus: true });
   return (
     <main className="min-h-screen bg-surface">
@@ -110,7 +110,8 @@ function SeriesDetailPage({ data, onBack }: { data: SeriesDetail; onBack: () => 
         <SeriesDetailView
           series={data}
           enrichedSeries={enriched}
-          onPlay={() => undefined}
+          onPlay={() => navigate(`/watch/series/${data.series.id}`)}
+          onSelectEpisode={(ep) => navigate(`/watch/episode/${ep.id}`)}
           onAddToFavorites={() => undefined}
         />
       )}

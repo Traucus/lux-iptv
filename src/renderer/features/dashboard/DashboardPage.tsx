@@ -106,7 +106,7 @@ export function DashboardPage(): React.ReactElement {
               title="Live Channels"
               items={data.liveChannels.map(itemToChannel)}
               renderItem={(ch) => (
-                <ChannelCard key={ch.id} channel={ch} />
+                <ChannelCard key={ch.id} channel={ch} onSelect={(channel) => navigate(`/watch/live/${channel.id}`)} />
               )}
             />
 

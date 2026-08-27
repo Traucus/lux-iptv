@@ -209,7 +209,7 @@ Chain strategy: **stacked-to-main**
   - Type: `component` | LOC: ~15 | Dependencies: —
   - Tests: `vitest run tests/unit/sidebar.test.ts` (if exists) or manual
 
-- [ ] **TASK-041**: Wire `MovieDetail.onPlay` → `navigate('/watch/movie/' + item.id)`, `SeriesDetail.onPlay` → `navigate('/watch/series/' + item.seriesId)`, `EpisodeGrid.onSelectEpisode` → navigate to `/watch/episode/${ep.id}`, `ChannelCard.onSelect` → `navigate('/watch/live/' + ch.id)`
+- [x] **TASK-041**: Wire `MovieDetail.onPlay` → `navigate('/watch/movie/' + item.id)`, `SeriesDetail.onPlay` → `navigate('/watch/series/' + item.seriesId)`, `EpisodeGrid.onSelectEpisode` → navigate to `/watch/episode/${ep.id}`, `ChannelCard.onSelect` → `navigate('/watch/live/' + ch.id)`
   - Type: `wiring` | LOC: ~40 | Dependencies: TASK-036
   - Tests: Covered by e2e routing test
 
