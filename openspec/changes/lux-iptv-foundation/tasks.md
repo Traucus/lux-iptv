@@ -189,23 +189,23 @@ Chain strategy: **stacked-to-main**
 
 ### Phase 5: G4 Renderer Quality
 
-- [ ] **TASK-036**: Update `src/renderer/App.tsx` — swap `BrowserRouter` → `HashRouter`, add `/watch/:type/:id` route with `PlayerPage` placeholder
+- [x] **TASK-036**: Update `src/renderer/App.tsx` — swap `BrowserRouter` → `HashRouter`, add `/watch/:type/:id` route with `PlayerPage` placeholder
   - Type: `wiring` | LOC: ~15 | Dependencies: TASK-034
   - Tests: TASK-037
 
-- [ ] **TASK-037** *(RED → GREEN)*: Write `tests/e2e/routing.spec.ts` — navigate to `#/watch/movie/42`, assert placeholder renders with `type=movie, id=42`
+- [x] **TASK-037** *(RED → GREEN)*: Write `tests/e2e/routing.spec.ts` — navigate to `#/watch/movie/42`, assert placeholder renders with `type=movie, id=42`
   - Type: `e2e` | LOC: ~30 | Dependencies: TASK-036 (test first)
   - Tests: `npx playwright test tests/e2e/routing.spec.ts`
 
-- [ ] **TASK-038**: Update `src/renderer/index.html` CSP — add `media-src 'self' blob:`, `connect-src 'self'`, `worker-src 'self' blob:`
+- [x] **TASK-038**: Update `src/renderer/index.html` CSP — add `media-src 'self' blob:`, `connect-src 'self'`, `worker-src 'self' blob:`
   - Type: `component` | LOC: ~5 | Dependencies: —
   - Tests: TASK-039
 
-- [ ] **TASK-039** *(RED → GREEN)*: Write `tests/unit/csp-policy.test.ts` — import CSP meta tag content, assert all required directives present
+- [x] **TASK-039** *(RED → GREEN)*: Write `tests/unit/csp-policy.test.ts` — import CSP meta tag content, assert all required directives present
   - Type: `test` | LOC: ~30 | Dependencies: TASK-038 (test first)
   - Tests: `vitest run tests/unit/csp-policy.test.ts`
 
-- [ ] **TASK-040**: Trim `NAV_ENTRIES` in `src/renderer/components/organisms/Sidebar.tsx` to: `home`, `live`, `movies`, `series`. Keep `favorites` only if IPC handler exists; remove `settings`, `search` buttons entirely
+- [x] **TASK-040**: Trim `NAV_ENTRIES` in `src/renderer/components/organisms/Sidebar.tsx` to: `home`, `live`, `movies`, `series`. Keep `favorites` only if IPC handler exists; remove `settings`, `search` buttons entirely
   - Type: `component` | LOC: ~15 | Dependencies: —
   - Tests: `vitest run tests/unit/sidebar.test.ts` (if exists) or manual
 
