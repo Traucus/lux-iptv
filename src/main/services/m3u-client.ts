@@ -1,6 +1,18 @@
 import { parsePlaylist } from 'iptv-m3u-playlist-parser';
 import * as fs from 'fs';
 import * as path from 'path';
+import type { MediaFormat } from '../../shared/types/player';
+
+/**
+ * HTTP request hints captured from M3U `Entry.http` (EXTVLCOPT).
+ * Mirrors the shape exposed by `iptv-m3u-playlist-parser` v0.3+.
+ */
+export interface M3UEntryHttpHints {
+  userAgent?: string;
+  referer?: string;
+  cookie?: string;
+  headers?: Record<string, string>;
+}
 
 export interface M3UEntry {
   name: string;
@@ -8,6 +20,17 @@ export interface M3UEntry {
   groupTitle: string | null;
   tvgId: string | null;
   tvgLogo: string | null;
+  /**
+   * HTTP request hints parsed from `#EXTVLCOPT:http-user-agent=…`,
+   * `#EXTVLCOPT:http-referer=…`, `#EXTVLCOPT:http-cookie=…`.
+   * `null` when no EXTVLCOPT http directives are present.
+   */
+  http: M3UEntryHttpHints | null;
+  /**
+   * Media container/format detected from the URL extension.
+   * Drives engine selection in the renderer (hls.js vs native <video>).
+   */
+  mediaFormat: MediaFormat;
 }
 
 const ALLOWED_EXTENSIONS = ['.m3u', '.m3u8'];
@@ -15,6 +38,43 @@ const DEFAULT_TIMEOUT_MS = 15000;
 
 interface FetchOptions {
   timeoutMs?: number;
+}
+
+/**
+ * Detects the media container/format from a stream URL.
+ *
+ * Mapping (see design §G2 — detectMediaFormat):
+ *   .m3u8 → hls
+ *   .mp4  → mp4
+ *   .mpd  → dash
+ *   .ts   → ts
+ *   any other / no extension → unknown
+ *
+ * Query strings and fragments are stripped before matching. Case-insensitive.
+ */
+export function detectMediaFormat(url: string): MediaFormat {
+  // Resolve relative URLs against a synthetic base; pathname extraction strips
+  // the query/fragment automatically. `new URL` throws on invalid input; the
+  // parser only feeds well-formed URLs, but we guard defensively.
+  let pathname: string;
+  try {
+    pathname = new URL(url, 'http://x.invalid').pathname;
+  } catch {
+    return 'unknown';
+  }
+  const ext = pathname.toLowerCase().match(/\.[a-z0-9]+$/)?.[0];
+  switch (ext) {
+    case '.m3u8':
+      return 'hls';
+    case '.mp4':
+      return 'mp4';
+    case '.mpd':
+      return 'dash';
+    case '.ts':
+      return 'ts';
+    default:
+      return 'unknown';
+  }
 }
 
 /**
@@ -66,6 +126,20 @@ export async function readLocalM3U(filePath: string, allowedDir: string): Promis
   return parseM3UText(text);
 }
 
+/**
+ * True when the parser-emitted `http` object carries at least one populated
+ * hint. The library always emits `{ headers: {} }` when no EXTVLCOPT was seen,
+ * so we can't rely on presence/absence — we have to check the meaningful fields.
+ */
+function hasHttpHints(http: { userAgent?: string; referer?: string; cookie?: string; headers?: Record<string, string> } | undefined): boolean {
+  if (!http) return false;
+  if (http.userAgent) return true;
+  if (http.referer) return true;
+  if (http.cookie) return true;
+  if (http.headers && Object.keys(http.headers).length > 0) return true;
+  return false;
+}
+
 function parseM3UText(text: string): M3UEntry[] {
   const playlist = parsePlaylist(text);
   const entries: M3UEntry[] = [];
@@ -82,6 +156,11 @@ function parseM3UText(text: string): M3UEntry[] {
       groupTitle: item.group?.[0] ?? null,
       tvgId: item.tvg?.id ?? null,
       tvgLogo: item.tvg?.logo ?? null,
+      // The parser populates `item.http` with an empty `{ headers: {} }` object
+      // even when no EXTVLCOPT was provided. Normalize to `null` in that case
+      // so callers can distinguish "no hints" from "real hints".
+      http: hasHttpHints(item.http) ? item.http! : null,
+      mediaFormat: detectMediaFormat(item.url),
     });
   }
 

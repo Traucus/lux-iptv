@@ -2,10 +2,48 @@ import { app, BrowserWindow } from 'electron';
 import { join } from 'node:path';
 import { createDb } from './db/client';
 import { migrate, loadMigrations } from './db/migrate';
+import { registerHandlers } from './ipc';
+import { IngestOrchestrator } from './services/ingest-orchestrator';
+import { createTmdbKeyVault } from './services/tmdb-key';
+import { readHwAccelOverride } from './config/hw-accel';
 
 let mainWindow: BrowserWindow | null = null;
+let dbHandle: ReturnType<typeof createDb> | null = null;
+let ingestOrchestrator: IngestOrchestrator | null = null;
+
+// Configure hardware acceleration BEFORE `app.whenReady()` — the policy
+// decision is irreversible after that point.
+{
+  const decision = readHwAccelOverride();
+  if (decision.shouldDisable) {
+    app.disableHardwareAcceleration();
+  }
+}
+
+/**
+ * Resolves the preload script path. The compiled main bundle lives at
+ * `dist/main/index.js`, so the preload is the sibling file at
+ * `dist/preload/index.js`. We use `__dirname` so the path is stable
+ * across dev (vitest) and prod (electron-builder) layouts.
+ */
+function resolvePreloadPath(): string {
+  return join(__dirname, '..', 'preload', 'index.js');
+}
+
+/**
+ * Resolves the renderer entry point:
+ *  - dev: load the Vite dev server on port 5173
+ *  - prod: load the built `dist/renderer/index.html` via `file://`
+ */
+function resolveRendererTarget(): { kind: 'url'; url: string } | { kind: 'file'; file: string } {
+  if (process.env.NODE_ENV === 'development') {
+    return { kind: 'url', url: 'http://localhost:5173' };
+  }
+  return { kind: 'file', file: join(__dirname, '..', 'renderer', 'index.html') };
+}
 
 function createWindow(): void {
+  const preloadPath = resolvePreloadPath();
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
@@ -14,23 +52,23 @@ function createWindow(): void {
     title: 'Lux IPTV',
     backgroundColor: '#0a0a0f',
     webPreferences: {
-      // TODO: Configure preload script
-      // preload: path.join(__dirname, '../preload/index.js'),
-      nodeIntegration: false,
+      preload: preloadPath,
       contextIsolation: true,
       sandbox: true,
+      nodeIntegration: false,
     },
     show: false,
     autoHideMenuBar: true,
   });
 
-  // TODO: Load renderer (dev server or built files)
-  // if (process.env.NODE_ENV === 'development') {
-  //   mainWindow.loadURL('http://localhost:5173');
-  //   mainWindow.webContents.openDevTools();
-  // } else {
-  //   mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
-  // }
+  // Load renderer (dev server or built file)
+  const target = resolveRendererTarget();
+  if (target.kind === 'url') {
+    void mainWindow.loadURL(target.url);
+    mainWindow.webContents.openDevTools({ mode: 'detach' });
+  } else {
+    void mainWindow.loadFile(target.file);
+  }
 
   mainWindow.on('ready-to-show', () => {
     mainWindow?.show();
@@ -45,11 +83,27 @@ app.whenReady().then(() => {
   // Run database migration before creating window
   try {
     const dbPath = join(app.getPath('userData'), 'catalog.db');
-    const { sqlite } = createDb(dbPath);
+    dbHandle = createDb(dbPath);
     const migrationsDir = join(__dirname, 'db', 'migrations');
     const migrations = loadMigrations(migrationsDir);
-    migrate(sqlite, migrations);
-    sqlite.close();
+    migrate(dbHandle.sqlite, migrations);
+    // Keep the handle open for the lifetime of the app — close on quit.
+
+    // Create services that need a live window reference (only the orchestrator
+    // does — the rest take deps via the register call).
+    if (!mainWindow) {
+      throw new Error('Internal: mainWindow must exist by app ready');
+    }
+    ingestOrchestrator = new IngestOrchestrator(mainWindow);
+    const tmdbVault = createTmdbKeyVault(join(app.getPath('userData'), 'tmdb.key'));
+
+    // Register every IPC channel in one shot.
+    registerHandlers({
+      mainWindow,
+      db: dbHandle.sqlite,
+      ingestOrchestrator,
+      tmdbVault,
+    });
   } catch (err) {
     console.error('Fatal: database migration failed', err);
     app.exit(1);
@@ -65,12 +119,14 @@ app.whenReady().then(() => {
   });
 });
 
+app.on('before-quit', () => {
+  dbHandle?.sqlite.close();
+  dbHandle = null;
+  ingestOrchestrator = null;
+});
+
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
   }
 });
-
-// TODO: Add IPC handlers
-// TODO: Add auto-updater
-// TODO: Add licensing validation on startup

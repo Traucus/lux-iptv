@@ -18,6 +18,8 @@ describe('repo', () => {
         tvg_id TEXT,
         tvg_logo TEXT,
         stream_type TEXT NOT NULL DEFAULT 'live',
+        http_headers TEXT NOT NULL DEFAULT '{}',
+        media_format TEXT NOT NULL DEFAULT 'unknown',
         added_at INTEGER NOT NULL
       );
       CREATE TABLE vod_movies (
@@ -28,6 +30,8 @@ describe('repo', () => {
         group_title TEXT,
         cover TEXT,
         stream_type TEXT NOT NULL DEFAULT 'movie',
+        http_headers TEXT NOT NULL DEFAULT '{}',
+        media_format TEXT NOT NULL DEFAULT 'unknown',
         year INTEGER,
         added_at INTEGER NOT NULL
       );

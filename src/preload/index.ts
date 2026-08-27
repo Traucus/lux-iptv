@@ -25,6 +25,31 @@ const luxAPI = {
     hasKey: () => ipcRenderer.invoke('tmdb:hasKey'),
     clearKey: () => ipcRenderer.invoke('tmdb:clearKey'),
   },
+  player: {
+    /**
+     * Resolve a catalog row to a PlaybackSource (URL + headers + media format).
+     * The renderer feeds this to hls.js or <video> directly.
+     */
+    getSource: (input: unknown) => ipcRenderer.invoke('player:getSource', input),
+    /**
+     * Resolve a catalog row to the absolute URL on the in-process stream
+     * proxy. Returns `notImplemented` until the G5 proxy lands.
+     */
+    getProxiedUrl: (input: unknown) => ipcRenderer.invoke('player:getProxiedUrl', input),
+    /**
+     * Report a non-fatal playback error to main (logging only in this slice).
+     */
+    reportError: (input: unknown) => ipcRenderer.invoke('player:reportError', input),
+    /**
+     * Forward resume position updates to main (logging only in this slice).
+     */
+    reportProgress: (input: unknown) => ipcRenderer.invoke('player:reportProgress', input),
+    /**
+     * Given the current episode id, return the next episode in series order
+     * or `null` at the end of the series.
+     */
+    getNextEpisode: (input: unknown) => ipcRenderer.invoke('player:getNextEpisode', input),
+  },
 };
 
 contextBridge.exposeInMainWorld('luxAPI', luxAPI);

@@ -70,6 +70,41 @@ describe('preload', () => {
     expect(typeof tmdb.clearKey).toBe('function');
   });
 
+  it('exposes all player channels', async () => {
+    await import('../../src/preload/index');
+    const api = (globalThis as Record<string, unknown>).luxAPI as Record<string, unknown>;
+    expect(api.player).toBeDefined();
+    const player = api.player as Record<string, unknown>;
+    expect(typeof player.getSource).toBe('function');
+    expect(typeof player.getProxiedUrl).toBe('function');
+    expect(typeof player.reportError).toBe('function');
+    expect(typeof player.reportProgress).toBe('function');
+    expect(typeof player.getNextEpisode).toBe('function');
+  });
+
+  it('player.getSource forwards to player:getSource channel', async () => {
+    await import('../../src/preload/index');
+    const api = (globalThis as Record<string, unknown>).luxAPI as Record<string, unknown>;
+    const player = api.player as Record<string, (input: unknown) => Promise<unknown>>;
+    mockInvoke.mockResolvedValue({ data: { url: 'https://x' } });
+
+    await player.getSource({ type: 'live', id: 1 });
+    expect(mockInvoke).toHaveBeenCalledWith('player:getSource', { type: 'live', id: 1 });
+  });
+
+  it('player.reportError forwards to player:reportError channel', async () => {
+    await import('../../src/preload/index');
+    const api = (globalThis as Record<string, unknown>).luxAPI as Record<string, unknown>;
+    const player = api.player as Record<string, (input: unknown) => Promise<unknown>>;
+    mockInvoke.mockResolvedValue({ data: undefined });
+
+    await player.reportError({ code: 'STALL', message: 'manifest stalled' });
+    expect(mockInvoke).toHaveBeenCalledWith('player:reportError', {
+      code: 'STALL',
+      message: 'manifest stalled',
+    });
+  });
+
   it('ingest.start calls ipcRenderer.invoke with correct channel', async () => {
     await import('../../src/preload/index');
     const api = (globalThis as Record<string, unknown>).luxAPI as Record<string, unknown>;

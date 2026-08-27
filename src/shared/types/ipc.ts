@@ -96,6 +96,12 @@ export type CatalogItem = {
   year: number | null;
   contentType: 'live' | 'movie' | 'series' | 'episode';
   mediaFormat: 'hls' | 'mp4' | 'dash' | 'ts' | 'unknown';
+  /**
+   * Per-stream HTTP request hints in canonical wire format (header name → value).
+   * `{}` when the source did not provide any overrides. Consumed by the
+   * stream proxy to inject headers on outbound requests.
+   */
+  httpHeaders: Record<string, string>;
 };
 
 export type SeriesDetail = {

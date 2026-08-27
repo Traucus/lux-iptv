@@ -4,7 +4,7 @@ import Database from 'better-sqlite3';
 import { migrate } from '../db/migrate';
 import { classify } from '../services/classifier';
 import { fetchM3U } from '../services/m3u-client';
-import type { M3UEntry } from '../services/m3u-client';
+import type { M3UEntry, M3UEntryHttpHints } from '../services/m3u-client';
 
 export interface IngestCounts {
   live: number;
@@ -39,34 +39,40 @@ export function processM3UEntries(db: Database.Database, entries: M3UEntry[]): I
 
   // Prepare statements
   const insertLive = db.prepare(`
-    INSERT INTO live_channels (xtream_id, name, url, group_title, tvg_id, tvg_logo, stream_type, added_at)
-    VALUES (@xtreamId, @name, @url, @groupTitle, @tvgId, @tvgLogo, @streamType, @addedAt)
+    INSERT INTO live_channels (xtream_id, name, url, group_title, tvg_id, tvg_logo, stream_type, http_headers, media_format, added_at)
+    VALUES (@xtreamId, @name, @url, @groupTitle, @tvgId, @tvgLogo, @streamType, @httpHeaders, @mediaFormat, @addedAt)
     ON CONFLICT(url) DO UPDATE SET
       name = excluded.name,
       group_title = excluded.group_title,
       tvg_id = excluded.tvg_id,
       tvg_logo = excluded.tvg_logo,
-      stream_type = excluded.stream_type
+      stream_type = excluded.stream_type,
+      http_headers = excluded.http_headers,
+      media_format = excluded.media_format
   `);
 
   const insertMovie = db.prepare(`
-    INSERT INTO vod_movies (xtream_id, name, url, group_title, cover, stream_type, year, added_at)
-    VALUES (@xtreamId, @name, @url, @groupTitle, @cover, @streamType, @year, @addedAt)
+    INSERT INTO vod_movies (xtream_id, name, url, group_title, cover, stream_type, year, http_headers, media_format, added_at)
+    VALUES (@xtreamId, @name, @url, @groupTitle, @cover, @streamType, @year, @httpHeaders, @mediaFormat, @addedAt)
     ON CONFLICT(url) DO UPDATE SET
       name = excluded.name,
       group_title = excluded.group_title,
       cover = excluded.cover,
       stream_type = excluded.stream_type,
-      year = excluded.year
+      year = excluded.year,
+      http_headers = excluded.http_headers,
+      media_format = excluded.media_format
   `);
 
   const insertSeries = db.prepare(`
-    INSERT INTO series (xtream_id, name, url, group_title, cover, stream_type, year, added_at)
-    VALUES (@xtreamId, @name, @url, @groupTitle, @cover, @streamType, @year, @addedAt)
+    INSERT INTO series (xtream_id, name, url, group_title, cover, stream_type, year, http_headers, media_format, added_at)
+    VALUES (@xtreamId, @name, @url, @groupTitle, @cover, @streamType, @year, @httpHeaders, @mediaFormat, @addedAt)
     ON CONFLICT(url) DO UPDATE SET
       name = excluded.name,
       group_title = excluded.group_title,
-      cover = excluded.cover
+      cover = excluded.cover,
+      http_headers = excluded.http_headers,
+      media_format = excluded.media_format
   `);
 
   for (const entry of entries) {
@@ -76,6 +82,11 @@ export function processM3UEntries(db: Database.Database, entries: M3UEntry[]): I
       groupTitle: entry.groupTitle,
       tvgId: entry.tvgId,
     });
+
+    // Flatten M3U HttpHints shape (`{ userAgent, referer, cookie, headers }`)
+    // into the canonical header-name → value map the DB column expects.
+    const httpHeaders = m3uHttpToWire(entry.http);
+    const mediaFormat = entry.mediaFormat ?? 'unknown';
 
     switch (contentType) {
       case 'live':
@@ -87,6 +98,8 @@ export function processM3UEntries(db: Database.Database, entries: M3UEntry[]): I
           tvgId: entry.tvgId,
           tvgLogo: entry.tvgLogo,
           streamType: 'live',
+          httpHeaders: JSON.stringify(httpHeaders),
+          mediaFormat,
           addedAt: now,
         });
         counts.live++;
@@ -100,6 +113,8 @@ export function processM3UEntries(db: Database.Database, entries: M3UEntry[]): I
           cover: entry.tvgLogo,
           streamType: 'movie',
           year: null,
+          httpHeaders: JSON.stringify(httpHeaders),
+          mediaFormat,
           addedAt: now,
         });
         counts.movies++;
@@ -114,6 +129,8 @@ export function processM3UEntries(db: Database.Database, entries: M3UEntry[]): I
           cover: entry.tvgLogo,
           streamType: 'series',
           year: null,
+          httpHeaders: JSON.stringify(httpHeaders),
+          mediaFormat,
           addedAt: now,
         });
         counts.series++;
@@ -127,6 +144,8 @@ export function processM3UEntries(db: Database.Database, entries: M3UEntry[]): I
           tvgId: entry.tvgId,
           tvgLogo: entry.tvgLogo,
           streamType: 'radio',
+          httpHeaders: JSON.stringify(httpHeaders),
+          mediaFormat,
           addedAt: now,
         });
         counts.radio++;
@@ -136,6 +155,20 @@ export function processM3UEntries(db: Database.Database, entries: M3UEntry[]): I
   }
 
   return counts;
+}
+
+/**
+ * Maps M3U `HttpHints` (`userAgent/referer/cookie/headers`) into the canonical
+ * wire-format header map (`User-Agent/Referer/Cookie/<custom>`). Returns `{}`
+ * when no hints are present so the JSON column stays compact.
+ */
+function m3uHttpToWire(http: M3UEntryHttpHints | null): Record<string, string> {
+  if (!http) return {};
+  const out: Record<string, string> = { ...(http.headers ?? {}) };
+  if (http.userAgent) out['User-Agent'] = http.userAgent;
+  if (http.referer) out['Referer'] = http.referer;
+  if (http.cookie) out['Cookie'] = http.cookie;
+  return out;
 }
 
 /**

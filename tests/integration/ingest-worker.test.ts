@@ -19,6 +19,8 @@ describe('ingest-worker', () => {
           tvg_id TEXT,
           tvg_logo TEXT,
           stream_type TEXT NOT NULL DEFAULT 'live',
+          http_headers TEXT NOT NULL DEFAULT '{}',
+          media_format TEXT NOT NULL DEFAULT 'unknown',
           added_at INTEGER NOT NULL
         );
         CREATE TABLE vod_movies (
@@ -29,6 +31,8 @@ describe('ingest-worker', () => {
           group_title TEXT,
           cover TEXT,
           stream_type TEXT NOT NULL DEFAULT 'movie',
+          http_headers TEXT NOT NULL DEFAULT '{}',
+          media_format TEXT NOT NULL DEFAULT 'unknown',
           year INTEGER,
           added_at INTEGER NOT NULL
         );
@@ -40,6 +44,8 @@ describe('ingest-worker', () => {
           group_title TEXT,
           cover TEXT,
           stream_type TEXT NOT NULL DEFAULT 'series',
+          http_headers TEXT NOT NULL DEFAULT '{}',
+          media_format TEXT NOT NULL DEFAULT 'unknown',
           year INTEGER,
           added_at INTEGER NOT NULL
         );
@@ -51,6 +57,8 @@ describe('ingest-worker', () => {
           season INTEGER NOT NULL,
           episode INTEGER NOT NULL,
           cover TEXT,
+          http_headers TEXT NOT NULL DEFAULT '{}',
+          media_format TEXT NOT NULL DEFAULT 'unknown',
           added_at INTEGER NOT NULL
         );
       `);

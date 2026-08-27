@@ -15,6 +15,13 @@ export interface XtreamCategory {
   categoryName: string;
 }
 
+/**
+ * HTTP request hints for a single stream, in the canonical wire format
+ * (header name → value). Same shape as the `http_headers` Drizzle column,
+ * so the ingest worker can persist directly without re-keying.
+ */
+export type XtreamStreamHeaders = Record<string, string>;
+
 export interface XtreamLiveStream {
   num: number;
   name: string;
@@ -22,6 +29,11 @@ export interface XtreamLiveStream {
   streamId: number;
   streamIcon?: string;
   categoryId: string;
+  /**
+   * Per-stream HTTP request hints returned by the Xtream API. `{}` when the
+   * provider did not configure custom headers for this stream.
+   */
+  httpHeaders: XtreamStreamHeaders;
 }
 
 export interface XtreamVodStream {
@@ -32,6 +44,7 @@ export interface XtreamVodStream {
   categoryId: string;
   rating?: string;
   cover?: string;
+  httpHeaders: XtreamStreamHeaders;
 }
 
 export interface XtreamSeriesStream {
@@ -138,6 +151,8 @@ export class XtreamClient {
       stream_id: number;
       stream_icon?: string;
       category_id: string;
+      user_agent?: string;
+      referer?: string;
     }>>({ action: 'get_live_streams', category_id: categoryId });
     return data.map((s) => ({
       num: s.num,
@@ -146,6 +161,7 @@ export class XtreamClient {
       streamId: s.stream_id,
       streamIcon: s.stream_icon,
       categoryId: s.category_id,
+      httpHeaders: buildXtreamHeaders(s.user_agent, s.referer),
     }));
   }
 
@@ -158,6 +174,8 @@ export class XtreamClient {
       category_id: string;
       rating?: string;
       cover?: string;
+      user_agent?: string;
+      referer?: string;
     }>>({ action: 'get_vod_streams', category_id: categoryId });
     return data.map((s) => ({
       num: s.num,
@@ -167,6 +185,7 @@ export class XtreamClient {
       categoryId: s.category_id,
       rating: s.rating,
       cover: s.cover,
+      httpHeaders: buildXtreamHeaders(s.user_agent, s.referer),
     }));
   }
 
@@ -186,6 +205,18 @@ export class XtreamClient {
       cover: s.cover,
     }));
   }
+}
+
+/**
+ * Builds the canonical `http_headers` object for a stream from Xtream
+ * `user_agent` / `referer` fields. Returns `{}` when both are missing —
+ * downstream code (Drizzle, ingestion) treats `{}` as "no overrides".
+ */
+function buildXtreamHeaders(userAgent?: string, referer?: string): XtreamStreamHeaders {
+  const out: XtreamStreamHeaders = {};
+  if (userAgent) out['User-Agent'] = userAgent;
+  if (referer) out['Referer'] = referer;
+  return out;
 }
 
 // Helper for login (standalone function to avoid circular this)
