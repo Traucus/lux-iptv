@@ -68,7 +68,7 @@ export type IngestProgress = {
 };
 
 // ─── Catalog ──────────────────────────────────────────────────────────────────
-export type CatalogType = 'live' | 'movie' | 'series';
+export type CatalogType = 'live' | 'movie' | 'series' | 'episode';
 
 export type CatalogListInput = {
   type: CatalogType;

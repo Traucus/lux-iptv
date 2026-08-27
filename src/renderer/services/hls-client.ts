@@ -81,7 +81,7 @@ export class HlsClient {
       maxMaxBufferLength: 600,
       // Header injection for degraded path (no proxy)
       xhrSetup: this.headers
-        ? (xhr: XMLHttpRequest, url: string) => {
+        ? (xhr: XMLHttpRequest, _url: string) => {
             for (const [key, value] of Object.entries(this.headers!)) {
               xhr.setRequestHeader(key, value);
             }
@@ -94,18 +94,18 @@ export class HlsClient {
     this.hls.attachMedia(this.videoEl);
   }
 
-  private attachEventListeners(): void {
+private attachEventListeners(): void {
     if (!this.hls) return;
 
     this.hls.on(Hls.Events.MANIFEST_PARSED, (_, data) => {
-      this.emit('MANIFEST_PARSED', data);
+      this.emit('MANIFEST_PARSED', data as unknown as HlsEventData);
       // Reset resilience state on successful manifest parse
       this.attempt = 0;
       this.nextDelay = 1000;
     });
 
     this.hls.on(Hls.Events.MEDIA_ATTACHED, (_, data) => {
-      this.emit('MEDIA_ATTACHED', data);
+      this.emit('MEDIA_ATTACHED', data as unknown as HlsEventData);
     });
 
     this.hls.on(Hls.Events.ERROR, (_, data) => {
@@ -113,19 +113,19 @@ export class HlsClient {
     });
 
     this.hls.on(Hls.Events.FRAG_LOADED, (_, data) => {
-      this.emit('FRAG_LOADED', data);
+      this.emit('FRAG_LOADED', data as unknown as HlsEventData);
     });
 
     this.hls.on(Hls.Events.LEVEL_SWITCHED, (_, data) => {
-      this.emit('LEVEL_SWITCHED', data);
+      this.emit('LEVEL_SWITCHED', data as unknown as HlsEventData);
     });
 
     this.hls.on(Hls.Events.AUDIO_TRACKS_UPDATED, (_, data) => {
-      this.emit('AUDIO_TRACKS_UPDATED', data);
+      this.emit('AUDIO_TRACKS_UPDATED', data as unknown as HlsEventData);
     });
 
     this.hls.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, (_, data) => {
-      this.emit('SUBTITLE_TRACKS_UPDATED', data);
+      this.emit('SUBTITLE_TRACKS_UPDATED', data as unknown as HlsEventData);
     });
   }
 
@@ -134,7 +134,7 @@ export class HlsClient {
 
     if (!fatal) {
       // Non-fatal errors are just forwarded
-      this.emit('ERROR', data);
+      this.emit('ERROR', data as unknown as HlsEventData);
       return;
     }
 
@@ -146,7 +146,7 @@ export class HlsClient {
     } else {
       // Other fatal errors (muxError, etc.) — immediate fatal
       this.emit('fatal', { attempts: this.attempt });
-      this.emit('ERROR', { fatal: true, type, details });
+      this.emit('ERROR', { fatal: true, type, details: { ...(details as Record<string, unknown>), attempts: this.attempt } });
     }
   }
 
@@ -154,7 +154,7 @@ export class HlsClient {
     if (this.attempt >= this.maxRetries) {
       // Exhausted retries
       this.emit('fatal', { attempts: this.attempt });
-      this.emit('ERROR', { fatal: true, type: Hls.ErrorTypes.NETWORK_ERROR, details: { ...details, attempts: this.attempt } });
+      this.emit('ERROR', { fatal: true, type: Hls.ErrorTypes.NETWORK_ERROR, details: { ...(details as Record<string, unknown>), attempts: this.attempt } });
       return;
     }
 
@@ -301,7 +301,9 @@ export class HlsClient {
 
   /** Whether the stream is live. */
   get isLive(): boolean {
-    return this.hls?.media?.live ?? false;
+    // hls.js adds a `live` property to the media element when attached
+    const media = this.hls?.media as HTMLVideoElement & { live?: boolean } | null;
+    return media?.live ?? false;
   }
 }
 

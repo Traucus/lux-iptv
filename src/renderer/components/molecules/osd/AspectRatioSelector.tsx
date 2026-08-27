@@ -63,17 +63,17 @@ export const AspectRatioSelector: React.FC<AspectRatioSelectorProps> = ({
         e.preventDefault();
         const currentIndex = ASPECT_RATIOS.indexOf(current);
         const nextIndex = (currentIndex + 1) % ASPECT_RATIOS.length;
-        handleSelect(ASPECT_RATIOS[nextIndex]);
+        handleSelect(ASPECT_RATIOS[nextIndex]!);
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
         const currentIndex = ASPECT_RATIOS.indexOf(current);
         const prevIndex = (currentIndex - 1 + ASPECT_RATIOS.length) % ASPECT_RATIOS.length;
-        handleSelect(ASPECT_RATIOS[prevIndex]);
+        handleSelect(ASPECT_RATIOS[prevIndex]!);
       } else if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
         const currentIndex = ASPECT_RATIOS.indexOf(current);
         const nextIndex = (currentIndex + 1) % ASPECT_RATIOS.length;
-        handleSelect(ASPECT_RATIOS[nextIndex]);
+        handleSelect(ASPECT_RATIOS[nextIndex]!);
       }
     };
 

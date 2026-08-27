@@ -101,6 +101,9 @@ function tableForType(type: CatalogType): string {
       return 'vod_movies';
     case 'series':
       return 'series';
+    case 'episode':
+      // Episodes are not a top-level catalog table; they live under series
+      throw new Error('Episode type not supported for direct catalog queries');
   }
 }
 
@@ -112,6 +115,8 @@ function mapRowForType(type: CatalogType, row: Record<string, unknown>): Catalog
       return mapMovieRow(row);
     case 'series':
       return mapSeriesRow(row);
+    case 'episode':
+      throw new Error('Episode type not supported for direct catalog queries');
   }
 }
 

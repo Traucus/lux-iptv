@@ -100,7 +100,8 @@ export const SeekBar: React.FC<SeekBarProps> = ({
       const rect = e.currentTarget.getBoundingClientRect();
       if (rect.width === 0) return;
 
-      const clientX = 'clientX' in e ? e.clientX : e.nativeEvent.clientX;
+      // Both PointerEvent and MouseEvent have clientX directly on the React event
+      const clientX = e.clientX;
       const percent = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
       const seekTime = percent * duration;
       

@@ -53,9 +53,20 @@ export function DashboardPage(): React.ReactElement {
   const data = useDashboardData();
 
   const onSidebarSelect = (section: SidebarSection): void => {
-    if (section === 'settings') navigate('/settings');
-    else if (section === 'ingest' as SidebarSection) navigate('/ingest');
-    else if (section === 'home') navigate('/');
+    switch (section) {
+      case 'home':
+        navigate('/');
+        break;
+      case 'live':
+        navigate('/live');
+        break;
+      case 'movies':
+        navigate('/movies');
+        break;
+      case 'series':
+        navigate('/series');
+        break;
+    }
   };
 
   const featured: EnrichedCatalogItem | undefined = data.recentMovies[0];

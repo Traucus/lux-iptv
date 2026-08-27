@@ -213,7 +213,8 @@ export const OsdControls: React.FC<OsdControlsProps> = ({
             onSelect={onAudioTrackChange}
             onClose={() => setShowAudioModal(false)}
             title="Audio Track"
-          )}
+          />
+        )}
         </div>
 
       {/* Subtitle Track Selector */}
@@ -242,7 +243,8 @@ export const OsdControls: React.FC<OsdControlsProps> = ({
             onClose={() => setShowSubtitleModal(false)}
             title="Subtitles"
             showOffOption={true}
-          )}
+          />
+        )}
         </div>
 
       {/* Aspect Ratio Selector */}

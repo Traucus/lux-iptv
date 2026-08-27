@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { createMediaEngine, MediaEngine, PlaybackSource, MediaEngineEvent } from '../../services/media-engine';
+import { createMediaEngine, MediaEngine, PlaybackSource } from '../../services/media-engine';
 import { SeekBar } from '../molecules/osd/SeekBar';
 import { OsdTopBar } from '../molecules/osd/OsdTopBar';
 import { OsdControls } from '../molecules/osd/OsdControls';
@@ -78,12 +78,12 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     });
 
     const unsubBuffered = engine.on('buffered', (data) => {
-      if (data.buffered) {
-        setBuffered(data.buffered);
+      if (data.buffered && Array.isArray(data.buffered)) {
+        setBuffered(data.buffered as Array<{ start: number; end: number }>);
       }
     });
 
-    const unsubRecovering = engine.on('recovering', (data) => {
+    const unsubRecovering = engine.on('recovering', () => {
       setEngineState('recovering');
     });
 
@@ -337,7 +337,12 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           {/* Top Bar */}
           <OsdTopBar
             title={source.type === 'live' ? 'Live TV' : 'Content Title'}
-            resolution={engineRef.current?.levels?.[engineRef.current?.currentLevel ?? 0] ? `${engineRef.current.levels[engineRef.current.currentLevel].height}p` : undefined}
+            resolution={(() => {
+              const engine = engineRef.current;
+              if (!engine) return undefined;
+              const level = engine.levels?.[engine.currentLevel ?? 0];
+              return level ? `${level.height}p` : undefined;
+            })()}
             audioTrack={audioTracks[audioTrackIndex]?.name}
             onBack={() => {
               // Navigation handled by parent
@@ -401,7 +406,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             padding: '4px 12px',
             borderRadius: '4px',
             fontSize: '0.75rem',
-            fontWeight: 700',
+            fontWeight: 700,
             letterSpacing: '0.1em',
             animation: 'pulse 1.5s infinite',
             zIndex: 10,
@@ -412,7 +417,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         </div>
       )}
 
-      <style jsx>{`
+      <style>{`
         @keyframes pulse {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.5; }

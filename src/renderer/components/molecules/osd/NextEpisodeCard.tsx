@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import type { Episode } from '../../../shared/types/ipc';
+import type { Episode } from '../../../../shared/types/ipc';
 
 /**
  * NextEpisodeCard — Overlay shown at 95% playback progress for series episodes.
@@ -89,7 +89,7 @@ export const NextEpisodeCard: React.FC<NextEpisodeCardProps> = ({
       }}
       data-testid="next-episode-card"
     >
-      <style jsx>{`
+      <style>{`
         @keyframes slideIn {
           from {
             opacity: 0;

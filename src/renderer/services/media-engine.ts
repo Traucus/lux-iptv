@@ -50,6 +50,14 @@ export interface MediaEngine {
   on(event: MediaEngineEvent, handler: (data: MediaEngineEventData) => void): () => void;
   /** Unsubscribe from engine events */
   off(event: MediaEngineEvent, handler: (data: MediaEngineEventData) => void): void;
+  /** Available quality levels (bitrate/resolution) - hls.js only */
+  readonly levels: Array<{ width: number; height: number; bitrate: number }>;
+  /** Available audio tracks - hls.js only */
+  readonly audioTracks: Array<{ id: number; name: string; lang?: string }>;
+  /** Available subtitle tracks - hls.js only */
+  readonly subtitleTracks: Array<{ id: number; name: string; lang?: string }>;
+  /** Current playback level index - hls.js only */
+  readonly currentLevel: number;
 }
 
 /**
@@ -80,10 +88,7 @@ class HlsMediaEngine implements MediaEngine {
   private source: PlaybackSource;
   private destroyed = false;
 
-  // Resilience state
-  private attempt = 0;
-  private nextDelay = 1000;
-  private readonly maxRetries = 3;
+  // Resilience state (delegated to HlsClient)
   private retryTimer: ReturnType<typeof setTimeout> | null = null;
 
   // Event emitter
@@ -92,6 +97,22 @@ class HlsMediaEngine implements MediaEngine {
   constructor(videoEl: HTMLVideoElement, source: PlaybackSource) {
     this.videoEl = videoEl;
     this.source = source;
+  }
+
+  get levels(): Array<{ width: number; height: number; bitrate: number }> {
+    return this.hlsClient?.levels ?? [];
+  }
+
+  get audioTracks(): Array<{ id: number; name: string; lang?: string }> {
+    return this.hlsClient?.audioTracks ?? [];
+  }
+
+  get subtitleTracks(): Array<{ id: number; name: string; lang?: string }> {
+    return this.hlsClient?.subtitleTracks ?? [];
+  }
+
+  get currentLevel(): number {
+    return this.hlsClient?.currentLevel ?? -1;
   }
 
   load(): Promise<void> {
@@ -114,9 +135,7 @@ class HlsMediaEngine implements MediaEngine {
     if (!this.hlsClient) return;
 
     this.hlsClient.on('MANIFEST_PARSED', () => {
-      // Reset resilience state on successful manifest parse
-      this.attempt = 0;
-      this.nextDelay = 1000;
+      // Reset resilience state on successful manifest parse (handled in HlsClient)
       this.emit('progress', { loaded: true });
     });
 
@@ -196,6 +215,22 @@ class NativeMediaEngine implements MediaEngine {
     this.source = source;
   }
 
+  get levels(): Array<{ width: number; height: number; bitrate: number }> {
+    return [];
+  }
+
+  get audioTracks(): Array<{ id: number; name: string; lang?: string }> {
+    return [];
+  }
+
+  get subtitleTracks(): Array<{ id: number; name: string; lang?: string }> {
+    return [];
+  }
+
+  get currentLevel(): number {
+    return -1;
+  }
+
   load(): Promise<void> {
     if (this.destroyed) {
       return Promise.reject(new Error('MediaEngine destroyed'));
@@ -209,7 +244,9 @@ class NativeMediaEngine implements MediaEngine {
       };
 
       this.errorHandler = (e: Event) => {
-        const error = this.videoEl.error;
+        // Use event target for error info
+        const videoEl = e.target as HTMLVideoElement;
+        const error = videoEl.error;
         this.emit('error', {
           fatal: true,
           type: 'nativeError',

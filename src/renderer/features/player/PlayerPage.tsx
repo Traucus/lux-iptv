@@ -3,9 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { VideoPlayer } from '../../components/organisms/VideoPlayer';
 import { getPosition, createPositionThrottler } from '../../db/playback-resume';
-import { resolveNextEpisode, Season } from './next-episode';
+import { Season } from './next-episode';
 import type { Episode, CatalogItem } from '../../../shared/types/ipc';
-import { api } from '../../lib/api';
+import { createLuxAPI } from '../../lib/api';
 import { Button } from '../../components/atoms/Button';
 
 /**
@@ -73,7 +73,7 @@ const ResumeDialog: React.FC<ResumeDialogProps> = ({ position, duration, onResum
         </p>
         <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
           <Button
-            variant="outline"
+            variant="glass"
             size="lg"
             onClick={onRestart}
             style={{ flex: 1 }}
@@ -118,7 +118,8 @@ export const PlayerPage: React.FC = () => {
   const { data: catalogItem, isLoading, error } = useQuery({
     queryKey: ['playback-source', contentType, contentId],
     queryFn: async () => {
-      const result = await api.catalog.getById({ type: contentType, id: contentId });
+      const luxAPI = createLuxAPI();
+      const result = await luxAPI.catalog.getById({ type: contentType, id: contentId });
       if (result.error) throw new Error(result.error.message);
       return result.data as CatalogItem | { series: CatalogItem; seasons: Season[] };
     },

@@ -34,15 +34,16 @@ export function resolveNextEpisode(current: Episode, seasons: Season[]): Episode
 
   // Check for next episode in same season
   if (currentEpIndex + 1 < currentSeason.episodes.length) {
-    return currentSeason.episodes[currentEpIndex + 1];
+    return currentSeason.episodes[currentEpIndex + 1]!;
   }
 
   // At end of season - find next season with episodes
   const currentSeasonIndex = sortedSeasons.findIndex((s) => s.seasonNumber === current.season);
   for (let i = currentSeasonIndex + 1; i < sortedSeasons.length; i++) {
-    const nextSeason = sortedSeasons[i];
+    const nextSeason = sortedSeasons[i]!;
     if (nextSeason.episodes.length > 0) {
-      return nextSeason.episodes[0];
+      const firstEpisode = nextSeason.episodes[0];
+      if (firstEpisode) return firstEpisode;
     }
   }
 
