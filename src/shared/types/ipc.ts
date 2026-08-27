@@ -94,6 +94,8 @@ export type CatalogItem = {
   groupTitle: string | null;
   cover: string | null;
   year: number | null;
+  contentType: 'live' | 'movie' | 'series' | 'episode';
+  mediaFormat: 'hls' | 'mp4' | 'dash' | 'ts' | 'unknown';
 };
 
 export type SeriesDetail = {
