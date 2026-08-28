@@ -53,6 +53,7 @@ function createWindow(): void {
       contextIsolation: true,
       sandbox: true,
       nodeIntegration: false,
+      webSecurity: false,
     },
     show: false,
     autoHideMenuBar: true,
