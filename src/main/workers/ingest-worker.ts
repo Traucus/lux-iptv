@@ -360,12 +360,20 @@ if (parentPort) {
     }
 
     if (msg.type === 'START') {
-      // Fire-and-forget: errors are reported via parentPort messages so the
-      // orchestrator can surface them to the renderer.
-      runIngestion(data).catch(() => {
-        // Error already reported via emitError(). Swallow to keep the worker
-        // alive long enough to deliver the DONE / ERROR message.
+      parentPort!.postMessage({ type: 'LOG', jobId: data.jobId ?? 'unknown', message: 'Worker received START' });
+      runIngestion(data).catch((err) => {
+        const message = err instanceof Error ? err.message : 'Unknown worker error';
+        parentPort!.postMessage({ type: 'LOG', jobId: data.jobId ?? 'unknown', message: `Worker crashed: ${message}` });
+        parentPort!.postMessage({
+          type: 'ERROR',
+          jobId: data.jobId ?? 'unknown',
+          code: 'DB_ERROR',
+          message,
+          retryable: false,
+        });
       });
     }
   });
+
+  parentPort.postMessage({ type: 'LOG', jobId: data.jobId ?? 'unknown', message: 'Worker thread started' });
 }
