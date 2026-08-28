@@ -11,6 +11,7 @@ import { registerHandlers } from './ipc/index.js';
 import { IngestOrchestrator } from './services/ingest-orchestrator.js';
 import { createTmdbKeyVault } from './services/tmdb-key.js';
 import { StreamProxyService } from './services/stream-proxy.js';
+import { ConfigService } from './services/config-service.js';
 
 let mainWindow: BrowserWindow | null = null;
 let dbHandle: ReturnType<typeof createDb> | null = null;
@@ -114,6 +115,7 @@ app.whenReady().then(async () => {
       db: dbHandle.sqlite,
       ingestOrchestrator,
       tmdbVault,
+      configService: new ConfigService(app.getPath('userData')),
       getProxiedBaseUrl: () => streamProxyService!.getPort()
         ? `http://127.0.0.1:${streamProxyService!.getPort()}`
         : undefined,

@@ -49,6 +49,24 @@ export function IngestPage(): React.ReactElement {
   const jobId = progress.jobId;
   const { data: progressData } = useIngestProgress(jobId);
 
+  // Load saved credentials on mount to auto-fill the form.
+  useEffect(() => {
+    let cancelled = false;
+    api.config.loadCredentials().then((result) => {
+      if (cancelled || !result.data) return;
+      const c = result.data;
+      setForm({
+        source: c.source ?? 'm3u',
+        server: c.server ?? '',
+        username: c.username ?? '',
+        password: c.password ?? '',
+        listName: c.listName ?? '',
+        url: c.url ?? '',
+      });
+    }).catch(() => { /* no saved creds */ });
+    return () => { cancelled = true; };
+  }, []);
+
   // Listen for IPC progress events to keep the overlay in sync.
   // The orchestrator sends flat { phase, live, movies, series, radio, total }
   // — we reconstruct the counts object here.
@@ -104,6 +122,15 @@ export function IngestPage(): React.ReactElement {
   // Auto-transition to dashboard when DONE.
   useEffect(() => {
     if (progress.phase === 'DONE' && showOverlay) {
+      // Persist credentials so next time the user doesn't have to re-enter them.
+      api.config.saveCredentials({
+        source: form.source,
+        server: form.server,
+        username: form.username,
+        password: form.password,
+        listName: form.listName,
+        url: form.url,
+      }).catch(() => { /* best-effort */ });
       const timer = window.setTimeout(() => {
         setShowOverlay(false);
         navigate('/');
@@ -111,7 +138,7 @@ export function IngestPage(): React.ReactElement {
       return () => window.clearTimeout(timer);
     }
     return undefined;
-  }, [progress.phase, showOverlay, navigate]);
+  }, [progress.phase, showOverlay, navigate, form]);
 
   const handleSourceChange = (source: CredentialSource): void => {
     setForm((prev) => ({ ...prev, source }));

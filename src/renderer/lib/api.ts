@@ -21,7 +21,20 @@ export type TypedLuxAPI = {
     hasKey: () => Promise<IpcResult<boolean>>;
     clearKey: () => Promise<IpcResult<void>>;
   };
+  config: {
+    saveCredentials: (input: CredentialsConfig) => Promise<IpcResult<{ ok: boolean }>>;
+    loadCredentials: () => Promise<IpcResult<CredentialsConfig | null>>;
+  };
 };
+
+export interface CredentialsConfig {
+  source: 'xtream' | 'm3u';
+  server?: string;
+  username?: string;
+  password?: string;
+  listName?: string;
+  url?: string;
+}
 
 type IngestStartOutput = { jobId: string };
 

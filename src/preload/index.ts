@@ -52,6 +52,10 @@ const luxAPI = {
      */
     getNextEpisode: (input: unknown) => ipcRenderer.invoke('player:getNextEpisode', input),
   },
+  config: {
+    saveCredentials: (input: unknown) => ipcRenderer.invoke('config:saveCredentials', input),
+    loadCredentials: () => ipcRenderer.invoke('config:loadCredentials'),
+  },
 };
 
 contextBridge.exposeInMainWorld('luxAPI', luxAPI);

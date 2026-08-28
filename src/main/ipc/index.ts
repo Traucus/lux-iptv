@@ -3,11 +3,13 @@ import { ipcMain } from 'electron';
 import type { IngestOrchestrator } from '../services/ingest-orchestrator.js';
 import type { TmdbKeyVault } from '../services/tmdb-key.js';
 import type { SqlJsCompatDb } from '../db/sqljs-adapter.js';
+import type { ConfigService } from '../services/config-service.js';
 import { registerIngestHandlers } from './handlers/ingest.js';
 import { registerTmdbHandlers } from './handlers/tmdb.js';
 import { registerEnrichmentHandlers } from './handlers/enrichment.js';
 import { registerCatalogHandlers } from './handlers/catalog.js';
 import { registerPlayerHandlers } from './handlers/player.js';
+import { registerConfigHandlers } from './handlers/config.js';
 
 export type HandlerContext = {
   mainWindow: BrowserWindow;
@@ -25,6 +27,7 @@ export interface HandlerDeps {
   db: SqlJsCompatDb;
   ingestOrchestrator: IngestOrchestrator;
   tmdbVault: TmdbKeyVault;
+  configService: ConfigService;
   /**
    * Optional — returns the base URL of the in-process stream proxy. Only
    * present when the G5 StreamProxyService is running. When undefined, the
@@ -50,6 +53,7 @@ export function registerHandlers(deps: HandlerDeps): void {
     db: deps.db,
     getProxiedBaseUrl: deps.getProxiedBaseUrl,
   });
+  registerConfigHandlers(ipcMain, deps.configService);
   console.log('[ipc] all handlers registered');
 }
 

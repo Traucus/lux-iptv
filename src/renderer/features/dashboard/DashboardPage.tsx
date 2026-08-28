@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Sidebar, type SidebarSection } from '../../components/organisms/Sidebar';
 import { HeroBanner } from '../../components/organisms/HeroBanner';
@@ -8,7 +8,10 @@ import { ChannelCard, type ChannelCardData } from '../../components/molecules/Ch
 import { MoviePosterCard, type MoviePosterData } from '../../components/molecules/MoviePosterCard';
 import { SeriesPosterCard, type SeriesPosterData } from '../../components/molecules/SeriesPosterCard';
 import { useDashboardData } from './useDashboardData';
+import { createLuxAPI } from '../../lib/api';
 import type { EnrichedCatalogItem } from '../../../shared/types/ipc';
+
+const api = createLuxAPI();
 
 function itemToMovie(item: EnrichedCatalogItem): MoviePosterData {
   return {
@@ -60,8 +63,41 @@ export function DashboardPage(): React.ReactElement {
   const navigate = useNavigate();
   const location = useLocation();
   const data = useDashboardData();
+  const [refreshing, setRefreshing] = useState(false);
+  const [hasSavedCredentials, setHasSavedCredentials] = useState(false);
 
   const activeSection = routeToSection(location.pathname);
+
+  // Check if saved credentials exist to show/hide the refresh button.
+  useEffect(() => {
+    api.config.loadCredentials().then((result) => {
+      setHasSavedCredentials(!!result.data);
+    }).catch(() => { /* no saved creds */ });
+  }, []);
+
+  const handleRefresh = async (): Promise<void> => {
+    setRefreshing(true);
+    try {
+      const result = await api.config.loadCredentials();
+      if (!result.data) {
+        navigate('/ingest');
+        return;
+      }
+      const c = result.data;
+      await api.ingest.start({
+        source: c.source,
+        listName: c.listName ?? '',
+        credentials: c.source === 'xtream' && c.server && c.username && c.password
+          ? { server: c.server, username: c.username, password: c.password }
+          : undefined,
+        url: c.source === 'm3u' ? (c.url ?? '') : undefined,
+      });
+      // Navigate to settings page to show progress overlay.
+      navigate('/ingest');
+    } catch {
+      setRefreshing(false);
+    }
+  };
 
   const onSidebarSelect = (section: SidebarSection): void => {
     switch (section) {
@@ -90,6 +126,29 @@ export function DashboardPage(): React.ReactElement {
       <Sidebar active={activeSection} onSelect={onSidebarSelect} />
 
       <main className="flex-1 overflow-y-auto p-6 safe-area">
+        {/* Refresh button — only shown when saved credentials exist */}
+        {hasSavedCredentials && (
+          <div className="flex justify-end mb-4">
+            <button
+              type="button"
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-glass border border-white/10 text-gray-300 hover:text-white hover:border-primary-500/40 transition-colors text-sm disabled:opacity-50"
+            >
+              {refreshing ? (
+                <Spinner size="sm" label="" />
+              ) : (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="23 4 23 10 17 10" />
+                  <polyline points="1 20 1 14 7 14" />
+                  <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+                </svg>
+              )}
+              {refreshing ? 'Actualizando…' : 'Actualizar listas'}
+            </button>
+          </div>
+        )}
+
         {data.loading ? (
           <div className="flex items-center justify-center min-h-[50vh]">
             <Spinner size="lg" label="Loading dashboard" />

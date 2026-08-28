@@ -32,6 +32,10 @@ const mockApi = vi.hoisted(() => ({
   catalog: { list: vi.fn(), getById: vi.fn() },
   enrichment: { getStatus: vi.fn() },
   tmdb: { setKey: vi.fn(), hasKey: vi.fn(), clearKey: vi.fn() },
+  config: {
+    saveCredentials: vi.fn().mockResolvedValue({ data: { ok: true } }),
+    loadCredentials: vi.fn().mockResolvedValue({ data: null }),
+  },
 }));
 
 vi.mock('../../../src/renderer/lib/api', () => ({
