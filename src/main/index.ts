@@ -100,6 +100,7 @@ app.whenReady().then(async () => {
       throw new Error('Internal: mainWindow must exist by app ready');
     }
     ingestOrchestrator = new IngestOrchestrator(mainWindow);
+    ingestOrchestrator.setDb(dbHandle.sqlite);
     const tmdbVault = createTmdbKeyVault(join(app.getPath('userData'), 'tmdb.key'));
 
     // Start the stream proxy service (G5)

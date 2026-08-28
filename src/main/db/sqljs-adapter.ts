@@ -91,6 +91,24 @@ export class SqlJsCompatDb {
   get raw(): SqlJsDatabase {
     return this.db;
   }
+
+  /**
+   * Reload the in-memory database from the on-disk file.
+   * The ingest worker runs in a separate thread and writes to the same file.
+   * Since sql.js databases are in-memory snapshots, the main process must
+   * explicitly reload after the worker completes to see fresh data.
+   */
+  reload(): void {
+    if (this.filePath === ':memory:') return;
+    this.db.close();
+    if (!sqlModule) throw new Error('sql.js module not initialized');
+    if (existsSync(this.filePath)) {
+      const buffer = readFileSync(this.filePath);
+      this.db = new sqlModule.Database(new Uint8Array(buffer));
+    } else {
+      this.db = new sqlModule.Database();
+    }
+  }
 }
 
 class SqlJsCompatStatement {

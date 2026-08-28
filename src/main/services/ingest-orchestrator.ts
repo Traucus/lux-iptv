@@ -8,6 +8,7 @@ const __dirname = dirname(__filename);
 import type { BrowserWindow } from 'electron';
 import type { IngestStartInput } from '../../shared/types/ipc.js';
 import type { IngestWorkerMessage } from '../../shared/types/ingest.js';
+import type { SqlJsCompatDb } from '../db/sqljs-adapter.js';
 
 interface JobState {
   jobId: string;
@@ -74,9 +75,20 @@ export class IngestOrchestrator {
 
   private currentJob: JobState | null = null;
   private readonly mainWindow: BrowserWindow;
+  private db: SqlJsCompatDb | null = null;
 
   constructor(mainWindow: BrowserWindow) {
     this.mainWindow = mainWindow;
+  }
+
+  /**
+   * Set the main process DB handle so the orchestrator can reload it
+   * after the ingest worker completes. The worker writes to disk in a
+   * separate thread; the main process's in-memory sql.js snapshot must
+   * be refreshed to see the new data.
+   */
+  setDb(db: SqlJsCompatDb): void {
+    this.db = db;
   }
 
   start(input: IngestStartInput): { jobId: string } {
@@ -175,6 +187,9 @@ export class IngestOrchestrator {
             durationMs: msg.durationMs,
           });
           this.mainWindow.webContents.send('catalog:ingestion-complete', msg.counts);
+          // Reload the main process's in-memory DB from disk so IPC
+          // handlers see the data the worker just wrote.
+          this.db?.reload();
           worker.terminate();
           break;
         case 'ERROR':
