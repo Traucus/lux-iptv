@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Focusable } from '../atoms/Focusable';
 
 /**
  * MoviePosterCard — vertical poster card for movies.
  * Receives poster URL, title, year; click navigates to detail.
+ * Shows placeholder letter when image fails to load.
  */
 export interface MoviePosterData {
   id: number;
@@ -24,6 +25,9 @@ export function MoviePosterCard({
   onSelect,
   className = '',
 }: MoviePosterCardProps): React.ReactElement {
+  const [imgFailed, setImgFailed] = useState(false);
+  const showImage = movie.posterPath && !imgFailed;
+
   return (
     <Focusable
       onSelect={onSelect ? () => onSelect(movie) : undefined}
@@ -32,12 +36,13 @@ export function MoviePosterCard({
     >
       <div className="flex flex-col gap-2 p-2 rounded-xl bg-glass-light border border-white/10 hover:border-primary-500/40 transition-colors">
         <div className="relative aspect-[2/3] bg-surface-100 rounded-lg overflow-hidden">
-          {movie.posterPath ? (
+          {showImage ? (
             <img
-              src={movie.posterPath}
+              src={movie.posterPath ?? undefined}
               alt=""
               loading="lazy"
               className="w-full h-full object-cover"
+              onError={() => setImgFailed(true)}
             />
           ) : (
             <PlaceholderArt label={movie.name} />

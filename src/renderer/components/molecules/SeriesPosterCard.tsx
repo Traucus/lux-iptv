@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Focusable } from '../atoms/Focusable';
 import { PlaceholderArt } from './MoviePosterCard';
 
@@ -25,6 +25,9 @@ export function SeriesPosterCard({
   onSelect,
   className = '',
 }: SeriesPosterCardProps): React.ReactElement {
+  const [imgFailed, setImgFailed] = useState(false);
+  const showImage = series.posterPath && !imgFailed;
+
   return (
     <Focusable
       onSelect={onSelect ? () => onSelect(series) : undefined}
@@ -33,12 +36,13 @@ export function SeriesPosterCard({
     >
       <div className="flex flex-col gap-2 p-2 rounded-xl bg-glass-light border border-white/10 hover:border-primary-500/40 transition-colors">
         <div className="relative aspect-[2/3] bg-surface-100 rounded-lg overflow-hidden">
-          {series.posterPath ? (
+          {showImage ? (
             <img
-              src={series.posterPath}
+              src={series.posterPath ?? undefined}
               alt=""
               loading="lazy"
               className="w-full h-full object-cover"
+              onError={() => setImgFailed(true)}
             />
           ) : (
             <PlaceholderArt label={series.name} />

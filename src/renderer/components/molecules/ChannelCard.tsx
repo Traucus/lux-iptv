@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Focusable } from '../atoms/Focusable';
 import { Badge } from '../atoms/Badge';
 
 /**
  * ChannelCard molecule — presentational card for live TV channels.
  * Receives channel data; onSelect triggers navigation to playback.
+ * Shows placeholder letter when logo fails to load.
  */
 export interface ChannelCardData {
   id: number;
@@ -21,6 +22,9 @@ export interface ChannelCardProps {
 }
 
 export function ChannelCard({ channel, onSelect, className = '' }: ChannelCardProps): React.ReactElement {
+  const [imgFailed, setImgFailed] = useState(false);
+  const showLogo = channel.logo && !imgFailed;
+
   return (
     <Focusable
       onSelect={onSelect ? () => onSelect(channel) : undefined}
@@ -29,12 +33,13 @@ export function ChannelCard({ channel, onSelect, className = '' }: ChannelCardPr
     >
       <div className="flex flex-col gap-2 p-3 rounded-xl bg-glass-light border border-white/10 hover:border-primary-500/40 transition-colors">
         <div className="relative aspect-video bg-surface-100 rounded-lg overflow-hidden flex items-center justify-center">
-          {channel.logo ? (
+          {showLogo ? (
             <img
-              src={channel.logo}
+              src={channel.logo ?? undefined}
               alt=""
               loading="lazy"
               className="w-full h-full object-contain"
+              onError={() => setImgFailed(true)}
             />
           ) : (
             <div className="text-3xl font-bold text-gray-600">{channel.name.charAt(0).toUpperCase()}</div>

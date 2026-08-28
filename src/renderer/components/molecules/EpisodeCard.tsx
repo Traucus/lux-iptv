@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Focusable } from '../atoms/Focusable';
 
 /**
@@ -21,6 +21,9 @@ export interface EpisodeCardProps {
 }
 
 export function EpisodeCard({ episode, onSelect, className = '' }: EpisodeCardProps): React.ReactElement {
+  const [imgFailed, setImgFailed] = useState(false);
+  const showThumb = episode.thumbnailUrl && !imgFailed;
+
   return (
     <Focusable
       onSelect={onSelect ? () => onSelect(episode) : undefined}
@@ -29,12 +32,13 @@ export function EpisodeCard({ episode, onSelect, className = '' }: EpisodeCardPr
     >
       <div className="flex gap-3 p-2 rounded-xl bg-glass-light border border-white/10 hover:border-primary-500/40 transition-colors">
         <div className="relative w-32 h-20 flex-shrink-0 bg-surface-100 rounded-md overflow-hidden">
-          {episode.thumbnailUrl ? (
+          {showThumb ? (
             <img
-              src={episode.thumbnailUrl}
+              src={episode.thumbnailUrl ?? undefined}
               alt=""
               loading="lazy"
               className="w-full h-full object-cover"
+              onError={() => setImgFailed(true)}
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-gray-600 text-xl">
