@@ -81,6 +81,10 @@ export function processM3UEntries(db: SqlJsCompatDb, entries: M3UEntry[]): Inges
   `);
 
   for (const entry of entries) {
+    // Defensive: skip entries with no name — Xtream APIs sometimes return
+    // null/empty names which would violate NOT NULL DB constraints.
+    if (!entry.name || entry.name.trim().length === 0) continue;
+
     const contentType = classify({
       url: entry.url,
       name: entry.name,

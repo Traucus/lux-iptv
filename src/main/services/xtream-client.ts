@@ -230,19 +230,21 @@ export async function fetchXtreamVod(
     categoryMap.set(cat.category_id, cat.category_name);
   }
 
-  return streams.map((s) => {
-    const ext = s.container_extension ?? 'mp4';
-    const mediaFormat = ext === 'm3u8' ? 'hls' : ext === 'mpd' ? 'dash' : ext === 'ts' ? 'ts' : 'mp4';
-    return {
-      name: s.name,
-      url: buildStreamUrl(credentials.server, 'movie', credentials.username, credentials.password, s.stream_id, ext),
-      groupTitle: categoryMap.get(s.category_id) ?? null,
-      tvgId: null,
-      tvgLogo: s.stream_icon || null,
-      http: null as M3UEntryHttpHints | null,
-      mediaFormat: mediaFormat as M3UEntry['mediaFormat'],
-    };
-  });
+  return streams
+    .filter((s) => s.name && s.name.trim().length > 0)
+    .map((s) => {
+      const ext = s.container_extension ?? 'mp4';
+      const mediaFormat = ext === 'm3u8' ? 'hls' : ext === 'mpd' ? 'dash' : ext === 'ts' ? 'ts' : 'mp4';
+      return {
+        name: s.name.trim(),
+        url: buildStreamUrl(credentials.server, 'movie', credentials.username, credentials.password, s.stream_id, ext),
+        groupTitle: categoryMap.get(s.category_id) ?? null,
+        tvgId: null,
+        tvgLogo: s.stream_icon || null,
+        http: null as M3UEntryHttpHints | null,
+        mediaFormat: mediaFormat as M3UEntry['mediaFormat'],
+      };
+    });
 }
 
 /**
@@ -273,10 +275,13 @@ export async function fetchXtreamSeries(
 
   const entries: M3UEntry[] = [];
 
+  // Filter out series with no name before processing episodes
+  const validSeries = seriesList.filter((s) => s.name && s.name.trim().length > 0);
+
   // Fetch episode info for each series (batch in groups of 20 to avoid flooding)
   const BATCH_SIZE = 20;
-  for (let i = 0; i < seriesList.length; i += BATCH_SIZE) {
-    const batch = seriesList.slice(i, i + BATCH_SIZE);
+  for (let i = 0; i < validSeries.length; i += BATCH_SIZE) {
+    const batch = validSeries.slice(i, i + BATCH_SIZE);
     const episodeResults = await Promise.all(
       batch.map(async (series) => {
         try {
