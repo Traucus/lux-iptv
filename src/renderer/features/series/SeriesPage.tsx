@@ -24,7 +24,7 @@ export function SeriesPage(): React.ReactElement {
       movie={{
         id: item.id,
         name: item.name,
-        year: item.year,
+        year: item.year ?? null,
         posterPath: item.cover,
         enriched: false,
       }}

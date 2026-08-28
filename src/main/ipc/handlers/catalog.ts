@@ -4,7 +4,6 @@ import type { CatalogListInputParsed, CatalogGetByIdInputParsed } from '../../..
 import type {
   CatalogItem,
   CatalogListOutput,
-  CatalogGroupedOutput,
   SeriesDetail,
   CatalogType,
 } from '../../../shared/types/ipc.js';

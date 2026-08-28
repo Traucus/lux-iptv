@@ -20,6 +20,5 @@ export const CatalogGroupedInputSchema = z.object({
   limit: z.number().int().min(1).max(100).optional().default(20),
 });
 
-export type CatalogListInputParsed = z.infer<typeof CatalogListInputSchema>;
 export type CatalogGetByIdInputParsed = z.infer<typeof CatalogGetByIdInputSchema>;
 export type CatalogGroupedInputParsed = z.infer<typeof CatalogGroupedInputSchema>;

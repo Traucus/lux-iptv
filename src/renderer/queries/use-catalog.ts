@@ -6,7 +6,6 @@ import type {
   CatalogGetByIdInput,
   CatalogItem,
   CatalogType,
-  CatalogGroupedInput,
   CatalogGroupedOutput,
   SeriesDetail,
 } from '../../shared/types/ipc';
