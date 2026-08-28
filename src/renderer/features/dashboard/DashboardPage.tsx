@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Sidebar, type SidebarSection } from '../../components/organisms/Sidebar';
 import { HeroBanner } from '../../components/organisms/HeroBanner';
@@ -9,6 +9,7 @@ import { MoviePosterCard, type MoviePosterData } from '../../components/molecule
 import { SeriesPosterCard, type SeriesPosterData } from '../../components/molecules/SeriesPosterCard';
 import { useDashboardData } from './useDashboardData';
 import { createLuxAPI } from '../../lib/api';
+import { useHasSource } from '../../queries/use-source';
 import type { EnrichedCatalogItem } from '../../../shared/types/ipc';
 
 const api = createLuxAPI();
@@ -64,37 +65,23 @@ export function DashboardPage(): React.ReactElement {
   const location = useLocation();
   const data = useDashboardData();
   const [refreshing, setRefreshing] = useState(false);
-  const [hasSavedCredentials, setHasSavedCredentials] = useState(false);
+  const { data: hasSource } = useHasSource();
+  const hasSavedCredentials = Boolean(hasSource?.configured);
 
   const activeSection = routeToSection(location.pathname);
-
-  // Check if saved credentials exist to show/hide the refresh button.
-  useEffect(() => {
-    api.config.loadCredentials().then((result) => {
-      setHasSavedCredentials(!!result.data);
-    }).catch(() => { /* no saved creds */ });
-  }, []);
 
   const handleRefresh = async (): Promise<void> => {
     setRefreshing(true);
     try {
-      const result = await api.config.loadCredentials();
-      if (!result.data) {
-        navigate('/ingest');
+      const result = await api.ingest.refresh();
+      if (result.error) {
+        if (result.error.code === 'NOT_FOUND') {
+          navigate('/ingest');
+        }
         return;
       }
-      const c = result.data;
-      await api.ingest.start({
-        source: c.source,
-        listName: c.listName ?? '',
-        credentials: c.source === 'xtream' && c.server && c.username && c.password
-          ? { server: c.server, username: c.username, password: c.password }
-          : undefined,
-        url: c.source === 'm3u' ? (c.url ?? '') : undefined,
-      });
-      // Navigate to settings page to show progress overlay.
-      navigate('/ingest');
-    } catch {
+      // Overlay is IngestProgressHost; stay on Home.
+    } finally {
       setRefreshing(false);
     }
   };
