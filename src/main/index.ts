@@ -89,6 +89,9 @@ app.whenReady().then(async () => {
     migrate(dbHandle.sqlite, migrations);
     // Keep the handle open for the lifetime of the app — close on quit.
 
+    // Create the window AFTER migration but BEFORE services that need it.
+    createWindow();
+
     // Create services that need a live window reference (only the orchestrator
     // does — the rest take deps via the register call).
     if (!mainWindow) {
@@ -117,8 +120,6 @@ app.whenReady().then(async () => {
     app.exit(1);
     return;
   }
-
-  createWindow();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
