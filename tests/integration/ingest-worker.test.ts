@@ -100,6 +100,25 @@ describe('ingest-worker', () => {
       expect(movieCount.c).toBe(1);
     });
 
+    it('persists Xtream-style /series/ URLs into the series table even without group_title', () => {
+      const entries = [
+        {
+          name: 'Show - S01E01 - Pilot',
+          url: 'http://example.com:8080/series/user/pass/101.mp4',
+          groupTitle: null,
+          tvgId: null,
+          tvgLogo: null,
+          http: null,
+          mediaFormat: 'mp4' as const,
+        },
+      ];
+      const counts = processM3UEntries(db, entries);
+      expect(counts.series).toBe(1);
+      const row = db.prepare('SELECT name, url FROM series').get() as { name: string; url: string };
+      expect(row.name).toContain('Pilot');
+      expect(row.url).toContain('/series/');
+    });
+
     it('handles empty entries', () => {
       const counts = processM3UEntries(db, []);
       expect(counts.total).toBe(0);

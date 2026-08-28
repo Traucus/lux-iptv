@@ -22,7 +22,6 @@ export function registerIngestHandlers(
   configService: ConfigService,
 ): void {
   ipcMain.handle('ingest:start', async (_event, input: unknown) => {
-    console.log('[ingest] ingest:start received', JSON.stringify(input));
     const result = IngestStartInputSchema.safeParse(input);
     if (!result.success) {
       console.log('[ingest] validation failed', result.error.issues);

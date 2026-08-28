@@ -92,7 +92,10 @@ export class IngestOrchestrator {
   }
 
   start(input: IngestStartInput): { jobId: string } {
-    if (this.currentJob && this.currentJob.status === 'running') {
+    // Any live worker owns the catalog.db file. Status 'done'/'error' is not
+    // enough: a second start while the first worker is still fetching/writing
+    // lets two sql.js snapshots race and the last close() wipes series rows.
+    if (this.currentJob?.worker) {
       throw new Error('INGEST_IN_PROGRESS: Another ingestion is already running');
     }
 
@@ -143,7 +146,7 @@ export class IngestOrchestrator {
     };
 
     worker.on('message', (msg: IngestWorkerMessage) => {
-      if (!this.currentJob) return;
+      if (!this.currentJob || this.currentJob.jobId !== msg.jobId) return;
 
       switch (msg.type) {
         case 'LOG':
@@ -192,6 +195,7 @@ export class IngestOrchestrator {
           });
           this.mainWindow.webContents.send('catalog:ingestion-complete', msg.counts);
           worker.terminate();
+          this.currentJob = null;
           break;
         case 'ERROR':
           this.currentJob.status = 'error';
@@ -210,6 +214,7 @@ export class IngestOrchestrator {
             retryable: msg.retryable,
           });
           worker.terminate();
+          this.currentJob = null;
           break;
       }
     });
@@ -223,6 +228,8 @@ export class IngestOrchestrator {
           message: err.message,
           retryable: false,
         });
+        this.currentJob.worker.terminate();
+        this.currentJob = null;
       }
     });
 
