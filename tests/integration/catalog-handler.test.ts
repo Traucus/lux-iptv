@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import Database from 'better-sqlite3';
+import { describe, it, expect, beforeEach, afterEach, beforeAll } from 'vitest';
+import { createSqlJsDb, initSqlJsModule, type SqlJsCompatDb } from '../../src/main/db/sqljs-adapter.js';
 import type { IpcMain } from 'electron';
 import { registerCatalogHandlers } from '../../src/main/ipc/handlers/catalog';
 
@@ -19,10 +19,14 @@ function captureIpcMain(): { ipc: IpcMain; captured: CapturedHandler[] } {
 }
 
 describe('catalog handler', () => {
-  let db: InstanceType<typeof Database>;
+  let db: SqlJsCompatDb;
+
+  beforeAll(async () => {
+    await initSqlJsModule();
+  });
 
   beforeEach(() => {
-    db = new Database(':memory:');
+    db = createSqlJsDb(':memory:');
     db.pragma('foreign_keys = ON');
     db.exec(`
       CREATE TABLE live_channels (
@@ -226,7 +230,7 @@ describe('catalog handler', () => {
       db.prepare(
         `INSERT INTO episodes (series_id, name, url, season, episode, added_at)
          VALUES (?, ?, ?, ?, ?, ?)`,
-      ).run(1, 'Cat\'s in the Bag', 'https://x/bb-s01e02', 1, 2, 1000);
+      ).run(1, "Cat's in the Bag", 'https://x/bb-s01e02', 1, 2, 1000);
       db.prepare(
         `INSERT INTO episodes (series_id, name, url, season, episode, added_at)
          VALUES (?, ?, ?, ?, ?, ?)`,

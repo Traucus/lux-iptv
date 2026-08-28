@@ -1,5 +1,5 @@
 import type { IpcMain } from 'electron';
-import type Database from 'better-sqlite3';
+import type { SqlJsCompatDb } from '../../db/sqljs-adapter.js';
 import type { CatalogListInputParsed, CatalogGetByIdInputParsed } from '../../../shared/schemas/catalog.js';
 import type {
   CatalogItem,
@@ -18,7 +18,7 @@ import { CatalogListInputSchema, CatalogGetByIdInputSchema } from '../../../shar
  * of an extra cache layer is not justified at this scale.
  */
 export interface CatalogHandlerDeps {
-  db: Database.Database;
+  db: SqlJsCompatDb;
 }
 
 function invalidInput(details: unknown) {

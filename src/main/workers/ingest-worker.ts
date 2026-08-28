@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-import Database from 'better-sqlite3';
+import { createSqlJsDb, initSqlJsModule, type SqlJsCompatDb } from '../db/sqljs-adapter.js';
 import { migrate } from '../db/migrate.js';
 import { classify } from '../services/classifier.js';
 import { fetchM3U } from '../services/m3u-client.js';
@@ -37,7 +37,7 @@ let aborted = false;
  * Processes M3U entries: classifies and persists to SQLite.
  * Exported for testing.
  */
-export function processM3UEntries(db: Database.Database, entries: M3UEntry[]): IngestCounts {
+export function processM3UEntries(db: SqlJsCompatDb, entries: M3UEntry[]): IngestCounts {
   const counts: IngestCounts = { live: 0, movies: 0, series: 0, radio: 0, total: 0 };
   const now = Date.now();
 
@@ -179,10 +179,9 @@ function m3uHttpToWire(http: M3UEntryHttpHints | null): Record<string, string> {
  * Opens the SQLite catalog DB and ensures the schema is applied.
  * Returns null when dbPath is missing (e.g. unit tests that don't need a DB).
  */
-function openCatalogDb(dbPath: string | undefined): Database.Database | null {
+function openCatalogDb(dbPath: string | undefined): SqlJsCompatDb | null {
   if (!dbPath) return null;
-  const db = new Database(dbPath);
-  db.pragma('journal_mode = WAL');
+  const db = createSqlJsDb(dbPath);
   db.pragma('foreign_keys = ON');
   // The migration is applied at app startup before the worker is spawned, so
   // we don't re-run it here. The schema is expected to exist.
@@ -233,6 +232,7 @@ function emitDone(counts: IngestCounts, durationMs: number): void {
 export async function runIngestion(data: IngestWorkerData): Promise<IngestCounts> {
   aborted = false;
   const startTime = Date.now();
+  await initSqlJsModule();
 
   // Open DB
   const db = openCatalogDb(data.dbPath);

@@ -34,8 +34,7 @@
     "db:studio": "drizzle-kit studio",
     "api:license:create": "tsx src/licensing-api/cli/index.ts create",
     "api:license:list": "tsx src/licensing-api/cli/index.ts list",
-    "api:license:revoke": "tsx src/licensing-api/cli/index.ts revoke",
-    "postinstall": "electron-rebuild -f"
+    "api:license:revoke": "tsx src/licensing-api/cli/index.ts revoke"
   },
   "dependencies": {
     "@fastify/cors": "^10.0.1",
@@ -44,7 +43,6 @@
     "@tanstack/react-query": "^5.102.2",
     "autoprefixer": "^10.4.20",
     "bcrypt": "^5.1.1",
-    "better-sqlite3": "^13.0.3",
     "commander": "^12.1.0",
     "dotenv": "^16.4.5",
     "drizzle-orm": "^0.36.3",
@@ -63,6 +61,7 @@
     "react-router-dom": "^6.28.0",
     "react-tv-space-navigation": "^6.0.0-beta1",
     "react-window": "^2.3.0",
+    "sql.js": "^1.11.0",
     "tailwindcss": "^3.4.15",
     "zod": "^3.23.8"
   },
@@ -71,7 +70,6 @@
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^14.3.1",
     "@types/bcrypt": "^5.0.2",
-    "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^22.9.0",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",

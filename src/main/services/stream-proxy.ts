@@ -1,6 +1,6 @@
 import { createServer, IncomingMessage, ServerResponse, Server } from 'node:http';
 import { net, IpcMain } from 'electron';
-import type Database from 'better-sqlite3';
+import type { SqlJsCompatDb } from '../db/sqljs-adapter.js';
 import { URL } from 'node:url';
 
 /**
@@ -126,7 +126,7 @@ function parseHttpHeaders(raw: string | null | undefined): Record<string, string
 export class StreamProxyService {
   private server: Server | null = null;
   private port: number | null = null;
-  private db: Database.Database | null = null;
+  private db: SqlJsCompatDb | null = null;
   private manifestCache = new Map<string, CacheEntry>();
   private ipcMain: IpcMain | null = null;
 
@@ -135,7 +135,7 @@ export class StreamProxyService {
    * @param db - The catalog SQLite database handle.
    * @returns Promise resolving to the bound port number.
    */
-  async start(db: Database.Database): Promise<{ port: number }> {
+  async start(db: SqlJsCompatDb): Promise<{ port: number }> {
     if (this.server) {
       return { port: this.port! };
     }

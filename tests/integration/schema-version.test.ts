@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import Database from 'better-sqlite3';
+import { describe, it, expect, beforeEach, afterEach, beforeAll } from 'vitest';
+import { createSqlJsDb, initSqlJsModule, type SqlJsCompatDb } from '../../src/main/db/sqljs-adapter.js';
 import { join } from 'node:path';
 import { migrate, loadMigrations } from '../../src/main/db/migrate';
 
@@ -13,11 +13,15 @@ import { migrate, loadMigrations } from '../../src/main/db/migrate';
  *    (idempotent: no duplicate rows, no errors).
  */
 describe('schema-version', () => {
-  let db: InstanceType<typeof Database>;
+  let db: SqlJsCompatDb;
   const MIGRATIONS_DIR = join(__dirname, '../../src/main/db/migrations');
 
+  beforeAll(async () => {
+    await initSqlJsModule();
+  });
+
   beforeEach(() => {
-    db = new Database(':memory:');
+    db = createSqlJsDb(':memory:');
     db.pragma('foreign_keys = ON');
   });
 

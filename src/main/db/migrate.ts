@@ -1,4 +1,4 @@
-import type Database from 'better-sqlite3';
+import type { SqlJsCompatDb } from './sqljs-adapter.js';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -34,7 +34,7 @@ const DOWN_SUFFIX = '_down.sql';
  *
  * Idempotent for 'up': re-running with the same migrations does nothing.
  */
-export function migrate(db: Database.Database, migrations: Migration[], options: MigrateOptions = {}): void {
+export function migrate(db: SqlJsCompatDb, migrations: Migration[], options: MigrateOptions = {}): void {
   const direction = options.direction ?? 'up';
 
   // Ensure schema_version table exists
@@ -52,7 +52,7 @@ export function migrate(db: Database.Database, migrations: Migration[], options:
   }
 }
 
-function runUp(db: Database.Database, migrations: Migration[]): void {
+function runUp(db: SqlJsCompatDb, migrations: Migration[]): void {
   const currentVersion = readCurrentVersion(db);
 
   const pending = migrations
@@ -64,7 +64,7 @@ function runUp(db: Database.Database, migrations: Migration[]): void {
   }
 }
 
-function runDown(db: Database.Database, migrations: Migration[]): void {
+function runDown(db: SqlJsCompatDb, migrations: Migration[]): void {
   // Apply down migrations in reverse order. Each one removes the version row
   // after the DDL succeeds.
   const ordered = [...migrations].sort((a, b) => b.version - a.version);
@@ -74,7 +74,7 @@ function runDown(db: Database.Database, migrations: Migration[]): void {
   }
 }
 
-function applyUpMigration(db: Database.Database, migration: Migration): void {
+function applyUpMigration(db: SqlJsCompatDb, migration: Migration): void {
   // Strip the migration runner's own bookkeeping from the file content
   // (CREATE TABLE schema_version) and any explicit BEGIN/COMMIT, since the
   // runner already wraps the migration body in its own transaction. Keeping
@@ -100,7 +100,7 @@ function applyUpMigration(db: Database.Database, migration: Migration): void {
   tx();
 }
 
-function applyDownMigration(db: Database.Database, migration: Migration): void {
+function applyDownMigration(db: SqlJsCompatDb, migration: Migration): void {
   const cleanedSql = migration.sql
     .split('--> statement-breakpoint')
     .filter((stmt) => !stmt.includes('CREATE TABLE `schema_version`'))
@@ -119,7 +119,7 @@ function applyDownMigration(db: Database.Database, migration: Migration): void {
   tx();
 }
 
-function readCurrentVersion(db: Database.Database): number {
+function readCurrentVersion(db: SqlJsCompatDb): number {
   const row = db.prepare('SELECT MAX(version) as version FROM schema_version').get() as {
     version: number | null;
   };

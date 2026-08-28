@@ -1,10 +1,10 @@
-import Database from 'better-sqlite3';
-import { drizzle, type BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
+import { drizzle, type SQLJsDatabase } from 'drizzle-orm/sql-js';
+import { createSqlJsDb, type SqlJsCompatDb } from './sqljs-adapter.js';
 import * as schema from './schema.js';
 
 export type DbHandle = {
-  db: BetterSQLite3Database<typeof schema>;
-  sqlite: Database.Database;
+  db: SQLJsDatabase<typeof schema>;
+  sqlite: SqlJsCompatDb;
 };
 
 /**
@@ -12,9 +12,8 @@ export type DbHandle = {
  * @param path - Path to the SQLite file, or ':memory:' for testing.
  */
 export function createDb(path: string): DbHandle {
-  const sqlite = new Database(path);
-  sqlite.pragma('journal_mode = WAL');
+  const sqlite = createSqlJsDb(path);
   sqlite.pragma('foreign_keys = ON');
-  const db = drizzle(sqlite, { schema });
+  const db = drizzle(sqlite.raw, { schema });
   return { db, sqlite };
 }

@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import Database from 'better-sqlite3';
+import { describe, it, expect, beforeEach, afterEach, beforeAll } from 'vitest';
+import { createSqlJsDb, initSqlJsModule, type SqlJsCompatDb } from '../../src/main/db/sqljs-adapter.js';
 import type { IpcMain } from 'electron';
 import { registerPlayerHandlers } from '../../src/main/ipc/handlers/player';
 
@@ -22,10 +22,14 @@ function captureIpcMain(): { ipc: IpcMain; captured: CapturedHandler[] } {
 }
 
 describe('player IPC channels (registration + behavior)', () => {
-  let db: InstanceType<typeof Database>;
+  let db: SqlJsCompatDb;
+
+  beforeAll(async () => {
+    await initSqlJsModule();
+  });
 
   beforeEach(() => {
-    db = new Database(':memory:');
+    db = createSqlJsDb(':memory:');
     db.pragma('foreign_keys = ON');
     db.exec(`
       CREATE TABLE live_channels (

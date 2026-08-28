@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import Database from 'better-sqlite3';
+import { describe, it, expect, beforeEach, afterEach, beforeAll, vi } from 'vitest';
+import { createSqlJsDb, initSqlJsModule, type SqlJsCompatDb } from '../../src/main/db/sqljs-adapter.js';
 import { net } from 'electron';
 import { StreamProxyService } from '../../src/main/services/stream-proxy';
 
@@ -26,15 +26,19 @@ vi.mock('electron', () => ({
 // Do NOT mock global.fetch - we need the real fetch to call the local proxy server
 
 describe('StreamProxyService', () => {
-  let db: InstanceType<typeof Database>;
+  let db: SqlJsCompatDb;
   let service: StreamProxyService;
   let mockRequest: ReturnType<typeof vi.fn>;
+
+  beforeAll(async () => {
+    await initSqlJsModule();
+  });
 
   beforeEach(() => {
     vi.clearAllMocks();
 
     // Set up in-memory database with catalog tables
-    db = new Database(':memory:');
+    db = createSqlJsDb(':memory:');
     db.pragma('foreign_keys = ON');
     db.exec(`
       CREATE TABLE live_channels (
@@ -509,7 +513,7 @@ https://cdn.example.com/stream.m3u8`;
         on: vi.fn((event, cb) => {
           if (event === 'data') {
             setImmediate(() => cb(Buffer.from('timeout')));
-          } else if (event === 'end') {
+          } } else if (event === 'end') {
             setImmediate(() => cb());
           }
         }),

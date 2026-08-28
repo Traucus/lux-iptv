@@ -1,13 +1,14 @@
 import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
-import Database from 'better-sqlite3';
+import { createSqlJsDb, initSqlJsModule, type SqlJsCompatDb } from '../../src/main/db/sqljs-adapter.js';
 import { processM3UEntries } from '../../src/main/workers/ingest-worker';
 
 describe('ingest-worker', () => {
   describe('processM3UEntries', () => {
-    let db: Database.Database;
+    let db: SqlJsCompatDb;
 
-    beforeAll(() => {
-      db = new Database(':memory:');
+    beforeAll(async () => {
+      await initSqlJsModule();
+      db = createSqlJsDb(':memory:');
       // Create tables
       db.exec(`
         CREATE TABLE live_channels (

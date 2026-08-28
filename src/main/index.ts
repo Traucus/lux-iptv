@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { initSqlJsModule } from './db/sqljs-adapter.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -76,6 +77,9 @@ function createWindow(): void {
 }
 
 app.whenReady().then(async () => {
+  // Initialize sql.js WASM module before any database operations
+  await initSqlJsModule();
+
   // Run database migration before creating window
   try {
     const dbPath = join(app.getPath('userData'), 'catalog.db');

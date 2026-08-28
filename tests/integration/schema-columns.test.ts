@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import Database from 'better-sqlite3';
+import { createSqlJsDb, initSqlJsModule, type SqlJsCompatDb } from '../../src/main/db/sqljs-adapter.js';
 import { join } from 'node:path';
 import { migrate, loadMigrations } from '../../src/main/db/migrate';
 
@@ -13,11 +13,12 @@ import { migrate, loadMigrations } from '../../src/main/db/migrate';
  *  - `media_format` MUST accept only the enum values: hls, mp4, dash, ts, unknown.
  */
 describe('catalog schema columns (http_headers + media_format)', () => {
-  let db: InstanceType<typeof Database>;
+  let db: SqlJsCompatDb;
   const MIGRATIONS_DIR = join(__dirname, '../../src/main/db/migrations');
 
-  beforeAll(() => {
-    db = new Database(':memory:');
+  beforeAll(async () => {
+    await initSqlJsModule();
+    db = createSqlJsDb(':memory:');
     db.pragma('foreign_keys = ON');
     migrate(db, loadMigrations(MIGRATIONS_DIR));
   });

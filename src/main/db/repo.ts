@@ -1,4 +1,4 @@
-import type Database from 'better-sqlite3';
+import type { SqlJsCompatDb } from './sqljs-adapter.js';
 
 const BATCH_SIZE = 1000;
 
@@ -56,7 +56,7 @@ type SeriesRow = {
  * stream proxy can later inject the right headers and pick the right engine
  * (hls.js vs native <video>) for each catalog row.
  */
-export function bulkInsertLiveChannels(db: Database.Database, rows: LiveChannelRow[]): void {
+export function bulkInsertLiveChannels(db: SqlJsCompatDb, rows: LiveChannelRow[]): void {
   if (rows.length === 0) return;
 
   const stmt = db.prepare(`
@@ -94,7 +94,7 @@ export function bulkInsertLiveChannels(db: Database.Database, rows: LiveChannelR
   }
 }
 
-export function bulkInsertVodMovies(db: Database.Database, rows: VodMovieRow[]): void {
+export function bulkInsertVodMovies(db: SqlJsCompatDb, rows: VodMovieRow[]): void {
   if (rows.length === 0) return;
 
   const stmt = db.prepare(`
@@ -132,7 +132,7 @@ export function bulkInsertVodMovies(db: Database.Database, rows: VodMovieRow[]):
   }
 }
 
-export function bulkInsertSeries(db: Database.Database, rows: SeriesRow[]): void {
+export function bulkInsertSeries(db: SqlJsCompatDb, rows: SeriesRow[]): void {
   if (rows.length === 0) return;
 
   // The series table has no UNIQUE constraint (name is not unique across

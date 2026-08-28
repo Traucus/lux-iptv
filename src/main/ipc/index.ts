@@ -2,7 +2,7 @@ import type { BrowserWindow } from 'electron';
 import { ipcMain } from 'electron';
 import type { IngestOrchestrator } from '../services/ingest-orchestrator.js';
 import type { TmdbKeyVault } from '../services/tmdb-key.js';
-import type Database from 'better-sqlite3';
+import type { SqlJsCompatDb } from '../db/sqljs-adapter.js';
 import { registerIngestHandlers } from './handlers/ingest.js';
 import { registerTmdbHandlers } from './handlers/tmdb.js';
 import { registerEnrichmentHandlers } from './handlers/enrichment.js';
@@ -22,7 +22,7 @@ export type HandlerContext = {
  */
 export interface HandlerDeps {
   mainWindow: BrowserWindow;
-  db: Database.Database;
+  db: SqlJsCompatDb;
   ingestOrchestrator: IngestOrchestrator;
   tmdbVault: TmdbKeyVault;
   /**

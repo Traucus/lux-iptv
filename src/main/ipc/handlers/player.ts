@@ -1,5 +1,5 @@
 import type { IpcMain } from 'electron';
-import type Database from 'better-sqlite3';
+import type { SqlJsCompatDb } from '../../db/sqljs-adapter.js';
 import type { Episode, IpcResult } from '../../../shared/types/ipc.js';
 import type { MediaFormat } from '../../../shared/types/player.js';
 import {
@@ -29,7 +29,7 @@ import {
  *   Until then, handlers that need a proxied URL return `notImplemented`.
  */
 export interface PlayerHandlerDeps {
-  db: Database.Database;
+  db: SqlJsCompatDb;
   getProxiedBaseUrl?: () => string | undefined;
 }
 
@@ -65,7 +65,7 @@ interface CatalogRow {
 }
 
 function loadRowByContentId(
-  db: Database.Database,
+  db: SqlJsCompatDb,
   type: 'live' | 'movie' | 'series',
   id: number,
 ): CatalogRow | null {
@@ -77,7 +77,7 @@ function loadRowByContentId(
   return row ?? null;
 }
 
-function loadEpisodeRow(db: Database.Database, id: number): CatalogRow | null {
+function loadEpisodeRow(db: SqlJsCompatDb, id: number): CatalogRow | null {
   const row = db
     .prepare(
       `SELECT id, name, url, http_headers, media_format FROM episodes WHERE id = ?`,

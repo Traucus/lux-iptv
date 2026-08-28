@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import Database from 'better-sqlite3';
+import { createSqlJsDb, initSqlJsModule, type SqlJsCompatDb } from '../../src/main/db/sqljs-adapter.js';
 import {
   liveChannels,
   vodMovies,
@@ -9,10 +9,11 @@ import {
 } from '../../src/main/db/schema';
 
 describe('schema', () => {
-  let db: InstanceType<typeof Database>;
+  let db: SqlJsCompatDb;
 
-  beforeAll(() => {
-    db = new Database(':memory:');
+  beforeAll(async () => {
+    await initSqlJsModule();
+    db = createSqlJsDb(':memory:');
     // Create tables using the Drizzle schema DDL
     db.exec(`
       CREATE TABLE IF NOT EXISTS live_channels (
