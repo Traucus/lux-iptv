@@ -58,39 +58,45 @@ All IPC handlers MUST be registered at startup: ingest (m3u, xtream), tmdb (sear
 
 ### Requirement: Hardware Acceleration Configuration
 
-Hardware acceleration MUST be configurable. On Linux, it MUST be disabled by default. On Windows/macOS, it MUST be enabled by default. The setting MUST be overridable via environment variable or config.
+HW accel MUST be configurable: Linux off by default unless `LUX_HW_ACCEL=true`, Windows/macOS on by default, applied before `app.ready` (T-03).
 
-(Previously: HW acceleration was not configurable per-platform.)
+(Previously: Linux GPU env switch restated.)
 
 #### Scenario: Linux disables HW accel by default
 
-- GIVEN the app runs on Linux with no override
+- GIVEN Linux, no override
 - WHEN the app starts
-- THEN `app.disableHardwareAcceleration()` MUST be called before `app.ready`
+- THEN `app.disableHardwareAcceleration()` MUST run before `app.ready`
 
 #### Scenario: Override enables HW accel on Linux
 
-- GIVEN `LUX_HW_ACCEL=true` environment variable on Linux
+- GIVEN Linux and `LUX_HW_ACCEL=true`
 - WHEN the app starts
-- THEN hardware acceleration MUST remain enabled
+- THEN HW accel MUST stay on
 
 ### Requirement: Player IPC Channels
 
-The preload MUST expose player IPC channels: `player:getSource`, `player:reportError`, `player:reportProgress`. Each MUST be callable from the renderer via `window.luxAPI`.
+Player preload MUST expose `getSource`, `getProxiedUrl`, `reportError`, and `reportProgress`. `getSource` MUST return format and live/VOD metadata only, not a playback URL.
 
-(Previously: Player IPC channels did not exist.)
+(Previously: getSource returned the proxied stream URL.)
 
-#### Scenario: getSource returns stream URL
+#### Scenario: getSource returns format metadata
 
-- GIVEN a valid catalog item ID
-- WHEN `window.luxAPI.player.getSource(id)` is called
-- THEN it MUST return the proxied stream URL
+- GIVEN a live HLS id
+- WHEN `getSource(id)` is called
+- THEN it MUST return format and live/VOD metadata, not a media `src`
 
 #### Scenario: reportError logs error
 
-- GIVEN the player encounters an error
-- WHEN `window.luxAPI.player.reportError({code, message})` is called
-- THEN the main process MUST receive and log the error
+- GIVEN a player error
+- WHEN `reportError({code, message})` is called
+- THEN main MUST log it
+
+#### Scenario: getProxiedUrl returns playback URL
+
+- GIVEN a catalog id
+- WHEN `getProxiedUrl(id)` is called
+- THEN it MUST return the local proxy URL
 
 ### Requirement: getNextEpisode IPC Handler
 
