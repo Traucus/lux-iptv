@@ -15,4 +15,11 @@ export const CatalogGetByIdInputSchema = z.object({
   id: z.number().int().positive(),
 });
 
+export const CatalogGroupedInputSchema = z.object({
+  type: z.enum(['live', 'movie', 'series']),
+  limit: z.number().int().min(1).max(100).optional().default(20),
+});
+
+export type CatalogListInputParsed = z.infer<typeof CatalogListInputSchema>;
 export type CatalogGetByIdInputParsed = z.infer<typeof CatalogGetByIdInputSchema>;
+export type CatalogGroupedInputParsed = z.infer<typeof CatalogGroupedInputSchema>;

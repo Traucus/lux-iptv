@@ -17,6 +17,7 @@ const luxAPI = {
     list: (input: unknown) => ipcRenderer.invoke('catalog:list', input),
     getById: (input: unknown) => ipcRenderer.invoke('catalog:getById', input),
     groups: (input: unknown) => ipcRenderer.invoke('catalog:groups', input),
+    grouped: (input: unknown) => ipcRenderer.invoke('catalog:grouped', input),
   },
   enrichment: {
     getStatus: () => ipcRenderer.invoke('enrichment:getStatus'),

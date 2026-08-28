@@ -3,9 +3,11 @@ import { createLuxAPI } from '../lib/api';
 import type {
   CatalogListInput,
   CatalogListOutput,
-  CatalogType,
   CatalogGetByIdInput,
   CatalogItem,
+  CatalogType,
+  CatalogGroupedInput,
+  CatalogGroupedOutput,
   SeriesDetail,
 } from '../../shared/types/ipc';
 
@@ -70,6 +72,29 @@ export function useCatalogGroups(
     queryKey: ['catalog-groups', type] as const,
     queryFn: async () => {
       const result = await api.catalog.groups({ type });
+      if (result.error) {
+        throw new Error(`${result.error.code}: ${result.error.message}`);
+      }
+      return result.data;
+    },
+    ...options,
+  });
+}
+
+/**
+ * useCatalogGrouped — fetches items grouped by group_title, with a configurable
+ * limit per group. Used for the Netflix-style horizontal row layout.
+ * Query key: ['catalog-grouped', type, limit]
+ */
+export function useCatalogGrouped(
+  type: CatalogType,
+  limit = 20,
+  options?: Partial<UseQueryOptions<CatalogGroupedOutput>>,
+): UseQueryResult<CatalogGroupedOutput> {
+  return useQuery<CatalogGroupedOutput>({
+    queryKey: ['catalog-grouped', type, limit] as const,
+    queryFn: async () => {
+      const result = await api.catalog.grouped({ type, limit });
       if (result.error) {
         throw new Error(`${result.error.code}: ${result.error.message}`);
       }

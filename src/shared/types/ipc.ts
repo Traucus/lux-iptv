@@ -83,6 +83,19 @@ export type CatalogListOutput = {
   total: number;
 };
 
+export type CatalogGroupedInput = {
+  type: CatalogType;
+  limit?: number;
+};
+
+export type CatalogGroupedOutput = {
+  groups: Array<{
+    title: string;
+    count: number;
+    items: CatalogItem[];
+  }>;
+};
+
 export type CatalogGetByIdInput = {
   type: CatalogType;
   id: number;

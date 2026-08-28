@@ -1,4 +1,4 @@
-import type { IpcResult, IngestStartInput, IngestCancelInput, IngestProgressInput, IngestProgress, CatalogListInput, CatalogListOutput, CatalogGetByIdInput, CatalogItem, CatalogType, SeriesDetail, EnrichmentStatus, TmdbKeyInput, TmdbKeyOutput } from '../../shared/types/ipc';
+import type { IpcResult, IngestStartInput, IngestCancelInput, IngestProgressInput, IngestProgress, CatalogListInput, CatalogListOutput, CatalogGetByIdInput, CatalogItem, CatalogType, CatalogGroupedInput, CatalogGroupedOutput, SeriesDetail, EnrichmentStatus, TmdbKeyInput, TmdbKeyOutput } from '../../shared/types/ipc';
 
 export type TypedLuxAPI = {
   ingest: {
@@ -11,6 +11,7 @@ export type TypedLuxAPI = {
     list: (input: CatalogListInput) => Promise<IpcResult<CatalogListOutput>>;
     getById: (input: CatalogGetByIdInput) => Promise<IpcResult<CatalogItem | SeriesDetail>>;
     groups: (input: { type: CatalogType }) => Promise<IpcResult<string[]>>;
+    grouped: (input: CatalogGroupedInput) => Promise<IpcResult<CatalogGroupedOutput>>;
   };
   enrichment: {
     getStatus: () => Promise<IpcResult<EnrichmentStatus>>;

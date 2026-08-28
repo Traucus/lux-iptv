@@ -4,10 +4,11 @@ import type { CatalogListInputParsed, CatalogGetByIdInputParsed } from '../../..
 import type {
   CatalogItem,
   CatalogListOutput,
+  CatalogGroupedOutput,
   SeriesDetail,
   CatalogType,
 } from '../../../shared/types/ipc.js';
-import { CatalogListInputSchema, CatalogGetByIdInputSchema } from '../../../shared/schemas/catalog.js';
+import { CatalogListInputSchema, CatalogGetByIdInputSchema, CatalogGroupedInputSchema } from '../../../shared/schemas/catalog.js';
 
 /**
  * Catalog IPC handler — exposes paginated reads against the SQLite catalog DB
@@ -246,5 +247,40 @@ export function registerCatalogHandlers(ipcMain: IpcMain, deps: CatalogHandlerDe
       .prepare(`SELECT DISTINCT group_title FROM ${table} WHERE group_title IS NOT NULL AND group_title != '' ORDER BY group_title`)
       .all() as Array<{ group_title: string }>;
     return { data: rows.map((r) => r.group_title) };
+  });
+
+  ipcMain.handle('catalog:grouped', async (_event, input: unknown) => {
+    const result = CatalogGroupedInputSchema.safeParse(input);
+    if (!result.success) {
+      return invalidInput(result.error.issues);
+    }
+    const { type, limit } = result.data;
+    const table = tableForType(type);
+
+    // Get all distinct group titles with counts
+    const groups = deps.db
+      .prepare(
+        `SELECT group_title, COUNT(*) as count FROM ${table}
+         WHERE group_title IS NOT NULL AND group_title != ''
+         GROUP BY group_title ORDER BY group_title`,
+      )
+      .all() as Array<{ group_title: string; count: number }>;
+
+    // For each group, fetch up to `limit` items
+    const groupedItems = groups.map((g) => {
+      const rows = deps.db
+        .prepare(
+          `SELECT * FROM ${table}
+           WHERE group_title = ? ORDER BY name LIMIT ?`,
+        )
+        .all(g.group_title, limit) as Array<Record<string, unknown>>;
+      return {
+        title: g.group_title,
+        count: g.count,
+        items: rows.map((r) => mapRowForType(type, r)),
+      };
+    });
+
+    return { data: { groups: groupedItems } };
   });
 }
