@@ -60,10 +60,10 @@ export function registerIngestHandlers(ipcMain: IpcMain, orchestrator: IngestOrc
       return notFound(`Job ${result.data.jobId} not found`);
     }
 
-    // Calculate percent
+    // Calculate percent — guard against total=0 (initial state before fetch completes)
     const total = progress.total || 1;
     const processed = progress.live + progress.movies + progress.series + progress.radio;
-    const percent = Math.min(100, Math.round((processed / total) * 100));
+    const percent = progress.phase === 'DONE' ? 100 : Math.min(99, Math.round((processed / total) * 100));
 
     return {
       data: {

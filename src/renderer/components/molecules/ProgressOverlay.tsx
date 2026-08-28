@@ -7,7 +7,7 @@ import { Button } from '../atoms/Button';
  * ProgressOverlay — non-blocking ingestion progress indicator.
  * Glassmorphic centered overlay with live/movies/series counts and animated progress bar.
  */
-export type IngestPhase = 'FETCH' | 'ITEMS' | 'CLASSIFY' | 'PERSIST' | 'DONE' | 'ERROR';
+export type IngestPhase = 'FETCH' | 'FETCH_LIVE' | 'FETCH_VOD' | 'FETCH_SERIES' | 'ITEMS' | 'CLASSIFY' | 'PERSIST' | 'DONE' | 'ERROR';
 
 export interface IngestCounts {
   live: number;

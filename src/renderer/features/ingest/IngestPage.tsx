@@ -15,7 +15,7 @@ const INITIAL_FORM: CredentialsFormValue = {
 };
 
 interface ProgressState {
-  phase: 'FETCH' | 'ITEMS' | 'CLASSIFY' | 'PERSIST' | 'DONE' | 'ERROR' | null;
+  phase: 'FETCH' | 'FETCH_LIVE' | 'FETCH_VOD' | 'FETCH_SERIES' | 'ITEMS' | 'CLASSIFY' | 'PERSIST' | 'DONE' | 'ERROR' | null;
   percent: number;
   counts: { live: number; movies: number; series: number; radio: number; total: number };
   errorMessage: string | null;

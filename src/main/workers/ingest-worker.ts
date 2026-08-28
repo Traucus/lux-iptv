@@ -8,6 +8,7 @@ import { createSqlJsDb, initSqlJsModule, type SqlJsCompatDb } from '../db/sqljs-
 import { migrate } from '../db/migrate.js';
 import { classify } from '../services/classifier.js';
 import { fetchM3U } from '../services/m3u-client.js';
+import { fetchXtreamLive, fetchXtreamVod, fetchXtreamSeries } from '../services/xtream-client.js';
 import type { M3UEntry, M3UEntryHttpHints } from '../services/m3u-client.js';
 
 export interface IngestCounts {
@@ -269,10 +270,26 @@ export async function runIngestion(data: IngestWorkerData): Promise<IngestCounts
         throw err;
       }
     } else {
-      // Xtream support is not yet wired through the worker. The orchestrator
-      // only sends source-specific work when the matching path is implemented.
-      emitError('PARSE_ERROR', 'PARSE_ERROR: Xtream ingestion is not implemented yet', false);
-      throw new Error('Xtream ingestion is not implemented yet');
+      // Xtream Codes API — fetch live, VOD, and series in sequence
+      if (!data.credentials) {
+        emitError('CONNECTION_ERROR', 'CONNECTION_ERROR: Xtream source requires credentials', false);
+        throw new Error('Xtream source requires credentials');
+      }
+      try {
+        emitProgress('FETCH_LIVE', { live: 0, movies: 0, series: 0, radio: 0, total: 0 });
+        const liveEntries = await fetchXtreamLive(data.credentials);
+        emitProgress('FETCH_VOD', { live: liveEntries.length, movies: 0, series: 0, radio: 0, total: 0 });
+        const vodEntries = await fetchXtreamVod(data.credentials);
+        emitProgress('FETCH_SERIES', { live: liveEntries.length, movies: vodEntries.length, series: 0, radio: 0, total: 0 });
+        const seriesEntries = await fetchXtreamSeries(data.credentials);
+        entries = [...liveEntries, ...vodEntries, ...seriesEntries];
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        const code = message.includes('AUTH_FAILED') ? 'AUTH_FAILED' : 'CONNECTION_ERROR';
+        const retryable = code === 'CONNECTION_ERROR';
+        emitError(code, message, retryable);
+        throw err;
+      }
     }
 
     if (aborted) {
