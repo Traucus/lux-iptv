@@ -1,8 +1,13 @@
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, afterEach, beforeAll } from 'vitest';
 import { createDb, type DbHandle } from '../../src/main/db/client';
+import { initSqlJsModule } from '../../src/main/db/sqljs-adapter';
 
 describe('db client', () => {
   let handle: DbHandle | null = null;
+
+  beforeAll(async () => {
+    await initSqlJsModule();
+  });
 
   afterEach(() => {
     if (handle) {

@@ -96,10 +96,16 @@ export class SqlJsCompatDb {
 class SqlJsCompatStatement {
   private db: SqlJsDatabase;
   private sql: string;
+  private paramNames: string[];
 
   constructor(db: SqlJsDatabase, sql: string) {
     this.db = db;
-    this.sql = sql;
+    // Extract parameter names in order from :paramName patterns
+    this.paramNames = [];
+    this.sql = sql.replace(/:(\w+)/g, (_, name) => {
+      this.paramNames.push(name);
+      return '?';
+    });
   }
 
   /**
@@ -115,9 +121,22 @@ class SqlJsCompatStatement {
     return params;
   }
 
+  private buildPositionalArgs(normalizedParams: any): unknown[] {
+    // If already an array, use as-is (positional params)
+    if (Array.isArray(normalizedParams)) {
+      return normalizedParams;
+    }
+    // If object, build array in parameter order
+    if (normalizedParams && typeof normalizedParams === 'object') {
+      return this.paramNames.map(name => normalizedParams[name]);
+    }
+    return [];
+  }
+
   get(...params: unknown[]): Record<string, unknown> | undefined {
     const normalizedParams = this.normalizeParams(params);
-    const results = this.db.exec(this.sql, normalizedParams);
+    const positionalArgs = this.buildPositionalArgs(normalizedParams);
+    const results = this.db.exec(this.sql, positionalArgs);
     if (results.length === 0 || results[0] == null || results[0].values.length === 0) return undefined;
     const cols = results[0].columns;
     const row = results[0].values[0];
@@ -129,7 +148,8 @@ class SqlJsCompatStatement {
 
   all(...params: unknown[]): Record<string, unknown>[] {
     const normalizedParams = this.normalizeParams(params);
-    const results = this.db.exec(this.sql, normalizedParams);
+    const positionalArgs = this.buildPositionalArgs(normalizedParams);
+    const results = this.db.exec(this.sql, positionalArgs);
     if (results.length === 0 || results[0] == null) return [];
     const cols = results[0].columns;
     return results[0].values.map((row: unknown[]) => {
@@ -141,8 +161,9 @@ class SqlJsCompatStatement {
 
   run(...params: unknown[]): { changes: number; lastInsertRowid: number } {
     const normalizedParams = this.normalizeParams(params);
-    // Use exec instead of run for better parameter binding support
-    this.db.exec(this.sql, normalizedParams);
+    const positionalArgs = this.buildPositionalArgs(normalizedParams);
+    // Use exec with positional args - works reliably for DML and tracks changes
+    this.db.exec(this.sql, positionalArgs);
     const changes = this.db.getRowsModified();
     const lastRow = this.db.exec('SELECT last_insert_rowid() as id');
     const lastInsertRowid = (lastRow[0]?.values[0]?.[0] as number) ?? 0;

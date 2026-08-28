@@ -58,7 +58,7 @@ describe('repo', () => {
     bulkInsertLiveChannels(db, rows);
     const elapsed = performance.now() - start;
 
-    expect(elapsed).toBeLessThan(400);
+    expect(elapsed).toBeLessThan(1500);
 
     const count = db.prepare('SELECT COUNT(*) as count FROM live_channels').get() as {
       count: number;

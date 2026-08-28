@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
-import { XtreamClient } from '../../src/main/services/xtream-client';
+import { fetchXtreamLive, fetchXtreamVod, fetchXtreamSeries } from '../../src/main/services/xtream-client';
 
 const server = setupServer();
 
@@ -12,7 +12,7 @@ afterAll(() => server.close());
 /**
  * Xtream Codes API returns per-stream header metadata when the operator has
  * configured custom referers / user-agents per source. Some providers omit
- * those fields entirely — the client must default to `{}` in that case.
+ * those fields entirely — the client must default to `null` in that case.
  *
  * Header capture applies to BOTH live and VOD streams. The Xtream series
  * stream (which has no URL — series are containers for episodes) is unaffected
@@ -23,13 +23,15 @@ const baseUrl = 'https://xtream.example.com';
 const username = 'testuser';
 const password = 'testpass';
 
-describe('xtream-client — http_headers capture', () => {
+describe('xtream-client — http header capture', () => {
   describe('live streams', () => {
-    it('captures http_headers when API returns user_agent and referer', async () => {
+    it('captures http headers when API returns user_agent and referer', async () => {
       server.use(
         http.get(`${baseUrl}/player_api.php`, ({ request }) => {
           const url = new URL(request.url);
-          if (url.searchParams.get('action') === 'get_live_streams') {
+          const action = url.searchParams.get('action');
+          if (action === 'get_live_categories') return HttpResponse.json([]);
+          if (action === 'get_live_streams') {
             return HttpResponse.json([
               {
                 num: 1,
@@ -47,20 +49,21 @@ describe('xtream-client — http_headers capture', () => {
         }),
       );
 
-      const client = new XtreamClient({ baseUrl, username, password });
-      const streams = await client.getLiveStreams('1');
+      const streams = await fetchXtreamLive({ server: baseUrl, username, password });
       expect(streams).toHaveLength(1);
-      expect(streams[0].httpHeaders).toEqual({
-        'User-Agent': 'CustomUA/1.0',
-        Referer: 'https://ref.example.com',
+      expect(streams[0].http).toEqual({
+        userAgent: 'CustomUA/1.0',
+        referer: 'https://ref.example.com',
       });
     });
 
-    it('defaults http_headers to {} when API omits header fields', async () => {
+    it('returns null http when API omits header fields', async () => {
       server.use(
         http.get(`${baseUrl}/player_api.php`, ({ request }) => {
           const url = new URL(request.url);
-          if (url.searchParams.get('action') === 'get_live_streams') {
+          const action = url.searchParams.get('action');
+          if (action === 'get_live_categories') return HttpResponse.json([]);
+          if (action === 'get_live_streams') {
             return HttpResponse.json([
               {
                 num: 1,
@@ -75,17 +78,18 @@ describe('xtream-client — http_headers capture', () => {
         }),
       );
 
-      const client = new XtreamClient({ baseUrl, username, password });
-      const streams = await client.getLiveStreams('1');
+      const streams = await fetchXtreamLive({ server: baseUrl, username, password });
       expect(streams).toHaveLength(1);
-      expect(streams[0].httpHeaders).toEqual({});
+      expect(streams[0].http).toBeNull();
     });
 
     it('captures only user_agent when only that field is present', async () => {
       server.use(
         http.get(`${baseUrl}/player_api.php`, ({ request }) => {
           const url = new URL(request.url);
-          if (url.searchParams.get('action') === 'get_live_streams') {
+          const action = url.searchParams.get('action');
+          if (action === 'get_live_categories') return HttpResponse.json([]);
+          if (action === 'get_live_streams') {
             return HttpResponse.json([
               {
                 num: 1,
@@ -101,18 +105,19 @@ describe('xtream-client — http_headers capture', () => {
         }),
       );
 
-      const client = new XtreamClient({ baseUrl, username, password });
-      const streams = await client.getLiveStreams('1');
-      expect(streams[0].httpHeaders).toEqual({ 'User-Agent': 'OnlyUA/2.0' });
+      const streams = await fetchXtreamLive({ server: baseUrl, username, password });
+      expect(streams[0].http).toEqual({ userAgent: 'OnlyUA/2.0' });
     });
   });
 
   describe('VOD streams', () => {
-    it('captures http_headers when API returns user_agent and referer', async () => {
+    it('captures http headers when API returns user_agent and referer', async () => {
       server.use(
         http.get(`${baseUrl}/player_api.php`, ({ request }) => {
           const url = new URL(request.url);
-          if (url.searchParams.get('action') === 'get_vod_streams') {
+          const action = url.searchParams.get('action');
+          if (action === 'get_vod_categories') return HttpResponse.json([]);
+          if (action === 'get_vod_streams') {
             return HttpResponse.json([
               {
                 num: 1,
@@ -130,20 +135,21 @@ describe('xtream-client — http_headers capture', () => {
         }),
       );
 
-      const client = new XtreamClient({ baseUrl, username, password });
-      const streams = await client.getVODStreams('10');
+      const streams = await fetchXtreamVod({ server: baseUrl, username, password });
       expect(streams).toHaveLength(1);
-      expect(streams[0].httpHeaders).toEqual({
-        'User-Agent': 'MovieUA/1.0',
-        Referer: 'https://movie-ref.example.com',
+      expect(streams[0].http).toEqual({
+        userAgent: 'MovieUA/1.0',
+        referer: 'https://movie-ref.example.com',
       });
     });
 
-    it('defaults http_headers to {} when API omits header fields', async () => {
+    it('returns null http when API omits header fields', async () => {
       server.use(
         http.get(`${baseUrl}/player_api.php`, ({ request }) => {
           const url = new URL(request.url);
-          if (url.searchParams.get('action') === 'get_vod_streams') {
+          const action = url.searchParams.get('action');
+          if (action === 'get_vod_categories') return HttpResponse.json([]);
+          if (action === 'get_vod_streams') {
             return HttpResponse.json([
               {
                 num: 1,
@@ -158,18 +164,19 @@ describe('xtream-client — http_headers capture', () => {
         }),
       );
 
-      const client = new XtreamClient({ baseUrl, username, password });
-      const streams = await client.getVODStreams('10');
-      expect(streams[0].httpHeaders).toEqual({});
+      const streams = await fetchXtreamVod({ server: baseUrl, username, password });
+      expect(streams[0].http).toBeNull();
     });
   });
 
-  describe('series streams (no http_headers — series are containers)', () => {
-    it('returns series without http_headers (regression guard)', async () => {
+  describe('series streams (no http headers — series are containers)', () => {
+    it('returns series without http headers (regression guard)', async () => {
       server.use(
         http.get(`${baseUrl}/player_api.php`, ({ request }) => {
           const url = new URL(request.url);
-          if (url.searchParams.get('action') === 'get_series') {
+          const action = url.searchParams.get('action');
+          if (action === 'get_series_categories') return HttpResponse.json([]);
+          if (action === 'get_series') {
             return HttpResponse.json([
               {
                 num: 1,
@@ -184,10 +191,11 @@ describe('xtream-client — http_headers capture', () => {
         }),
       );
 
-      const client = new XtreamClient({ baseUrl, username, password });
-      const streams = await client.getSeriesStreams('20');
+      const streams = await fetchXtreamSeries({ server: baseUrl, username, password });
       expect(streams).toHaveLength(1);
       expect(streams[0].name).toBe('Breaking Bad');
+      // Series fallback entry has no http headers
+      expect(streams[0].http).toBeNull();
     });
   });
 });

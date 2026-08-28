@@ -105,6 +105,22 @@ function buildUrl(server: string, params: Record<string, string>): string {
   return `${base}/player_api.php?${qs}`;
 }
 
+/**
+ * Extracts HTTP header hints from a raw Xtream API stream object.
+ * The API returns `user_agent` and `referer` fields per stream when the
+ * operator has configured custom headers. Returns `null` when no header
+ * fields are present.
+ */
+function extractHttpHints(raw: Record<string, unknown>): M3UEntryHttpHints | null {
+  const userAgent = raw.user_agent as string | undefined;
+  const referer = raw.referer as string | undefined;
+  if (!userAgent && !referer) return null;
+  const hints: M3UEntryHttpHints = {};
+  if (userAgent) hints.userAgent = userAgent;
+  if (referer) hints.referer = referer;
+  return hints;
+}
+
 function buildStreamUrl(
   server: string,
   type: 'live' | 'movie' | 'series',
@@ -194,15 +210,18 @@ export async function fetchXtreamLive(
 
   return streams
     .filter((s) => s.name && s.name.trim().length > 0)
-    .map((s) => ({
-      name: s.name.trim(),
-      url: buildStreamUrl(credentials.server, 'live', credentials.username, credentials.password, s.stream_id),
-      groupTitle: categoryMap.get(s.category_id) ?? null,
-      tvgId: s.epg_channel_id ?? null,
-      tvgLogo: s.stream_icon || null,
-      http: null as M3UEntryHttpHints | null,
-      mediaFormat: 'hls' as const,
-    }));
+    .map((s) => {
+      const http = extractHttpHints(s as unknown as Record<string, unknown>);
+      return {
+        name: s.name.trim(),
+        url: buildStreamUrl(credentials.server, 'live', credentials.username, credentials.password, s.stream_id),
+        groupTitle: categoryMap.get(s.category_id) ?? null,
+        tvgId: s.epg_channel_id ?? null,
+        tvgLogo: s.stream_icon || null,
+        http,
+        mediaFormat: 'hls' as const,
+      };
+    });
 }
 
 /**
@@ -235,13 +254,14 @@ export async function fetchXtreamVod(
     .map((s) => {
       const ext = s.container_extension ?? 'mp4';
       const mediaFormat = ext === 'm3u8' ? 'hls' : ext === 'mpd' ? 'dash' : ext === 'ts' ? 'ts' : 'mp4';
+      const http = extractHttpHints(s as unknown as Record<string, unknown>);
       return {
         name: s.name.trim(),
         url: buildStreamUrl(credentials.server, 'movie', credentials.username, credentials.password, s.stream_id, ext),
         groupTitle: categoryMap.get(s.category_id) ?? null,
         tvgId: null,
         tvgLogo: s.stream_icon || null,
-        http: null as M3UEntryHttpHints | null,
+        http,
         mediaFormat: mediaFormat as M3UEntry['mediaFormat'],
       };
     });
