@@ -268,8 +268,9 @@ export async function fetchXtreamVod(
 }
 
 /**
- * Fetches all series from the Xtream API, then fetches episode info for each series.
- * Converts episodes to M3UEntry format.
+ * Fetches the series catalog (get_series + categories) as one row per show.
+ * Episode lists (get_series_info) are NOT fetched here — that N+1 made ingest
+ * take orders of magnitude longer than live/VOD and often never reached persist.
  */
 export async function fetchXtreamSeries(
   credentials: XtreamCredentials,
@@ -277,7 +278,7 @@ export async function fetchXtreamSeries(
 ): Promise<M3UEntry[]> {
   const baseParams = { username: credentials.username, password: credentials.password };
 
-  const [categories, seriesList] = await Promise.all([
+  const [categoriesRaw, seriesRaw] = await Promise.all([
     fetchJson<XtreamCategory[]>(
       buildUrl(credentials.server, { ...baseParams, action: 'get_series_categories' }),
       timeoutMs,
@@ -288,76 +289,36 @@ export async function fetchXtreamSeries(
     ),
   ]);
 
+  const categories = Array.isArray(categoriesRaw) ? categoriesRaw : [];
+  const seriesList = Array.isArray(seriesRaw) ? seriesRaw : [];
+
   const categoryMap = new Map<string, string>();
   for (const cat of categories) {
-    categoryMap.set(cat.category_id, cat.category_name);
+    categoryMap.set(String(cat.category_id), cat.category_name);
   }
 
   const entries: M3UEntry[] = [];
-
-  // Filter out series with no name before processing episodes
-  const validSeries = seriesList.filter((s) => s.name && s.name.trim().length > 0);
-
-  // Fetch episode info for each series (batch in groups of 20 to avoid flooding)
-  const BATCH_SIZE = 20;
-  for (let i = 0; i < validSeries.length; i += BATCH_SIZE) {
-    const batch = validSeries.slice(i, i + BATCH_SIZE);
-    const episodeResults = await Promise.all(
-      batch.map(async (series) => {
-        try {
-          const url = buildUrl(credentials.server, {
-            ...baseParams,
-            action: 'get_series_info',
-            series_id: String(series.series_id),
-          });
-          const info = await fetchJson<XtreamSeriesInfo>(url, timeoutMs);
-          return { series, info };
-        } catch {
-          // If series info fails, return the series itself as a single entry
-          return { series, info: null };
-        }
-      }),
-    );
-
-    for (const { series, info } of episodeResults) {
-      const groupTitle = categoryMap.get(series.category_id) ?? series.genre ?? null;
-
-      if (info?.episodes) {
-        for (const [_seasonNum, episodes] of Object.entries(info.episodes)) {
-          for (const ep of episodes) {
-            const ext = ep.container_extension ?? 'mp4';
-            const mediaFormat = ext === 'm3u8' ? 'hls' : ext === 'mpd' ? 'dash' : ext === 'ts' ? 'ts' : 'mp4';
-            entries.push({
-              name: `${series.name} - S${String(ep.season).padStart(2, '0')}E${String(ep.episode_num).padStart(2, '0')} - ${ep.title}`,
-              url: buildStreamUrl(
-                credentials.server,
-                'series',
-                credentials.username,
-                credentials.password,
-                parseInt(ep.id, 10),
-                ext,
-              ),
-              groupTitle,
-              tvgId: null,
-              tvgLogo: series.cover || null,
-              http: null,
-              mediaFormat: mediaFormat as M3UEntry['mediaFormat'],
-            });
-          }
-        }
-      } else {
-        // Fallback: series entry without episode detail
-        entries.push({
-          name: series.name,
-          url: '',
-          groupTitle,
-          tvgId: null,
-          tvgLogo: series.cover || null,
-          http: null,
-          mediaFormat: 'unknown' as const,
-        });
-      }
-    }
+  for (const series of seriesList) {
+    if (!series.name || series.name.trim().length === 0) continue;
+    if (series.series_id == null) continue;
+    const groupTitle =
+      categoryMap.get(String(series.category_id)) ?? series.genre ?? null;
+    entries.push({
+      name: series.name,
+      url: buildStreamUrl(
+        credentials.server,
+        'series',
+        credentials.username,
+        credentials.password,
+        series.series_id,
+        'm3u8',
+      ),
+      groupTitle,
+      tvgId: null,
+      tvgLogo: series.cover || null,
+      http: null,
+      mediaFormat: 'hls',
+    });
   }
 
   return entries;
