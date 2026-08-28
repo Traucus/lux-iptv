@@ -6,7 +6,7 @@ import { LivePage } from './features/live/LivePage';
 import { MoviesPage } from './features/movies/MoviesPage';
 import { SeriesPage } from './features/series/SeriesPage';
 import { DetailPage } from './features/detail/DetailPage';
-import { PlayerPlaceholder } from './features/player/PlayerPlaceholder';
+import { PlayerPage } from './features/player/PlayerPage';
 import { IngestProgressHost } from './features/ingest/IngestProgressHost';
 
 /**
@@ -22,8 +22,7 @@ import { IngestProgressHost } from './features/ingest/IngestProgressHost';
  *   /movies            → MoviesPage
  *   /series            → SeriesPage
  *   /content/:id       → DetailPage (Screen 4)
- *   /watch/:type/:id   → PlayerPlaceholder (G4 placeholder; replaced by
- *                        real PlayerPage in G6 / PR 5)
+ *   /watch/:type/:id   → PlayerPage
  */
 function App(): React.ReactElement {
   return (
@@ -36,7 +35,7 @@ function App(): React.ReactElement {
         <Route path="/movies" element={<MoviesPage />} />
         <Route path="/series" element={<SeriesPage />} />
         <Route path="/content/:id" element={<DetailPage />} />
-        <Route path="/watch/:type/:id" element={<PlayerPlaceholder />} />
+        <Route path="/watch/:type/:id" element={<PlayerPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </HashRouter>

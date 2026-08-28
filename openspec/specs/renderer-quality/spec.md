@@ -82,18 +82,18 @@ Sidebar navigation buttons for features not yet implemented (Settings, Parental 
 
 ### Requirement: Player Placeholder Route
 
-A `/watch/:type/:id` route MUST exist in the router, rendering a placeholder player page that displays the content type and ID.
+`/watch/:type/:id` MUST always mount `PlayerPage` (D-1). It MUST NOT render `PlayerPlaceholder`.
 
-(Previously: No /watch route existed.)
+(Previously: type/id placeholder.)
 
-#### Scenario: Navigate to watch route
+#### Scenario: App mounts PlayerPage
 
-- GIVEN the router has the /watch route
-- WHEN the user navigates to `/watch/movie/42`
-- THEN the player placeholder page MUST render showing type=movie, id=42
+- GIVEN the app is rendered
+- WHEN location is `/watch/movie/42`
+- THEN `PlayerPage` MUST render and `PlayerPlaceholder` MUST NOT
 
 #### Scenario: Invalid type parameter
 
 - GIVEN the /watch route exists
-- WHEN the user navigates to `/watch/invalid/42`
-- THEN the route MUST handle it gracefully (404 or redirect)
+- WHEN location is `/watch/invalid/42`
+- THEN it MUST 404 or redirect

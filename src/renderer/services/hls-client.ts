@@ -34,6 +34,8 @@ export interface HlsClientOptions {
   videoEl: HTMLVideoElement;
   /** Optional headers to inject via xhrSetup (degraded path without proxy) */
   headers?: Record<string, string>;
+  /** When true, enable hls.js lowLatencyMode (live only) */
+  live?: boolean;
 }
 
 export class HlsClient {
@@ -41,6 +43,7 @@ export class HlsClient {
   private videoEl: HTMLVideoElement;
   private src: string;
   private headers?: Record<string, string>;
+  private live: boolean;
   private destroyed = false;
 
   // Resilience state
@@ -56,6 +59,7 @@ export class HlsClient {
     this.videoEl = options.videoEl;
     this.src = options.src;
     this.headers = options.headers;
+    this.live = options.live === true;
     this.initializeHls();
   }
 
@@ -74,8 +78,8 @@ export class HlsClient {
     }
 
     this.hls = new Hls({
-      // Low latency tuning per design §10
-      lowLatencyMode: true,
+      lowLatencyMode: this.live,
+      capLevelToPlayerSize: true,
       backBufferLength: 30,
       maxBufferLength: 60,
       maxMaxBufferLength: 600,
@@ -98,8 +102,10 @@ private attachEventListeners(): void {
     if (!this.hls) return;
 
     this.hls.on(Hls.Events.MANIFEST_PARSED, (_, data) => {
+      if (this.hls && this.hls.levels.length > 0) {
+        this.hls.startLevel = Math.floor((this.hls.levels.length - 1) / 2);
+      }
       this.emit('MANIFEST_PARSED', data as unknown as HlsEventData);
-      // Reset resilience state on successful manifest parse
       this.attempt = 0;
       this.nextDelay = 1000;
     });

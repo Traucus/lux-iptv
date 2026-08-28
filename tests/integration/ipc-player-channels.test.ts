@@ -105,13 +105,13 @@ describe('player IPC channels (registration + behavior)', () => {
 
       const result = await fn({}, { type: 'live', id: 1 });
       const data = (result as { data: Record<string, unknown> }).data;
-      expect(data).toMatchObject({
+      expect(data).toEqual({
         type: 'live',
         id: 1,
-        url: 'https://cdn.example.com/cnn.m3u8',
-        httpHeaders: { 'User-Agent': 'X' },
         mediaFormat: 'hls',
       });
+      expect(data).not.toHaveProperty('url');
+      expect(data).not.toHaveProperty('httpHeaders');
     });
 
     it('resolves a movie row', async () => {
@@ -142,8 +142,12 @@ describe('player IPC channels (registration + behavior)', () => {
 
       const result = await fn({}, { type: 'episode', id: 1 });
       const data = (result as { data: Record<string, unknown> }).data;
-      expect(data.type).toBe('episode');
-      expect(data.url).toBe('https://x/bb-s01e01.m3u8');
+      expect(data).toEqual({
+        type: 'episode',
+        id: 1,
+        mediaFormat: 'hls',
+      });
+      expect(data).not.toHaveProperty('url');
     });
 
     it('returns NOT_FOUND when the id does not exist', async () => {

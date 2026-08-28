@@ -1,8 +1,11 @@
 // CJS entry point — sets hardware acceleration policy BEFORE any ESM imports
 const { app } = require('electron');
 
-// Disable GPU on Linux before ESM modules trigger GPU initialization
-if (process.platform === 'linux') {
+// Linux GPU off unless LUX_HW_ACCEL=true, before ESM import.
+if (
+  process.platform === 'linux' &&
+  String(process.env.LUX_HW_ACCEL || '').toLowerCase() !== 'true'
+) {
   app.disableHardwareAcceleration();
 }
 
