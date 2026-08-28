@@ -17,16 +17,21 @@ function ingestInProgress(message: string): IpcResult<never> {
 
 export function registerIngestHandlers(ipcMain: IpcMain, orchestrator: IngestOrchestrator): void {
   ipcMain.handle('ingest:start', async (_event, input: unknown) => {
+    console.log('[ingest] ingest:start received', JSON.stringify(input));
     const result = IngestStartInputSchema.safeParse(input);
     if (!result.success) {
+      console.log('[ingest] validation failed', result.error.issues);
       return invalidInput(result.error);
     }
+    console.log('[ingest] starting ingest', result.data.source, result.data.credentials?.server ?? result.data.url);
 
     try {
       const res = orchestrator.start(result.data);
+      console.log('[ingest] orchestrator started, jobId:', res.jobId);
       return { data: res };
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
+      console.error('[ingest] orchestrator error:', message);
       if (message.includes('INGEST_IN_PROGRESS')) {
         return ingestInProgress(message);
       }

@@ -41,6 +41,7 @@ export interface HandlerDeps {
  * resolver before G5 lands).
  */
 export function registerHandlers(deps: HandlerDeps): void {
+  console.log('[ipc] registering handlers');
   registerIngestHandlers(ipcMain, deps.ingestOrchestrator);
   registerCatalogHandlers(ipcMain, { db: deps.db });
   registerEnrichmentHandlers(ipcMain);
@@ -49,6 +50,7 @@ export function registerHandlers(deps: HandlerDeps): void {
     db: deps.db,
     getProxiedBaseUrl: deps.getProxiedBaseUrl,
   });
+  console.log('[ipc] all handlers registered');
 }
 
 // Re-export the top-level registration helper for backwards compatibility
