@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, it, expect } from 'vitest';
 import {
   shouldDisableHwAccel,
@@ -60,5 +62,17 @@ describe('readHwAccelOverride (reads process.env)', () => {
     const decision = readHwAccelOverride({ LUX_HW_ACCEL: 'true' });
     expect(decision.override).toBe('true');
     expect(decision.shouldDisable).toBe(false);
+  });
+});
+
+describe('entry.cjs applies GPU policy before ESM import', () => {
+  const source = readFileSync(join(__dirname, '../../src/main/entry.cjs'), 'utf8');
+
+  it('disables Linux GPU unless LUX_HW_ACCEL=true, before importing index.js', () => {
+    expect(source).toMatch(/LUX_HW_ACCEL/);
+    expect(source.indexOf('disableHardwareAcceleration')).toBeLessThan(source.indexOf("import('./index.js')"));
+    expect(source).not.toMatch(
+      /if \(process\.platform === 'linux'\) \{\s*app\.disableHardwareAcceleration\(\);\s*\}/,
+    );
   });
 });

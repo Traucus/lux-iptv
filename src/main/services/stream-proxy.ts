@@ -2,6 +2,7 @@ import { createServer, IncomingMessage, ServerResponse, Server } from 'node:http
 import { net, IpcMain } from 'electron';
 import type { SqlJsCompatDb } from '../db/sqljs-adapter.js';
 import { URL } from 'node:url';
+import { resolveSameOriginHttp, rewritePlaylist } from './hls-rewrite.js';
 
 /**
  * StreamProxyService — In-process HTTP proxy for stream manifests and segments.
@@ -63,7 +64,20 @@ function tableForType(type: string): string {
 }
 
 function isManifestContentType(contentType: string): boolean {
-  return MANIFEST_CONTENT_TYPES.has(contentType.toLowerCase());
+  const [rawType] = contentType.toLowerCase().split(';');
+  return MANIFEST_CONTENT_TYPES.has((rawType ?? '').trim());
+}
+
+function looksLikeManifest(url: string, contentType: string): boolean {
+  if (isManifestContentType(contentType)) return true;
+  const ct = contentType.toLowerCase();
+  if (ct.includes('mpegurl') || ct.includes('m3u8')) return true;
+  try {
+    const path = new URL(url).pathname.toLowerCase();
+    return path.endsWith('.m3u8') || path.endsWith('.m3u');
+  } catch {
+    return false;
+  }
 }
 
 // Hop-by-hop headers that must never be forwarded (RFC 7230)
@@ -226,7 +240,7 @@ export class StreamProxyService {
       return;
     }
 
-    // Proxy route: /proxy/:type/:id
+    // Proxy route: /proxy/:type/:id  (optional ?u= same-origin rewrite target)
     if (pathParts[0] === 'proxy' && pathParts[1] && pathParts[2]) {
       const type = pathParts[1];
       const id = parseInt(pathParts[2], 10);
@@ -237,7 +251,7 @@ export class StreamProxyService {
         return;
       }
 
-      await this.proxyStream(req, res, type, id);
+      await this.proxyStream(req, res, type, id, url.searchParams.get('u'));
       return;
     }
 
@@ -254,6 +268,7 @@ export class StreamProxyService {
     res: ServerResponse,
     type: string,
     id: number,
+    uParam: string | null,
   ): Promise<void> {
     if (!this.db) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
@@ -279,14 +294,21 @@ export class StreamProxyService {
     }
 
     const originUrl = row.url;
+    let targetUrl = originUrl;
+    if (uParam) {
+      const allowed = resolveSameOriginHttp(uParam, originUrl);
+      if (!allowed) {
+        res.writeHead(403, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Cross-origin URL rejected' }));
+        return;
+      }
+      targetUrl = allowed;
+    }
     const headers = sanitizeHeaders(parseHttpHeaders(row.http_headers));
 
-    // Check manifest cache
-    const cacheKey = `${type}:${id}`;
+    const cacheKey = uParam ? `${type}:${id}:${targetUrl}` : `${type}:${id}`;
     const cached = this.manifestCache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) {
-      // Check if the client accepts this content type (manifest)
-      // For now, serve cached manifest on cache hit
       res.writeHead(200, {
         'Content-Type': cached.contentType,
         'Content-Length': cached.body.length,
@@ -296,12 +318,10 @@ export class StreamProxyService {
       return;
     }
 
-    // Forward to origin with injected headers
     try {
-      await this.fetchAndStream(originUrl, headers, res, cacheKey);
+      await this.fetchAndStream(targetUrl, headers, res, cacheKey, { type, id });
     } catch (error) {
       this.emitError('STREAM_TIMEOUT', `Failed to fetch stream: ${error}`);
-      // Only send response if not already sent by fetchAndStream
       if (!res.headersSent) {
         res.writeHead(502, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'Upstream timeout' }));
@@ -310,13 +330,15 @@ export class StreamProxyService {
   }
 
   /**
-   * Fetches from origin using Electron net.request and streams to response.
+   * Fetches from origin using Electron net.request.
+   * Manifests are buffered and rewritten; segments are piped without a full buffer.
    */
   private fetchAndStream(
     originUrl: string,
     headers: Record<string, string>,
     res: ServerResponse,
     cacheKey: string,
+    rewriteCtx: { type: string; id: number },
   ): Promise<void> {
     return new Promise((resolve, reject) => {
       const request = net.request({
@@ -327,51 +349,81 @@ export class StreamProxyService {
       (request as any).setTimeout(DEFAULT_TIMEOUT_MS);
       let responseReceived = false;
       let responseSent = false;
-      let responseBuffer: Buffer[] = [];
-      let responseContentType = '';
-      let responseStatusCode = 0;
 
       request.on('response', (response) => {
         responseReceived = true;
-        responseStatusCode = response.statusCode;
+        const status = response.statusCode;
+        const contentType = String(response.headers['content-type'] ?? '');
 
-        // Collect response body for potential caching
-        response.on('data', (chunk: Buffer) => {
-          responseBuffer.push(chunk);
-        });
-
-        response.on('end', () => {
-          const body = Buffer.concat(responseBuffer);
-          responseContentType = (response.headers['content-type'] as string) ?? '';
-
-          // Check for error status codes
-          if (responseStatusCode >= 500) {
-            this.emitError('STREAM_TIMEOUT', `Upstream returned ${responseStatusCode}`);
+        if (status >= 500) {
+          response.on('data', () => undefined);
+          response.on('end', () => {
+            this.emitError('STREAM_TIMEOUT', `Upstream returned ${status}`);
             if (!responseSent) {
               responseSent = true;
               res.writeHead(502, { 'Content-Type': 'application/json' });
               res.end(JSON.stringify({ error: 'Upstream error' }));
             }
             resolve();
+          });
+          return;
+        }
+
+        let mode: 'manifest' | 'pipe' | 'peek' = looksLikeManifest(originUrl, contentType)
+          ? 'manifest'
+          : 'peek';
+        const chunks: Buffer[] = [];
+
+        const sendHead = (extra: Record<string, string | number> = {}) => {
+          if (responseSent) return;
+          responseSent = true;
+          res.writeHead(status, { 'Content-Type': contentType, ...extra });
+        };
+
+        const finishManifest = () => {
+          const rewritten = rewritePlaylist(Buffer.concat(chunks).toString('utf8'), {
+            ...rewriteCtx,
+            originUrl,
+          });
+          const body = Buffer.from(rewritten);
+          const type = contentType || 'application/vnd.apple.mpegurl';
+          sendHead({
+            'Content-Type': type,
+            'Content-Length': body.length,
+            'Cache-Control': 'public, max-age=30',
+          });
+          res.end(body);
+          this.setCacheEntry(cacheKey, body, type);
+          resolve();
+        };
+
+        response.on('data', (chunk: Buffer) => {
+          if (mode === 'pipe') {
+            sendHead({ 'Cache-Control': 'no-cache' });
+            res.write(chunk);
             return;
           }
-
-          // Stream to client
-          if (!responseSent) {
-            responseSent = true;
-            res.writeHead(responseStatusCode, {
-              'Content-Type': responseContentType,
-              'Content-Length': body.length,
-              'Cache-Control': isManifestContentType(responseContentType) ? 'public, max-age=30' : 'no-cache',
-            });
-            res.end(body);
+          if (mode === 'peek') {
+            if (chunk.toString('utf8', 0, Math.min(7, chunk.length)).startsWith('#EXTM3U')) {
+              mode = 'manifest';
+              chunks.push(chunk);
+              return;
+            }
+            mode = 'pipe';
+            sendHead({ 'Cache-Control': 'no-cache' });
+            res.write(chunk);
+            return;
           }
+          chunks.push(chunk);
+        });
 
-          // Cache manifest responses
-          if (isManifestContentType(responseContentType)) {
-            this.setCacheEntry(cacheKey, body, responseContentType);
+        response.on('end', () => {
+          if (mode === 'manifest') {
+            finishManifest();
+            return;
           }
-
+          sendHead({ 'Cache-Control': 'no-cache' });
+          res.end();
           resolve();
         });
       });

@@ -124,6 +124,7 @@ class HlsMediaEngine implements MediaEngine {
       src: this.source.url,
       videoEl: this.videoEl,
       headers: this.source.httpHeaders,
+      live: this.source.type === 'live',
     });
 
     this.attachHlsClientListeners();

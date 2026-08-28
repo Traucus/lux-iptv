@@ -612,4 +612,62 @@ https://cdn.example.com/stream.m3u8`;
       expect(headers).toEqual({});
     });
   });
+
+  describe('HLS rewrite and segment streaming', () => {
+    beforeEach(async () => {
+      await service.start(db);
+    });
+
+    function mockOrigin(body: string | Buffer, contentType: string, delayEnd = false) {
+      let endCb: (() => void) | undefined;
+      const payload = Buffer.isBuffer(body) ? body : Buffer.from(body);
+      mockRequest.mockReturnValue({
+        on: vi.fn((event: string, cb: (arg: unknown) => void) => {
+          if (event !== 'response') return;
+          setImmediate(() => {
+            cb({
+              statusCode: 200,
+              headers: { 'content-type': contentType },
+              pipe: vi.fn(),
+              on: vi.fn((ev: string, dataCb: (arg?: Buffer) => void) => {
+                if (ev === 'data') setImmediate(() => dataCb(payload));
+                else if (ev === 'end') {
+                  if (delayEnd) endCb = dataCb as () => void;
+                  else setImmediate(() => dataCb());
+                }
+              }),
+            });
+          });
+        }),
+        end: vi.fn(),
+        setHeader: vi.fn(),
+        setTimeout: vi.fn(),
+      });
+      return { flushEnd: () => endCb?.() };
+    }
+
+    it('rewrites relative playlist URIs onto the proxy', async () => {
+      mockOrigin('#EXTM3U\n#EXTINF:4,\nseg0.ts\n', 'application/vnd.apple.mpegurl');
+      const response = await fetch(`http://127.0.0.1:${service.getPort()}/proxy/live/1`);
+      const text = await response.text();
+      expect(text).toContain('/proxy/live/1?u=');
+      expect(text).toContain(encodeURIComponent('https://cdn.example.com/seg0.ts'));
+    });
+
+    it('streams segments without fully buffering the origin body', async () => {
+      const { flushEnd } = mockOrigin(Buffer.from('chunk-1-segment-bytes'), 'video/MP2T', true);
+      const response = await fetch(`http://127.0.0.1:${service.getPort()}/proxy/movie/1`);
+      const first = await response.body!.getReader().read();
+      expect(Buffer.from(first.value!).toString()).toContain('chunk-1-segment-bytes');
+      expect(first.done).toBe(false);
+      flushEnd();
+    });
+
+    it('rejects ?u= from another origin', async () => {
+      const u = encodeURIComponent('https://evil.example/x.ts');
+      const response = await fetch(`http://127.0.0.1:${service.getPort()}/proxy/live/1?u=${u}`);
+      expect(response.status).toBe(403);
+      expect(mockRequest).not.toHaveBeenCalled();
+    });
+  });
 });

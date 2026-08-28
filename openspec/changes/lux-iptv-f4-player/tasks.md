@@ -41,15 +41,15 @@ Chain strategy: stacked-to-main
 
 ## Phase 3: PR2 RED — HLS Rewrite, ABR, GPU
 
-- [ ] 3.1 RED `tests/unit/hls-rewrite.test.ts`: relative URI → `/proxy/{type}/{id}?u=`; absolute unchanged; other origin rejected
-- [ ] 3.2 RED `tests/unit/stream-proxy.test.ts`: rewrite relative playlist; stream segments without full buffer
-- [ ] 3.3 RED `tests/unit/player/hls-client.test.ts`: 5 levels, cap + mid `startLevel`; live `lowLatencyMode` on, VOD off
-- [ ] 3.4 RED `tests/integration/shell-hw-accel.test.ts`: Linux GPU off unless `LUX_HW_ACCEL=true` in `entry.cjs`
+- [x] 3.1 RED `tests/unit/hls-rewrite.test.ts`: relative URI → `/proxy/{type}/{id}?u=`; absolute unchanged; other origin rejected
+- [x] 3.2 RED `tests/unit/stream-proxy.test.ts`: rewrite relative playlist; stream segments without full buffer
+- [x] 3.3 RED `tests/unit/player/hls-client.test.ts`: 5 levels, cap + mid `startLevel`; live `lowLatencyMode` on, VOD off
+- [x] 3.4 RED `tests/integration/shell-hw-accel.test.ts`: Linux GPU off unless `LUX_HW_ACCEL=true` in `entry.cjs`
 
 ## Phase 4: PR2 GREEN — HLS Rewrite, ABR, GPU
 
-- [ ] 4.1 GREEN create `src/main/services/hls-rewrite.ts`: rewrite URI/`URI=` same-origin http(s) only
-- [ ] 4.2 GREEN `src/main/services/stream-proxy.ts`: `?u=` route; buffer+rewrite manifests; pipe segments
-- [ ] 4.3 GREEN `src/renderer/services/hls-client.ts` + `media-engine.ts`: cap, mid startLevel, `live` → lowLatency
-- [ ] 4.4 GREEN `src/main/entry.cjs`: Linux GPU off unless `LUX_HW_ACCEL=true` before ESM import
-- [ ] 4.5 Pass Phase 3 vitest
+- [x] 4.1 GREEN create `src/main/services/hls-rewrite.ts`: rewrite URI/`URI=` same-origin http(s) only
+- [x] 4.2 GREEN `src/main/services/stream-proxy.ts`: `?u=` route; buffer+rewrite manifests; pipe segments
+- [x] 4.3 GREEN `src/renderer/services/hls-client.ts` + `media-engine.ts`: cap, mid startLevel, `live` → lowLatency
+- [x] 4.4 GREEN `src/main/entry.cjs`: Linux GPU off unless `LUX_HW_ACCEL=true` before ESM import
+- [x] 4.5 Pass Phase 3 vitest
