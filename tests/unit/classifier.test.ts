@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { classify } from '../../src/main/services/classifier';
+import { classify, seriesShowTitle } from '../../src/main/services/classifier';
 
 type ClassifierInput = {
   url: string;
@@ -115,5 +115,16 @@ describe('classifier', () => {
         expect(classify(input)).toBe(expected);
       });
     }
+  });
+
+  describe('seriesShowTitle', () => {
+    it('strips SxxExx episode tails', () => {
+      expect(seriesShowTitle('7 Seeds - S01E01 - 7 S...')).toBe('7 Seeds');
+      expect(seriesShowTitle('Leviathan - S01E01 - L...')).toBe('Leviathan');
+    });
+
+    it('keeps a plain show name', () => {
+      expect(seriesShowTitle('El juego del calamar')).toBe('El juego del calamar');
+    });
   });
 });

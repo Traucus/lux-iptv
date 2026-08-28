@@ -8,6 +8,7 @@ import type {
   CatalogType,
 } from '../../../shared/types/ipc.js';
 import { CatalogListInputSchema, CatalogGetByIdInputSchema, CatalogGroupedInputSchema } from '../../../shared/schemas/catalog.js';
+import { seriesShowTitle } from '../../services/classifier.js';
 
 /**
  * Catalog IPC handler — exposes paginated reads against the SQLite catalog DB
@@ -105,6 +106,19 @@ function tableForType(type: CatalogType): string {
       // Episodes are not a top-level catalog table; they live under series
       throw new Error('Episode type not supported for direct catalog queries');
   }
+}
+
+function uniqueSeriesRows(rows: Record<string, unknown>[]): Record<string, unknown>[] {
+  const seen = new Set<string>();
+  const unique: Record<string, unknown>[] = [];
+  for (const row of rows) {
+    const show = seriesShowTitle(String(row.name ?? ''));
+    const key = `${show.toLowerCase()}\0${String(row.group_title ?? '')}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    unique.push({ ...row, name: show });
+  }
+  return unique;
 }
 
 function mapRowForType(type: CatalogType, row: Record<string, unknown>): CatalogItem {
@@ -275,20 +289,21 @@ export function registerCatalogHandlers(ipcMain: IpcMain, deps: CatalogHandlerDe
               .prepare(
                 `SELECT * FROM ${table}
                  WHERE group_title IS NULL OR group_title = ''
-                 ORDER BY name LIMIT ?`,
+                 ORDER BY name`,
               )
-              .all(limit)
+              .all()
           : deps.db
               .prepare(
                 `SELECT * FROM ${table}
-                 WHERE group_title = ? ORDER BY name LIMIT ?`,
+                 WHERE group_title = ? ORDER BY name`,
               )
-              .all(g.group_title, limit)
+              .all(g.group_title)
       ) as Array<Record<string, unknown>>;
+      const uniqueRows = type === 'series' ? uniqueSeriesRows(rows) : rows;
       return {
         title: g.group_title === '' ? 'Ungrouped' : g.group_title,
-        count: g.count,
-        items: rows.map((r) => mapRowForType(type, r)),
+        count: type === 'series' ? uniqueRows.length : g.count,
+        items: uniqueRows.slice(0, limit).map((r) => mapRowForType(type, r)),
       };
     });
 

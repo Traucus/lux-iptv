@@ -323,7 +323,9 @@ export async function runIngestion(data: IngestWorkerData): Promise<IngestCounts
 
         emitProgress('FETCH_SERIES', totalCounts);
         const seriesEntries = await fetchXtreamSeries(data.credentials);
-        emitLog(`Xtream series: ${seriesEntries.length} episodes`);
+        emitLog(`Xtream series: ${seriesEntries.length} shows`);
+        db.exec('DELETE FROM episodes');
+        db.exec('DELETE FROM series');
         persistBatches(db, seriesEntries, totalCounts);
         db.flush();
         emitLog(`Xtream persisted live=${totalCounts.live} movies=${totalCounts.movies} series=${totalCounts.series}`);
