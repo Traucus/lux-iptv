@@ -38,9 +38,11 @@ export function IngestProgressHost(): React.ReactElement | null {
       if (nextPhase === 'ERROR') {
         setErrorMessage(typeof p.message === 'string' ? p.message : 'Ingestion failed');
       }
-      if (nextPhase === 'DONE') {
+      if (nextPhase === 'PERSIST' || nextPhase === 'DONE') {
         void queryClient.invalidateQueries({ queryKey: ['catalog'] });
         void queryClient.invalidateQueries({ queryKey: ['catalog-grouped'] });
+      }
+      if (nextPhase === 'DONE') {
         window.setTimeout(() => {
           setPhase(null);
           setCounts(ZERO);

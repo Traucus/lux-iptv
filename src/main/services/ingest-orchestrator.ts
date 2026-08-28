@@ -76,6 +76,7 @@ export class IngestOrchestrator {
   private currentJob: JobState | null = null;
   private readonly mainWindow: BrowserWindow;
   private db: SqlJsCompatDb | null = null;
+  private lastPersistReloadAt = 0;
 
   constructor(mainWindow: BrowserWindow) {
     this.mainWindow = mainWindow;
@@ -137,6 +138,7 @@ export class IngestOrchestrator {
       throw err;
     }
 
+    this.lastPersistReloadAt = 0;
     this.currentJob = {
       jobId,
       status: 'running',
@@ -161,6 +163,15 @@ export class IngestOrchestrator {
             radio: msg.radio,
             total: msg.total,
           };
+          // sql.js main snapshot is stale until we reload from the worker flush.
+          // Throttle so we do not rebuild the DB on every 100-row batch.
+          if (msg.phase === 'PERSIST') {
+            const now = Date.now();
+            if (now - this.lastPersistReloadAt > 2000) {
+              this.db?.reload();
+              this.lastPersistReloadAt = now;
+            }
+          }
           this.mainWindow.webContents.send('ingest:progress', {
             jobId: msg.jobId,
             ...this.currentJob.progress,

@@ -167,6 +167,20 @@ export function processM3UEntries(db: SqlJsCompatDb, entries: M3UEntry[]): Inges
   return counts;
 }
 
+function persistBatches(db: SqlJsCompatDb, entries: M3UEntry[], totalCounts: IngestCounts): void {
+  const batchSize = 100;
+  for (let i = 0; i < entries.length; i += batchSize) {
+    if (aborted) break;
+    const batchCounts = processM3UEntries(db, entries.slice(i, i + batchSize));
+    totalCounts.live += batchCounts.live;
+    totalCounts.movies += batchCounts.movies;
+    totalCounts.series += batchCounts.series;
+    totalCounts.radio += batchCounts.radio;
+    totalCounts.total += batchCounts.total;
+    emitProgress('PERSIST', totalCounts);
+  }
+}
+
 /**
  * Maps M3U `HttpHints` (`userAgent/referer/cookie/headers`) into the canonical
  * wire-format header map (`User-Agent/Referer/Cookie/<custom>`). Returns `{}`
@@ -293,17 +307,29 @@ export async function runIngestion(data: IngestWorkerData): Promise<IngestCounts
       }
       emitLog(`Xtream: fetching from ${data.credentials.server} as ${data.credentials.username}`);
       try {
-        emitProgress('FETCH_LIVE', { live: 0, movies: 0, series: 0, radio: 0, total: 0 });
+        const totalCounts: IngestCounts = { live: 0, movies: 0, series: 0, radio: 0, total: 0 };
+
+        emitProgress('FETCH_LIVE', totalCounts);
         const liveEntries = await fetchXtreamLive(data.credentials);
         emitLog(`Xtream live: ${liveEntries.length} channels`);
-        emitProgress('FETCH_VOD', { live: liveEntries.length, movies: 0, series: 0, radio: 0, total: 0 });
+        persistBatches(db, liveEntries, totalCounts);
+        db.flush();
+
+        emitProgress('FETCH_VOD', totalCounts);
         const vodEntries = await fetchXtreamVod(data.credentials);
         emitLog(`Xtream VOD: ${vodEntries.length} movies`);
-        emitProgress('FETCH_SERIES', { live: liveEntries.length, movies: vodEntries.length, series: 0, radio: 0, total: 0 });
+        persistBatches(db, vodEntries, totalCounts);
+        db.flush();
+
+        emitProgress('FETCH_SERIES', totalCounts);
         const seriesEntries = await fetchXtreamSeries(data.credentials);
         emitLog(`Xtream series: ${seriesEntries.length} episodes`);
-        entries = [...liveEntries, ...vodEntries, ...seriesEntries];
-        emitLog(`Xtream total: ${entries.length} entries`);
+        persistBatches(db, seriesEntries, totalCounts);
+        db.flush();
+        emitLog(`Xtream persisted live=${totalCounts.live} movies=${totalCounts.movies} series=${totalCounts.series}`);
+
+        emitDone(totalCounts, Date.now() - startTime);
+        return totalCounts;
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Unknown error';
         emitLog(`Xtream error: ${message}`);
@@ -320,23 +346,9 @@ export async function runIngestion(data: IngestWorkerData): Promise<IngestCounts
       return counts;
     }
 
-    // Persist in batches so we can report progress and check the abort flag.
-    const batchSize = 100;
+    // M3U persist in batches so we can report progress and check the abort flag.
     const totalCounts: IngestCounts = { live: 0, movies: 0, series: 0, radio: 0, total: 0 };
-
-    for (let i = 0; i < entries.length; i += batchSize) {
-      if (aborted) break;
-
-      const batch = entries.slice(i, i + batchSize);
-      const batchCounts = processM3UEntries(db, batch);
-      totalCounts.live += batchCounts.live;
-      totalCounts.movies += batchCounts.movies;
-      totalCounts.series += batchCounts.series;
-      totalCounts.radio += batchCounts.radio;
-      totalCounts.total += batchCounts.total;
-
-      emitProgress('PERSIST', totalCounts);
-    }
+    persistBatches(db, entries, totalCounts);
 
     const finalCounts: IngestCounts = aborted
       ? { ...totalCounts, aborted: true }
