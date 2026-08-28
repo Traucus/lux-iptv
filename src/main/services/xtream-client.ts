@@ -192,15 +192,17 @@ export async function fetchXtreamLive(
     categoryMap.set(cat.category_id, cat.category_name);
   }
 
-  return streams.map((s) => ({
-    name: s.name,
-    url: buildStreamUrl(credentials.server, 'live', credentials.username, credentials.password, s.stream_id),
-    groupTitle: categoryMap.get(s.category_id) ?? null,
-    tvgId: s.epg_channel_id ?? null,
-    tvgLogo: s.stream_icon || null,
-    http: null as M3UEntryHttpHints | null,
-    mediaFormat: 'hls' as const,
-  }));
+  return streams
+    .filter((s) => s.name && s.name.trim().length > 0)
+    .map((s) => ({
+      name: s.name.trim(),
+      url: buildStreamUrl(credentials.server, 'live', credentials.username, credentials.password, s.stream_id),
+      groupTitle: categoryMap.get(s.category_id) ?? null,
+      tvgId: s.epg_channel_id ?? null,
+      tvgLogo: s.stream_icon || null,
+      http: null as M3UEntryHttpHints | null,
+      mediaFormat: 'hls' as const,
+    }));
 }
 
 /**

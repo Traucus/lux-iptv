@@ -153,6 +153,22 @@ export class IngestOrchestrator {
           break;
         case 'DONE':
           this.currentJob.status = msg.counts.aborted ? 'cancelled' : 'done';
+          // Update progress phase so getProgress() returns phase='DONE'.
+          // Without this, the renderer polls but never sees DONE and the
+          // auto-transition to dashboard stalls at ~99%.
+          this.currentJob.progress = {
+            ...this.currentJob.progress,
+            phase: 'DONE',
+            live: msg.counts.live,
+            movies: msg.counts.movies,
+            series: msg.counts.series,
+            radio: msg.counts.radio,
+            total: msg.counts.total,
+          };
+          this.mainWindow.webContents.send('ingest:progress', {
+            jobId: msg.jobId,
+            ...this.currentJob.progress,
+          });
           this.mainWindow.webContents.send('ingest:done', {
             jobId: msg.jobId,
             counts: msg.counts,
@@ -163,6 +179,14 @@ export class IngestOrchestrator {
           break;
         case 'ERROR':
           this.currentJob.status = 'error';
+          this.currentJob.progress = {
+            ...this.currentJob.progress,
+            phase: 'ERROR',
+          };
+          this.mainWindow.webContents.send('ingest:progress', {
+            jobId: msg.jobId,
+            ...this.currentJob.progress,
+          });
           this.mainWindow.webContents.send('ingest:error', {
             jobId: msg.jobId,
             code: msg.code,

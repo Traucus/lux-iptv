@@ -100,6 +100,11 @@ export function useIngestProgress(
       return result.data;
     },
     enabled: jobId != null && jobId !== 'pending',
-    refetchInterval: 500,
+    refetchInterval: (query) => {
+      // Stop polling once the job reaches a terminal phase
+      const phase = query.state.data?.phase;
+      if (phase === 'DONE' || phase === 'ERROR') return false;
+      return 500;
+    },
   });
 }

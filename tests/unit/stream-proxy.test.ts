@@ -513,7 +513,7 @@ https://cdn.example.com/stream.m3u8`;
         on: vi.fn((event, cb) => {
           if (event === 'data') {
             setImmediate(() => cb(Buffer.from('timeout')));
-          } } else if (event === 'end') {
+          } else if (event === 'end') {
             setImmediate(() => cb());
           }
         }),
