@@ -84,6 +84,7 @@ app.whenReady().then(async () => {
   try {
     const dbPath = join(app.getPath('userData'), 'catalog.db');
     dbHandle = createDb(dbPath);
+    IngestOrchestrator.setDbPath(dbPath);
     const migrationsDir = join(__dirname, 'db', 'migrations');
     const migrations = loadMigrations(migrationsDir);
     migrate(dbHandle.sqlite, migrations);
