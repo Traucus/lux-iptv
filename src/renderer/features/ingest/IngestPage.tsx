@@ -47,13 +47,21 @@ export function IngestPage(): React.ReactElement {
   const { data: progressData } = useIngestProgress(jobId);
 
   // Listen for IPC progress events to keep the overlay in sync.
+  // The orchestrator sends flat { phase, live, movies, series, radio, total }
+  // — we reconstruct the counts object here.
   useEffect(() => {
-    const unsubscribe = api.ingest.onProgress((p) => {
+    const unsubscribe = api.ingest.onProgress((p: Record<string, unknown>) => {
       setProgress((prev) => ({
         ...prev,
         phase: (p.phase as ProgressState['phase']) ?? prev.phase,
-        percent: p.percent,
-        counts: p.counts,
+        percent: (p.percent as number) ?? prev.percent,
+        counts: {
+          live: (p.live as number) ?? prev.counts.live,
+          movies: (p.movies as number) ?? prev.counts.movies,
+          series: (p.series as number) ?? prev.counts.series,
+          radio: (p.radio as number) ?? prev.counts.radio,
+          total: (p.total as number) ?? prev.counts.total,
+        },
       }));
     });
     return unsubscribe;

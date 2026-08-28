@@ -29,11 +29,14 @@ export interface ProgressOverlayProps {
 export function ProgressOverlay({
   phase,
   percent,
-  counts,
+  counts: rawCounts,
   errorMessage,
   onRetry,
   onCancel,
 }: ProgressOverlayProps): React.ReactElement {
+  // Guard: counts may arrive undefined from IPC flat events before the
+  // renderer reconstructs them. Default to zeroed counts.
+  const counts = rawCounts ?? { live: 0, movies: 0, series: 0, radio: 0, total: 0 };
   const isError = phase === 'ERROR';
   const isDone = phase === 'DONE';
 
