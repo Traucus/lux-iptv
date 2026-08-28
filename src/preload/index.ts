@@ -3,6 +3,7 @@ import { contextBridge, ipcRenderer } from 'electron';
 const luxAPI = {
   ingest: {
     start: (input: unknown) => ipcRenderer.invoke('ingest:start', input),
+    refresh: () => ipcRenderer.invoke('ingest:refresh'),
     cancel: (input: unknown) => ipcRenderer.invoke('ingest:cancel', input),
     getProgress: (input: unknown) => ipcRenderer.invoke('ingest:getProgress', input),
     onProgress: (cb: (progress: unknown) => void) => {
@@ -55,6 +56,8 @@ const luxAPI = {
   config: {
     saveCredentials: (input: unknown) => ipcRenderer.invoke('config:saveCredentials', input),
     loadCredentials: () => ipcRenderer.invoke('config:loadCredentials'),
+    hasSource: () => ipcRenderer.invoke('config:hasSource'),
+    sourceSummary: () => ipcRenderer.invoke('config:sourceSummary'),
   },
 };
 

@@ -60,4 +60,20 @@ export class ConfigService {
   loadCredentials(): AppConfig['credentials'] | null {
     return this.read().credentials ?? null;
   }
+
+  hasSource(): { configured: boolean } {
+    return { configured: this.loadCredentials() != null };
+  }
+
+  sourceSummary(): { configured: boolean; listName?: string; source?: 'xtream' | 'm3u' } {
+    const credentials = this.loadCredentials();
+    if (!credentials) {
+      return { configured: false };
+    }
+    return {
+      configured: true,
+      listName: credentials.listName,
+      source: credentials.source,
+    };
+  }
 }

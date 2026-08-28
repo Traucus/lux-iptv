@@ -1,7 +1,8 @@
 import type { IpcMain } from 'electron';
 import { IngestStartInputSchema, IngestCancelInputSchema, IngestProgressInputSchema } from '../../../shared/schemas/ingest.js';
-import type { IpcResult } from '../../../shared/types/ipc.js';
+import type { IpcResult, IngestStartInput } from '../../../shared/types/ipc.js';
 import type { IngestOrchestrator } from '../../services/ingest-orchestrator.js';
+import type { ConfigService } from '../../services/config-service.js';
 
 function invalidInput(details: unknown): IpcResult<never> {
   return { error: { code: 'INVALID_INPUT', message: 'Invalid input', details } };
@@ -15,7 +16,11 @@ function ingestInProgress(message: string): IpcResult<never> {
   return { error: { code: 'INGEST_IN_PROGRESS', message } };
 }
 
-export function registerIngestHandlers(ipcMain: IpcMain, orchestrator: IngestOrchestrator): void {
+export function registerIngestHandlers(
+  ipcMain: IpcMain,
+  orchestrator: IngestOrchestrator,
+  configService: ConfigService,
+): void {
   ipcMain.handle('ingest:start', async (_event, input: unknown) => {
     console.log('[ingest] ingest:start received', JSON.stringify(input));
     const result = IngestStartInputSchema.safeParse(input);
@@ -32,6 +37,41 @@ export function registerIngestHandlers(ipcMain: IpcMain, orchestrator: IngestOrc
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
       console.error('[ingest] orchestrator error:', message);
+      if (message.includes('INGEST_IN_PROGRESS')) {
+        return ingestInProgress(message);
+      }
+      return { error: { code: 'INTERNAL', message } };
+    }
+  });
+
+  ipcMain.handle('ingest:refresh', async () => {
+    const stored = configService.loadCredentials();
+    if (!stored) {
+      return notFound('No saved source');
+    }
+
+    const input: IngestStartInput =
+      stored.source === 'xtream'
+        ? {
+            source: 'xtream',
+            listName: stored.listName ?? '',
+            credentials: {
+              server: stored.server ?? '',
+              username: stored.username ?? '',
+              password: stored.password ?? '',
+            },
+          }
+        : {
+            source: 'm3u',
+            listName: stored.listName ?? '',
+            url: stored.url,
+          };
+
+    try {
+      const res = orchestrator.start(input);
+      return { data: res };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
       if (message.includes('INGEST_IN_PROGRESS')) {
         return ingestInProgress(message);
       }

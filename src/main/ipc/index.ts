@@ -45,7 +45,7 @@ export interface HandlerDeps {
  */
 export function registerHandlers(deps: HandlerDeps): void {
   console.log('[ipc] registering handlers');
-  registerIngestHandlers(ipcMain, deps.ingestOrchestrator);
+  registerIngestHandlers(ipcMain, deps.ingestOrchestrator, deps.configService);
   registerCatalogHandlers(ipcMain, { db: deps.db });
   registerEnrichmentHandlers(ipcMain);
   registerTmdbHandlers(ipcMain, deps.tmdbVault);

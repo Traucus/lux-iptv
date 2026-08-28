@@ -1,8 +1,9 @@
-import type { IpcResult, IngestStartInput, IngestCancelInput, IngestProgressInput, IngestProgress, CatalogListInput, CatalogListOutput, CatalogGetByIdInput, CatalogItem, CatalogType, CatalogGroupedInput, CatalogGroupedOutput, SeriesDetail, EnrichmentStatus, TmdbKeyInput, TmdbKeyOutput } from '../../shared/types/ipc';
+import type { IpcResult, IngestStartInput, IngestStartOutput, IngestCancelInput, IngestProgressInput, IngestProgress, CatalogListInput, CatalogListOutput, CatalogGetByIdInput, CatalogItem, CatalogType, CatalogGroupedInput, CatalogGroupedOutput, SeriesDetail, EnrichmentStatus, TmdbKeyInput, TmdbKeyOutput, HasSource, SourceSummary } from '../../shared/types/ipc';
 
 export type TypedLuxAPI = {
   ingest: {
     start: (input: IngestStartInput) => Promise<IpcResult<IngestStartOutput>>;
+    refresh: () => Promise<IpcResult<IngestStartOutput>>;
     cancel: (input: IngestCancelInput) => Promise<IpcResult<void>>;
     getProgress: (input: IngestProgressInput) => Promise<IpcResult<IngestProgress>>;
     onProgress: (cb: (progress: IngestProgress) => void) => () => void;
@@ -24,6 +25,8 @@ export type TypedLuxAPI = {
   config: {
     saveCredentials: (input: CredentialsConfig) => Promise<IpcResult<{ ok: boolean }>>;
     loadCredentials: () => Promise<IpcResult<CredentialsConfig | null>>;
+    hasSource: () => Promise<IpcResult<HasSource>>;
+    sourceSummary: () => Promise<IpcResult<SourceSummary>>;
   };
 };
 
@@ -35,8 +38,6 @@ export interface CredentialsConfig {
   listName?: string;
   url?: string;
 }
-
-type IngestStartOutput = { jobId: string };
 
 /**
  * Creates a typed API wrapper over window.luxAPI.

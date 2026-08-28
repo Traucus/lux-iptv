@@ -25,6 +25,7 @@ vi.mock('react-tv-space-navigation', () => ({
 const mockApi = vi.hoisted(() => ({
   ingest: {
     start: vi.fn(),
+    refresh: vi.fn(),
     cancel: vi.fn(),
     getProgress: vi.fn(),
     onProgress: vi.fn(() => () => undefined),
@@ -35,6 +36,8 @@ const mockApi = vi.hoisted(() => ({
   config: {
     saveCredentials: vi.fn().mockResolvedValue({ data: { ok: true } }),
     loadCredentials: vi.fn().mockResolvedValue({ data: null }),
+    hasSource: vi.fn().mockResolvedValue({ data: { configured: false } }),
+    sourceSummary: vi.fn().mockResolvedValue({ data: { configured: false } }),
   },
 }));
 
@@ -62,6 +65,10 @@ function setup() {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockApi.config.sourceSummary.mockResolvedValue({ data: { configured: false } });
+  mockApi.config.hasSource.mockResolvedValue({ data: { configured: false } });
+  mockApi.config.loadCredentials.mockResolvedValue({ data: null });
+  mockApi.config.saveCredentials.mockResolvedValue({ data: { ok: true } });
 });
 
 describe('IngestPage', () => {
@@ -147,5 +154,61 @@ describe('IngestPage', () => {
     const { wrapper } = setup();
     render(<IngestPage />, { wrapper });
     expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('shows listName and source type only when a source is configured (FL-01, D-2)', async () => {
+    mockApi.config.sourceSummary.mockResolvedValue({
+      data: { configured: true, listName: 'Home IPTV', source: 'xtream' },
+    });
+    const { wrapper } = setup();
+    render(<IngestPage />, { wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText('Home IPTV')).toBeTruthy();
+    });
+    expect(screen.getByText(/Xtream Codes API/i)).toBeTruthy();
+    expect(document.getElementById('cf-server')).toBeNull();
+    expect(document.getElementById('cf-username')).toBeNull();
+    expect(document.getElementById('cf-password')).toBeNull();
+    expect(mockApi.config.loadCredentials).not.toHaveBeenCalled();
+  });
+
+  it('shows a blank form with password show/hide when no source is saved', async () => {
+    const { wrapper } = setup();
+    render(<IngestPage />, { wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByRole('tab', { name: /Xtream Codes API/i })).toBeTruthy();
+    });
+    fireEvent.click(screen.getByRole('tab', { name: /Xtream Codes API/i }));
+
+    const password = document.getElementById('cf-password') as HTMLInputElement;
+    expect(password).toBeTruthy();
+    expect(password.value).toBe('');
+    expect(password.type).toBe('password');
+    expect(screen.getByRole('button', { name: /Show password/i })).toBeTruthy();
+    expect(mockApi.config.loadCredentials).not.toHaveBeenCalled();
+  });
+
+  it('opens a blank form on Replace source and does not prefill secrets (D-2)', async () => {
+    mockApi.config.sourceSummary.mockResolvedValue({
+      data: { configured: true, listName: 'Home IPTV', source: 'xtream' },
+    });
+    const { wrapper } = setup();
+    render(<IngestPage />, { wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Replace source/i })).toBeTruthy();
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Replace source/i }));
+
+    fireEvent.click(screen.getByRole('tab', { name: /Xtream Codes API/i }));
+    expect((document.getElementById('cf-server') as HTMLInputElement).value).toBe('');
+    expect((document.getElementById('cf-username') as HTMLInputElement).value).toBe('');
+    expect((document.getElementById('cf-password') as HTMLInputElement).value).toBe('');
+    expect(mockApi.config.loadCredentials).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: /Start Ingestion/i }));
+    expect(mockApi.ingest.start).not.toHaveBeenCalled();
   });
 });

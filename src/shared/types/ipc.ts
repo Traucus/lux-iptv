@@ -57,6 +57,14 @@ export type IngestStartInput = {
 
 export type IngestStartOutput = { jobId: string };
 
+export type HasSource = { configured: boolean };
+
+export type SourceSummary = {
+  configured: boolean;
+  listName?: string;
+  source?: IngestSource;
+};
+
 export type IngestCancelInput = { jobId: string };
 
 export type IngestProgressInput = { jobId: string };
@@ -142,6 +150,7 @@ export type TmdbKeyPlainOutput = { key: string } | null;
 export interface LuxAPI {
   // Ingest
   'ingest:start': (input: IngestStartInput) => Promise<IpcResult<IngestStartOutput>>;
+  'ingest:refresh': () => Promise<IpcResult<IngestStartOutput>>;
   'ingest:cancel': (input: IngestCancelInput) => Promise<IpcResult<void>>;
   'ingest:getProgress': (input: IngestProgressInput) => Promise<IpcResult<IngestProgress>>;
   'ingest:onProgress': (cb: (progress: IngestProgress) => void) => () => void;
@@ -157,4 +166,8 @@ export interface LuxAPI {
   'tmdb:setKey': (input: TmdbKeyInput) => Promise<IpcResult<TmdbKeyOutput>>;
   'tmdb:hasKey': () => Promise<IpcResult<boolean>>;
   'tmdb:clearKey': () => Promise<IpcResult<void>>;
+
+  // Config (F2 vault — renderer must not call loadCredentials)
+  'config:hasSource': () => Promise<IpcResult<HasSource>>;
+  'config:sourceSummary': () => Promise<IpcResult<SourceSummary>>;
 }
