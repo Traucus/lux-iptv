@@ -204,6 +204,14 @@ function emitError(code: 'AUTH_FAILED' | 'CONNECTION_ERROR' | 'PARSE_ERROR' | 'D
   });
 }
 
+function emitLog(message: string): void {
+  parentPort?.postMessage({
+    type: 'LOG',
+    jobId: workerData?.jobId ?? 'unknown',
+    message,
+  });
+}
+
 function emitProgress(phase: string, counts: IngestCounts): void {
   parentPort?.postMessage({
     type: 'PROGRESS',
@@ -250,6 +258,7 @@ export async function runIngestion(data: IngestWorkerData): Promise<IngestCounts
     const migrationsDir = getMigrationsDir();
     const migrations = loadMigrations(migrationsDir);
     migrate(db, migrations);
+    emitLog('DB ready, migrations applied');
 
     // Fetch entries
     emitProgress('FETCH', { live: 0, movies: 0, series: 0, radio: 0, total: 0 });
@@ -260,8 +269,10 @@ export async function runIngestion(data: IngestWorkerData): Promise<IngestCounts
         emitError('CONNECTION_ERROR', 'CONNECTION_ERROR: M3U source requires url', false);
         throw new Error('M3U source requires url');
       }
+      emitLog(`Fetching M3U from ${data.url}`);
       try {
         entries = await fetchM3U(data.url);
+        emitLog(`M3U fetched: ${entries.length} entries`);
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Unknown error';
         const code = message.includes('AUTH_FAILED') ? 'AUTH_FAILED' : 'CONNECTION_ERROR';
@@ -275,16 +286,22 @@ export async function runIngestion(data: IngestWorkerData): Promise<IngestCounts
         emitError('CONNECTION_ERROR', 'CONNECTION_ERROR: Xtream source requires credentials', false);
         throw new Error('Xtream source requires credentials');
       }
+      emitLog(`Xtream: fetching from ${data.credentials.server} as ${data.credentials.username}`);
       try {
         emitProgress('FETCH_LIVE', { live: 0, movies: 0, series: 0, radio: 0, total: 0 });
         const liveEntries = await fetchXtreamLive(data.credentials);
+        emitLog(`Xtream live: ${liveEntries.length} channels`);
         emitProgress('FETCH_VOD', { live: liveEntries.length, movies: 0, series: 0, radio: 0, total: 0 });
         const vodEntries = await fetchXtreamVod(data.credentials);
+        emitLog(`Xtream VOD: ${vodEntries.length} movies`);
         emitProgress('FETCH_SERIES', { live: liveEntries.length, movies: vodEntries.length, series: 0, radio: 0, total: 0 });
         const seriesEntries = await fetchXtreamSeries(data.credentials);
+        emitLog(`Xtream series: ${seriesEntries.length} episodes`);
         entries = [...liveEntries, ...vodEntries, ...seriesEntries];
+        emitLog(`Xtream total: ${entries.length} entries`);
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Unknown error';
+        emitLog(`Xtream error: ${message}`);
         const code = message.includes('AUTH_FAILED') ? 'AUTH_FAILED' : 'CONNECTION_ERROR';
         const retryable = code === 'CONNECTION_ERROR';
         emitError(code, message, retryable);

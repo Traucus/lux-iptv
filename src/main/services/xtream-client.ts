@@ -129,10 +129,15 @@ async function fetchJson<T>(url: string, timeoutMs: number): Promise<T> {
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const response = await fetch(url, { signal: controller.signal });
+    const text = await response.text();
     if (!response.ok) {
-      throw new Error(`HTTP_${response.status}: Xtream API request failed`);
+      throw new Error(`HTTP_${response.status}: ${text.substring(0, 200)}`);
     }
-    return (await response.json()) as T;
+    try {
+      return JSON.parse(text) as T;
+    } catch {
+      throw new Error(`PARSE_ERROR: Response is not JSON (${text.substring(0, 100)})`);
+    }
   } catch (err) {
     if (err instanceof Error && err.name === 'AbortError') {
       throw new Error(`CONNECTION_ERROR: Xtream API timed out after ${timeoutMs}ms`);

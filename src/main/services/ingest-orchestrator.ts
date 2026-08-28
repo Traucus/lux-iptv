@@ -134,6 +134,9 @@ export class IngestOrchestrator {
       if (!this.currentJob) return;
 
       switch (msg.type) {
+        case 'LOG':
+          console.log(`[ingest:${msg.jobId}] ${msg.message}`);
+          break;
         case 'PROGRESS':
           this.currentJob.progress = {
             phase: msg.phase,

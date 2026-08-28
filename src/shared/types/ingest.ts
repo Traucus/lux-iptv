@@ -43,4 +43,10 @@ export interface IngestErrorMessage {
   retryable: boolean;
 }
 
-export type IngestWorkerMessage = IngestProgressMessage | IngestDoneMessage | IngestErrorMessage;
+export interface IngestLogMessage {
+  type: 'LOG';
+  jobId: string;
+  message: string;
+}
+
+export type IngestWorkerMessage = IngestProgressMessage | IngestDoneMessage | IngestErrorMessage | IngestLogMessage;
