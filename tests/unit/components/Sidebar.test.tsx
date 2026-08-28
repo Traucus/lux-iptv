@@ -1,11 +1,11 @@
 // @vitest-environment happy-dom
 /**
- * Sidebar tests — verifies that dead buttons (Settings, Favorites, Search)
- * are not rendered, and that the four core navigation entries are visible.
+ * Sidebar tests — verifies that the five core navigation entries are visible,
+ * and that unimplemented buttons (Favorites, Search) are hidden.
  *
  * REQ-NAV-DEAD-BUTTONS: Buttons for features not yet implemented must be
- * hidden. Foundation scope keeps home / live / movies / series. Settings,
- * Favorites, and Search have no working routes or IPC handlers and must not
+ * hidden. Foundation scope keeps home / live / movies / series / settings.
+ * Favorites and Search have no working routes or IPC handlers and must not
  * appear in the navigation.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -33,17 +33,13 @@ beforeEach(() => {
 });
 
 describe('Sidebar — navigation entries', () => {
-  it('renders Home, Live TV, Movies, Series entries', () => {
+  it('renders Home, Live TV, Movies, Series, Settings entries', () => {
     render(<Sidebar active="home" />);
     expect(screen.getByLabelText('Home')).toBeTruthy();
     expect(screen.getByLabelText('Live TV')).toBeTruthy();
     expect(screen.getByLabelText('Movies')).toBeTruthy();
     expect(screen.getByLabelText('Series')).toBeTruthy();
-  });
-
-  it('does NOT render Settings button (dead feature)', () => {
-    render(<Sidebar active="home" />);
-    expect(screen.queryByLabelText('Settings')).toBeNull();
+    expect(screen.getByLabelText('Settings')).toBeTruthy();
   });
 
   it('does NOT render Favorites button (dead feature)', () => {
@@ -65,8 +61,14 @@ describe('Sidebar — navigation entries', () => {
   it('calls onSelect with the chosen section key', () => {
     const onSelect = vi.fn();
     render(<Sidebar active="home" onSelect={onSelect} />);
-    // Use the Home button (click the Focusable wrapper which delegates to onSelect).
     screen.getByLabelText('Live TV').click();
     expect(onSelect).toHaveBeenCalledWith('live');
+  });
+
+  it('calls onSelect with settings when Settings is clicked', () => {
+    const onSelect = vi.fn();
+    render(<Sidebar active="home" onSelect={onSelect} />);
+    screen.getByLabelText('Settings').click();
+    expect(onSelect).toHaveBeenCalledWith('settings');
   });
 });

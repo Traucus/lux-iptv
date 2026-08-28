@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { CredentialsForm, type CredentialsFormValue, validateCredentials } from './CredentialsForm';
 import { IngestOverlay } from './IngestOverlay';
 import { useStartIngest, useCancelIngest, useIngestProgress } from '../../queries/use-ingest';
 import { createLuxAPI } from '../../lib/api';
+import { Sidebar, type SidebarSection } from '../../components/organisms/Sidebar';
 import type { CredentialSource } from '../../components/molecules/CredentialFormTabs';
 
 const api = createLuxAPI();
@@ -27,9 +28,11 @@ const ZERO_COUNTS = { live: 0, movies: 0, series: 0, radio: 0, total: 0 };
 /**
  * IngestPage — Screen 2 onboarding flow.
  * Tab switch Xtream/M3U, URL validation, IngestOverlay on start, auto-transition to dashboard on DONE.
+ * Includes sidebar for navigation back to other sections.
  */
 export function IngestPage(): React.ReactElement {
   const navigate = useNavigate();
+  const location = useLocation();
   const [form, setForm] = useState<CredentialsFormValue>(INITIAL_FORM);
   const [progress, setProgress] = useState<ProgressState>({
     phase: null,
@@ -140,36 +143,70 @@ export function IngestPage(): React.ReactElement {
     setShowOverlay(false);
   };
 
-  return (
-    <main className="min-h-screen bg-surface flex items-center justify-center px-6 py-12">
-      <div className="w-full max-w-2xl p-8 rounded-2xl glass-heavy shadow-glass-lg">
-        <div className="flex flex-col gap-2 mb-8">
-          <h1 className="text-display-sm font-bold text-white">Add your IPTV source</h1>
-          <p className="text-gray-400">
-            Choose Xtream Codes API or paste an M3U playlist URL to get started.
-          </p>
-        </div>
-        <CredentialsForm
-          source={form.source}
-          onSourceChange={handleSourceChange}
-          value={form}
-          onChange={setForm}
-          onSubmit={handleSubmit}
-          submitting={startIngest.isPending}
-        />
-      </div>
+  const routeToSection = (pathname: string): SidebarSection => {
+    if (pathname.startsWith('/live')) return 'live';
+    if (pathname.startsWith('/movies')) return 'movies';
+    if (pathname.startsWith('/series')) return 'series';
+    if (pathname.startsWith('/ingest')) return 'settings';
+    return 'home';
+  };
 
-      {showOverlay && progress.phase ? (
-        <IngestOverlay
-          phase={progress.phase}
-          percent={progress.percent}
-          counts={progress.counts}
-          errorMessage={progress.errorMessage}
-          onRetry={progress.phase === 'ERROR' ? handleRetry : undefined}
-          onCancel={progress.phase !== 'ERROR' && progress.phase !== 'DONE' ? handleCancel : undefined}
-        />
-      ) : null}
-    </main>
+  const activeSection = routeToSection(location.pathname);
+
+  const onSidebarSelect = (section: SidebarSection): void => {
+    switch (section) {
+      case 'home':
+        navigate('/');
+        break;
+      case 'live':
+        navigate('/live');
+        break;
+      case 'movies':
+        navigate('/movies');
+        break;
+      case 'series':
+        navigate('/series');
+        break;
+      case 'settings':
+        navigate('/ingest');
+        break;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-surface flex">
+      <Sidebar active={activeSection} onSelect={onSidebarSelect} />
+
+      <main className="flex-1 flex items-center justify-center px-6 py-12">
+        <div className="w-full max-w-2xl p-8 rounded-2xl glass-heavy shadow-glass-lg">
+          <div className="flex flex-col gap-2 mb-8">
+            <h1 className="text-display-sm font-bold text-white">Add your IPTV source</h1>
+            <p className="text-gray-400">
+              Choose Xtream Codes API or paste an M3U playlist URL to get started.
+            </p>
+          </div>
+          <CredentialsForm
+            source={form.source}
+            onSourceChange={handleSourceChange}
+            value={form}
+            onChange={setForm}
+            onSubmit={handleSubmit}
+            submitting={startIngest.isPending}
+          />
+        </div>
+
+        {showOverlay && progress.phase ? (
+          <IngestOverlay
+            phase={progress.phase}
+            percent={progress.percent}
+            counts={progress.counts}
+            errorMessage={progress.errorMessage}
+            onRetry={progress.phase === 'ERROR' ? handleRetry : undefined}
+            onCancel={progress.phase !== 'ERROR' && progress.phase !== 'DONE' ? handleCancel : undefined}
+          />
+        ) : null}
+      </main>
+    </div>
   );
 }
 
