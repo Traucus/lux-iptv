@@ -13,7 +13,7 @@
   "scripts": {
     "dev": "concurrently -n main,renderer,api -c blue,green,yellow \"npm run dev:main\" \"npm run dev:renderer\" \"npm run dev:api\"",
     "dev:renderer": "vite",
-    "dev:main": "concurrently \"tsc -p tsconfig.main.json --watch\" \"tsc -p tsconfig.main.json && wait-on dist/main/index.js && node -e \\\"const fs=require('fs');fs.cpSync('src/main/entry.cjs','dist/main/entry.cjs',{force:true});fs.cpSync('src/main/db/migrations','dist/main/db/migrations',{recursive:true,force:true})\\\" && electron --no-sandbox --disable-gpu --disable-dev-shm-usage dist/main/entry.cjs\"",
+    "dev:main": "concurrently \"tsc -p tsconfig.main.json --watch\" \"tsc -p tsconfig.main.json && wait-on dist/main/index.js && node -e \\\"const fs=require('fs');fs.cpSync('src/main/entry.cjs','dist/main/entry.cjs',{force:true});fs.cpSync('src/main/db/migrations','dist/main/db/migrations',{recursive:true,force:true})\\\" && cross-env NODE_ENV=development electron --no-sandbox --disable-gpu --disable-dev-shm-usage dist/main/entry.cjs\"",
     "dev:api": "tsx watch src/licensing-api/server.ts",
     "build": "npm run build:renderer && npm run build:main && npm run build:api",
     "build:renderer": "vite build",
@@ -66,6 +66,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@electron/rebuild": "^3.7.0",
     "@playwright/test": "^1.48.2",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^14.3.1",
@@ -79,9 +80,9 @@
     "@vitest/coverage-v8": "^2.1.5",
     "@vitest/ui": "^2.1.5",
     "concurrently": "^9.1.0",
+    "cross-env": "^10.1.0",
     "drizzle-kit": "^0.28.1",
     "electron-builder": "^25.1.8",
-    "@electron/rebuild": "^3.7.0",
     "eslint": "^8.57.0",
     "eslint-plugin-react": "^7.37.2",
     "fake-indexeddb": "^6.2.5",
