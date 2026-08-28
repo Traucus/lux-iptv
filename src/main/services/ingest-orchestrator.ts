@@ -177,6 +177,10 @@ export class IngestOrchestrator {
             radio: msg.counts.radio,
             total: msg.counts.total,
           };
+          // Reload BEFORE notifying the renderer. sql.js is a snapshot;
+          // if DONE is sent first, Series/Home queries hit the stale DB
+          // (live/movies from the previous ingest, series still empty).
+          this.db?.reload();
           this.mainWindow.webContents.send('ingest:progress', {
             jobId: msg.jobId,
             ...this.currentJob.progress,
@@ -187,9 +191,6 @@ export class IngestOrchestrator {
             durationMs: msg.durationMs,
           });
           this.mainWindow.webContents.send('catalog:ingestion-complete', msg.counts);
-          // Reload the main process's in-memory DB from disk so IPC
-          // handlers see the data the worker just wrote.
-          this.db?.reload();
           worker.terminate();
           break;
         case 'ERROR':

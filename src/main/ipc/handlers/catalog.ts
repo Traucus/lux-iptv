@@ -256,25 +256,37 @@ export function registerCatalogHandlers(ipcMain: IpcMain, deps: CatalogHandlerDe
     const { type, limit } = result.data;
     const table = tableForType(type);
 
-    // Get all distinct group titles with counts
+    // Include NULL/empty group_title as Ungrouped. Series ingest often stores
+    // rows without a category; excluding them made Series look empty.
     const groups = deps.db
       .prepare(
-        `SELECT group_title, COUNT(*) as count FROM ${table}
-         WHERE group_title IS NOT NULL AND group_title != ''
-         GROUP BY group_title ORDER BY group_title`,
+        `SELECT CASE WHEN group_title IS NULL OR group_title = '' THEN '' ELSE group_title END AS group_title,
+                COUNT(*) as count
+         FROM ${table}
+         GROUP BY CASE WHEN group_title IS NULL OR group_title = '' THEN '' ELSE group_title END
+         ORDER BY group_title`,
       )
       .all() as Array<{ group_title: string; count: number }>;
 
-    // For each group, fetch up to `limit` items
     const groupedItems = groups.map((g) => {
-      const rows = deps.db
-        .prepare(
-          `SELECT * FROM ${table}
-           WHERE group_title = ? ORDER BY name LIMIT ?`,
-        )
-        .all(g.group_title, limit) as Array<Record<string, unknown>>;
+      const rows = (
+        g.group_title === ''
+          ? deps.db
+              .prepare(
+                `SELECT * FROM ${table}
+                 WHERE group_title IS NULL OR group_title = ''
+                 ORDER BY name LIMIT ?`,
+              )
+              .all(limit)
+          : deps.db
+              .prepare(
+                `SELECT * FROM ${table}
+                 WHERE group_title = ? ORDER BY name LIMIT ?`,
+              )
+              .all(g.group_title, limit)
+      ) as Array<Record<string, unknown>>;
       return {
-        title: g.group_title,
+        title: g.group_title === '' ? 'Ungrouped' : g.group_title,
         count: g.count,
         items: rows.map((r) => mapRowForType(type, r)),
       };

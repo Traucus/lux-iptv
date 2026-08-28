@@ -122,6 +122,8 @@ export function IngestPage(): React.ReactElement {
         url: form.url,
       }).catch(() => { /* best-effort */ });
       const stayOnVault = replacing;
+      void queryClient.invalidateQueries({ queryKey: ['catalog'] });
+      void queryClient.invalidateQueries({ queryKey: ['catalog-grouped'] });
       const timer = window.setTimeout(() => {
         setShowOverlay(false);
         if (stayOnVault) {
