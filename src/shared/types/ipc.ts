@@ -75,6 +75,7 @@ export type CatalogListInput = {
   limit?: number;
   offset?: number;
   search?: string;
+  groupTitle?: string;
 };
 
 export type CatalogListOutput = {

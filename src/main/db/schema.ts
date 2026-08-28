@@ -68,6 +68,7 @@ export const series = sqliteTable(
     id: integer('id').primaryKey({ autoIncrement: true }),
     xtreamId: integer('xtream_id'),
     name: text('name').notNull(),
+    url: text('url').notNull().unique(),
     groupTitle: text('group_title'),
     cover: text('cover'),
     streamType: text('stream_type').notNull().default('series'),

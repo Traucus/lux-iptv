@@ -8,7 +8,7 @@ describe('catalog schemas', () => {
       const result = CatalogListInputSchema.safeParse({ type: 'movie' });
       expect(result.success).toBe(true);
       if (result.success) {
-        expect(result.data.limit).toBe(50);
+        expect(result.data.limit).toBe(100);
         expect(result.data.offset).toBe(0);
       }
     });
@@ -28,8 +28,8 @@ describe('catalog schemas', () => {
       expect(result.success).toBe(false);
     });
 
-    it('rejects limit > 500', () => {
-      const result = CatalogListInputSchema.safeParse({ type: 'movie', limit: 1000 });
+    it('rejects limit > 1000', () => {
+      const result = CatalogListInputSchema.safeParse({ type: 'movie', limit: 1001 });
       expect(result.success).toBe(false);
     });
 

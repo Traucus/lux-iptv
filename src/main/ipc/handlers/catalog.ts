@@ -132,31 +132,34 @@ export function registerCatalogHandlers(ipcMain: IpcMain, deps: CatalogHandlerDe
     const limit = parsed.limit;
     const offset = parsed.offset;
     const search = parsed.search?.trim();
+    const groupTitle = parsed.groupTitle?.trim();
 
-    let total = 0;
-    let itemsStmt;
+    // Build WHERE clauses dynamically
+    const conditions: string[] = [];
+    const params: unknown[] = [];
+
     if (search && search.length > 0) {
       const like = `%${search.replace(/[%_]/g, (m) => `\\${m}`)}%`;
-      total = (
-        deps.db
-          .prepare(`SELECT COUNT(*) as c FROM ${table} WHERE name LIKE ? ESCAPE '\\'`)
-          .get(like) as { c: number }
-      ).c;
-      itemsStmt = deps.db.prepare(
-        `SELECT * FROM ${table} WHERE name LIKE ? ESCAPE '\\' ORDER BY name LIMIT ? OFFSET ?`,
-      );
-      const rows = itemsStmt.all(like, limit, offset) as Array<Record<string, unknown>>;
-      return {
-        data: {
-          items: rows.map((r) => mapRowForType(parsed.type, r)),
-          total,
-        } satisfies CatalogListOutput,
-      };
+      conditions.push(`name LIKE ? ESCAPE '\\'`);
+      params.push(like);
     }
 
-    total = (deps.db.prepare(`SELECT COUNT(*) as c FROM ${table}`).get() as { c: number }).c;
-    itemsStmt = deps.db.prepare(`SELECT * FROM ${table} ORDER BY name LIMIT ? OFFSET ?`);
-    const rows = itemsStmt.all(limit, offset) as Array<Record<string, unknown>>;
+    if (groupTitle && groupTitle.length > 0) {
+      conditions.push(`group_title = ?`);
+      params.push(groupTitle);
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    const countRow = deps.db
+      .prepare(`SELECT COUNT(*) as c FROM ${table} ${whereClause}`)
+      .get(...params) as { c: number };
+    const total = countRow.c;
+
+    const itemsStmt = deps.db.prepare(
+      `SELECT * FROM ${table} ${whereClause} ORDER BY name LIMIT ? OFFSET ?`,
+    );
+    const rows = itemsStmt.all(...params, limit, offset) as Array<Record<string, unknown>>;
     return {
       data: {
         items: rows.map((r) => mapRowForType(parsed.type, r)),
@@ -231,5 +234,17 @@ export function registerCatalogHandlers(ipcMain: IpcMain, deps: CatalogHandlerDe
     }
 
     return { data: mapRowForType(parsed.type, row) };
+  });
+
+  ipcMain.handle('catalog:groups', async (_event, input: unknown) => {
+    const result = CatalogListInputSchema.pick({ type: true }).safeParse(input);
+    if (!result.success) {
+      return invalidInput(result.error.issues);
+    }
+    const table = tableForType(result.data.type);
+    const rows = deps.db
+      .prepare(`SELECT DISTINCT group_title FROM ${table} WHERE group_title IS NOT NULL AND group_title != '' ORDER BY group_title`)
+      .all() as Array<{ group_title: string }>;
+    return { data: rows.map((r) => r.group_title) };
   });
 }

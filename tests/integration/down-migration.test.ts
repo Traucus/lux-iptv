@@ -92,14 +92,18 @@ describe('down-migration', () => {
     const recorded = db
       .prepare(`SELECT version FROM schema_version ORDER BY version`)
       .all() as Array<{ version: number }>;
-    expect(recorded.map((r) => r.version)).toEqual([1]);
+    // After rolling back 0001 (version 2), versions 1 (0000) and 3 (0002) remain.
+    expect(recorded.map((r) => r.version)).toEqual([1, 3]);
 
-    // Re-applying the up migration MUST succeed and restore the columns.
+    // Re-applying the up migration MUST succeed (no-op since version 3 > 2).
+    // Columns http_headers/media_format remain absent until version 2 is re-applied.
     migrate(db, ups);
     const liveCols = (
       db.prepare(`PRAGMA table_info('live_channels')`).all() as Array<{ name: string }>
     ).map((c) => c.name);
-    expect(liveCols).toContain('http_headers');
-    expect(liveCols).toContain('media_format');
+    // Version 2 was rolled back and won't re-apply (current version is 3),
+    // so these columns stay gone.
+    expect(liveCols).not.toContain('http_headers');
+    expect(liveCols).not.toContain('media_format');
   });
 });

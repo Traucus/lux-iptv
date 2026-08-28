@@ -57,3 +57,24 @@ export function useContentById(
     ...options,
   });
 }
+
+/**
+ * useCatalogGroups — fetches distinct group_title values for a catalog type.
+ * Query key: ['catalog-groups', type]
+ */
+export function useCatalogGroups(
+  type: CatalogType,
+  options?: Partial<UseQueryOptions<string[]>>,
+): UseQueryResult<string[]> {
+  return useQuery<string[]>({
+    queryKey: ['catalog-groups', type] as const,
+    queryFn: async () => {
+      const result = await api.catalog.groups({ type });
+      if (result.error) {
+        throw new Error(`${result.error.code}: ${result.error.message}`);
+      }
+      return result.data;
+    },
+    ...options,
+  });
+}
