@@ -218,6 +218,45 @@ describe('catalog handler', () => {
       expect(data.httpHeaders).toEqual({ Referer: 'https://r' });
     });
 
+    it('catalog:grouped collapses episode rows into one card per show', async () => {
+      db.prepare(
+        `INSERT INTO series (name, url, group_title, stream_type, added_at) VALUES (?, ?, ?, ?, ?)`,
+      ).run('7 Seeds - S01E01 - 7 S', 'https://x/s/1', 'Anime', 'series', 1000);
+      db.prepare(
+        `INSERT INTO series (name, url, group_title, stream_type, added_at) VALUES (?, ?, ?, ?, ?)`,
+      ).run('7 Seeds - S01E02 - 7 S', 'https://x/s/2', 'Anime', 'series', 1000);
+      db.prepare(
+        `INSERT INTO series (name, url, group_title, stream_type, added_at) VALUES (?, ?, ?, ?, ?)`,
+      ).run('7 Seeds - S01E03 - 7 S', 'https://x/s/3', 'Anime', 'series', 1000);
+
+      const { ipc, captured } = captureIpcMain();
+      registerCatalogHandlers(ipc, { db });
+      const grouped = captured.find((c) => c.channel === 'catalog:grouped')!.fn;
+      const result = await grouped({}, { type: 'series', limit: 20 });
+      const data = (result as { data: { groups: Array<{ title: string; count: number; items: Array<{ name: string }> }> } }).data;
+      const anime = data.groups.find((g) => g.title === 'Anime');
+      expect(anime?.count).toBe(1);
+      expect(anime?.items).toHaveLength(1);
+      expect(anime?.items[0].name).toBe('7 Seeds');
+    });
+
+    it('catalog:grouped includes series with empty group_title as Ungrouped', async () => {
+      db.prepare(
+        `INSERT INTO series (name, url, group_title, stream_type, added_at)
+         VALUES (?, ?, ?, ?, ?)`,
+      ).run('Orphan Show', 'https://x/series/1.mp4', null, 'series', 1000);
+
+      const { ipc, captured } = captureIpcMain();
+      registerCatalogHandlers(ipc, { db });
+      const grouped = captured.find((c) => c.channel === 'catalog:grouped')!.fn;
+      const result = await grouped({}, { type: 'series', limit: 20 });
+      const data = (result as { data: { groups: Array<{ title: string; count: number; items: Array<{ name: string }> }> } }).data;
+      expect(data.groups).toHaveLength(1);
+      expect(data.groups[0].title).toBe('Ungrouped');
+      expect(data.groups[0].count).toBe(1);
+      expect(data.groups[0].items[0].name).toBe('Orphan Show');
+    });
+
     it('returns SeriesDetail with seasons and episodes for type=series', async () => {
       db.prepare(
         `INSERT INTO series (name, url, group_title, stream_type, year, added_at)

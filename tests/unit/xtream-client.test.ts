@@ -174,7 +174,7 @@ describe('xtream-client', () => {
   });
 
   describe('series', () => {
-    it('fetches series and converts episodes to M3UEntry format', async () => {
+    it('fetches one catalog row per series without calling get_series_info', async () => {
       server.use(
         http.get(`${baseUrl}/player_api.php`, ({ request }) => {
           const url = new URL(request.url);
@@ -197,20 +197,7 @@ describe('xtream-client', () => {
             ]);
           }
           if (action === 'get_series_info') {
-            return HttpResponse.json({
-              episodes: {
-                '1': [
-                  {
-                    id: '1001',
-                    episode_num: 1,
-                    title: 'Pilot',
-                    container_extension: 'mp4',
-                    season: 1,
-                    info: { name: 'Pilot' },
-                  },
-                ],
-              },
-            });
+            throw new Error('get_series_info must not be called during catalog ingest');
           }
           return HttpResponse.json({});
         }),
@@ -218,10 +205,10 @@ describe('xtream-client', () => {
 
       const streams = await fetchXtreamSeries({ server: baseUrl, username, password });
       expect(streams).toHaveLength(1);
-      expect(streams[0].name).toContain('Breaking Bad');
-      expect(streams[0].name).toContain('S01E01');
-      expect(streams[0].name).toContain('Pilot');
+      expect(streams[0].name).toBe('Breaking Bad');
       expect(streams[0].url).toContain('/series/');
+      expect(streams[0].url).toContain('/300.m3u8');
+      expect(streams[0].groupTitle).toBe('Drama');
     });
 
     it('filters out series with empty names', async () => {
@@ -241,9 +228,9 @@ describe('xtream-client', () => {
       );
 
       const streams = await fetchXtreamSeries({ server: baseUrl, username, password });
-      // The valid series has no episodes info, so it falls back to a single entry
       expect(streams).toHaveLength(1);
       expect(streams[0].name).toBe('Breaking Bad');
+      expect(streams[0].url).toContain('/300.m3u8');
     });
   });
 });

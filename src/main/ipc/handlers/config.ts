@@ -15,4 +15,12 @@ export function registerConfigHandlers(ipcMain: IpcMain, configService: ConfigSe
     const credentials = configService.loadCredentials();
     return { data: credentials };
   });
+
+  ipcMain.handle('config:hasSource', async () => {
+    return { data: configService.hasSource() };
+  });
+
+  ipcMain.handle('config:sourceSummary', async () => {
+    return { data: configService.sourceSummary() };
+  });
 }

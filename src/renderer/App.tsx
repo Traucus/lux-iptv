@@ -7,6 +7,7 @@ import { MoviesPage } from './features/movies/MoviesPage';
 import { SeriesPage } from './features/series/SeriesPage';
 import { DetailPage } from './features/detail/DetailPage';
 import { PlayerPlaceholder } from './features/player/PlayerPlaceholder';
+import { IngestProgressHost } from './features/ingest/IngestProgressHost';
 
 /**
  * Application root component.
@@ -27,6 +28,7 @@ import { PlayerPlaceholder } from './features/player/PlayerPlaceholder';
 function App(): React.ReactElement {
   return (
     <HashRouter>
+      <IngestProgressHost />
       <Routes>
         <Route path="/" element={<DashboardPage />} />
         <Route path="/ingest" element={<IngestPage />} />

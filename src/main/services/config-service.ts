@@ -60,4 +60,40 @@ export class ConfigService {
   loadCredentials(): AppConfig['credentials'] | null {
     return this.read().credentials ?? null;
   }
+
+  hasSource(): { configured: boolean } {
+    return { configured: this.isConfigured(this.loadCredentials()) };
+  }
+
+  sourceSummary(): { configured: boolean; listName?: string; source?: 'xtream' | 'm3u' } {
+    const credentials = this.loadCredentials();
+    if (!this.isConfigured(credentials)) {
+      return { configured: false };
+    }
+    return {
+      configured: true,
+      listName: credentials!.listName,
+      source: this.inferSource(credentials!),
+    };
+  }
+
+  private isConfigured(credentials: AppConfig['credentials'] | null): credentials is NonNullable<AppConfig['credentials']> {
+    if (!credentials) return false;
+    return Boolean(
+      credentials.source ||
+        credentials.server ||
+        credentials.username ||
+        credentials.password ||
+        credentials.url ||
+        credentials.listName,
+    );
+  }
+
+  private inferSource(credentials: NonNullable<AppConfig['credentials']>): 'xtream' | 'm3u' {
+    if (credentials.source === 'm3u' || credentials.source === 'xtream') {
+      return credentials.source;
+    }
+    if (credentials.url && !credentials.server) return 'm3u';
+    return 'xtream';
+  }
 }

@@ -76,6 +76,7 @@ export class IngestOrchestrator {
   private currentJob: JobState | null = null;
   private readonly mainWindow: BrowserWindow;
   private db: SqlJsCompatDb | null = null;
+  private lastPersistReloadAt = 0;
 
   constructor(mainWindow: BrowserWindow) {
     this.mainWindow = mainWindow;
@@ -92,7 +93,10 @@ export class IngestOrchestrator {
   }
 
   start(input: IngestStartInput): { jobId: string } {
-    if (this.currentJob && this.currentJob.status === 'running') {
+    // Any live worker owns the catalog.db file. Status 'done'/'error' is not
+    // enough: a second start while the first worker is still fetching/writing
+    // lets two sql.js snapshots race and the last close() wipes series rows.
+    if (this.currentJob?.worker) {
       throw new Error('INGEST_IN_PROGRESS: Another ingestion is already running');
     }
 
@@ -134,6 +138,7 @@ export class IngestOrchestrator {
       throw err;
     }
 
+    this.lastPersistReloadAt = 0;
     this.currentJob = {
       jobId,
       status: 'running',
@@ -143,7 +148,7 @@ export class IngestOrchestrator {
     };
 
     worker.on('message', (msg: IngestWorkerMessage) => {
-      if (!this.currentJob) return;
+      if (!this.currentJob || this.currentJob.jobId !== msg.jobId) return;
 
       switch (msg.type) {
         case 'LOG':
@@ -158,6 +163,15 @@ export class IngestOrchestrator {
             radio: msg.radio,
             total: msg.total,
           };
+          // sql.js main snapshot is stale until we reload from the worker flush.
+          // Throttle so we do not rebuild the DB on every 100-row batch.
+          if (msg.phase === 'PERSIST') {
+            const now = Date.now();
+            if (now - this.lastPersistReloadAt > 2000) {
+              this.db?.reload();
+              this.lastPersistReloadAt = now;
+            }
+          }
           this.mainWindow.webContents.send('ingest:progress', {
             jobId: msg.jobId,
             ...this.currentJob.progress,
@@ -177,6 +191,10 @@ export class IngestOrchestrator {
             radio: msg.counts.radio,
             total: msg.counts.total,
           };
+          // Reload BEFORE notifying the renderer. sql.js is a snapshot;
+          // if DONE is sent first, Series/Home queries hit the stale DB
+          // (live/movies from the previous ingest, series still empty).
+          this.db?.reload();
           this.mainWindow.webContents.send('ingest:progress', {
             jobId: msg.jobId,
             ...this.currentJob.progress,
@@ -187,10 +205,8 @@ export class IngestOrchestrator {
             durationMs: msg.durationMs,
           });
           this.mainWindow.webContents.send('catalog:ingestion-complete', msg.counts);
-          // Reload the main process's in-memory DB from disk so IPC
-          // handlers see the data the worker just wrote.
-          this.db?.reload();
           worker.terminate();
+          this.currentJob = null;
           break;
         case 'ERROR':
           this.currentJob.status = 'error';
@@ -209,6 +225,7 @@ export class IngestOrchestrator {
             retryable: msg.retryable,
           });
           worker.terminate();
+          this.currentJob = null;
           break;
       }
     });
@@ -222,6 +239,8 @@ export class IngestOrchestrator {
           message: err.message,
           retryable: false,
         });
+        this.currentJob.worker.terminate();
+        this.currentJob = null;
       }
     });
 

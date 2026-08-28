@@ -28,12 +28,20 @@ const mockApi = vi.hoisted(() => ({
     list: vi.fn(),
     getById: vi.fn(),
   },
-  ingest: { start: vi.fn(), cancel: vi.fn(), getProgress: vi.fn(), onProgress: vi.fn(() => () => undefined) },
+  ingest: {
+    start: vi.fn(),
+    refresh: vi.fn().mockResolvedValue({ data: { jobId: 'j1' } }),
+    cancel: vi.fn(),
+    getProgress: vi.fn(),
+    onProgress: vi.fn(() => () => undefined),
+  },
   enrichment: { getStatus: vi.fn() },
   tmdb: { setKey: vi.fn(), hasKey: vi.fn(), clearKey: vi.fn() },
   config: {
     saveCredentials: vi.fn().mockResolvedValue({ data: { ok: true } }),
     loadCredentials: vi.fn().mockResolvedValue({ data: null }),
+    hasSource: vi.fn().mockResolvedValue({ data: { configured: false } }),
+    sourceSummary: vi.fn().mockResolvedValue({ data: { configured: false } }),
   },
 }));
 

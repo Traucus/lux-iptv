@@ -1,9 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { registerIngestHandlers } from '../../src/main/ipc/handlers/ingest';
 import type { IngestOrchestrator } from '../../src/main/services/ingest-orchestrator';
+import type { ConfigService } from '../../src/main/services/config-service';
 
 describe('ingest IPC handlers', () => {
   let mockOrchestrator: IngestOrchestrator;
+  let mockConfigService: ConfigService;
   let handlers: Record<string, (event: unknown, input?: unknown) => Promise<unknown>>;
 
   beforeEach(() => {
@@ -13,13 +15,21 @@ describe('ingest IPC handlers', () => {
       getProgress: vi.fn(),
     } as unknown as IngestOrchestrator;
 
+    mockConfigService = {
+      loadCredentials: vi.fn().mockReturnValue(null),
+    } as unknown as ConfigService;
+
     handlers = {};
     const mockIpcMain = {
       handle: vi.fn((channel: string, handler: unknown) => {
         handlers[channel] = handler as (event: unknown, input?: unknown) => Promise<unknown>;
       }),
     };
-    registerIngestHandlers(mockIpcMain as unknown as Electron.IpcMain, mockOrchestrator);
+    registerIngestHandlers(
+      mockIpcMain as unknown as Electron.IpcMain,
+      mockOrchestrator,
+      mockConfigService,
+    );
   });
 
   describe('ingest:start', () => {
@@ -129,6 +139,58 @@ describe('ingest IPC handlers', () => {
           error: expect.objectContaining({ code: 'NOT_FOUND' }),
         }),
       );
+    });
+  });
+
+  describe('ingest:refresh', () => {
+    it('returns NOT_FOUND "No saved source" and does not start ingest', async () => {
+      const result = await handlers['ingest:refresh']({});
+      expect(result).toEqual({
+        error: { code: 'NOT_FOUND', message: 'No saved source' },
+      });
+      expect(mockOrchestrator.start).not.toHaveBeenCalled();
+    });
+
+    it('starts ingest from stored Xtream credentials with no renderer input', async () => {
+      vi.mocked(mockConfigService.loadCredentials).mockReturnValue({
+        source: 'xtream',
+        server: 'http://vault.example:8080',
+        username: 'vault-user',
+        password: 'vault-pass',
+        listName: 'Home IPTV',
+      });
+      vi.mocked(mockOrchestrator.start).mockReturnValue({ jobId: 'refresh-xtream' });
+
+      const result = await handlers['ingest:refresh']({});
+
+      expect(mockOrchestrator.start).toHaveBeenCalledWith({
+        source: 'xtream',
+        listName: 'Home IPTV',
+        credentials: {
+          server: 'http://vault.example:8080',
+          username: 'vault-user',
+          password: 'vault-pass',
+        },
+      });
+      expect(result).toEqual({ data: { jobId: 'refresh-xtream' } });
+    });
+
+    it('starts ingest from stored M3U url with no renderer input', async () => {
+      vi.mocked(mockConfigService.loadCredentials).mockReturnValue({
+        source: 'm3u',
+        url: 'https://vault.example/playlist.m3u',
+        listName: 'M3U List',
+      });
+      vi.mocked(mockOrchestrator.start).mockReturnValue({ jobId: 'refresh-m3u' });
+
+      const result = await handlers['ingest:refresh']({});
+
+      expect(mockOrchestrator.start).toHaveBeenCalledWith({
+        source: 'm3u',
+        listName: 'M3U List',
+        url: 'https://vault.example/playlist.m3u',
+      });
+      expect(result).toEqual({ data: { jobId: 'refresh-m3u' } });
     });
   });
 });

@@ -34,6 +34,13 @@ const RADIO_GROUP_PATTERNS = [
 
 const IMDB_ID_PATTERN = /tt\d{7,8}/;
 const SEASON_EPISODE_PATTERN = /S\d{1,2}E\d{1,3}/i;
+const SHOW_TITLE_EPISODE_TAIL = /\s*[-–:|]\s*S\d{1,2}\s*E\d{1,3}\b.*$/i;
+
+/** Collapse "7 Seeds - S01E01 - …" to the show title. */
+export function seriesShowTitle(name: string): string {
+  const cut = name.replace(SHOW_TITLE_EPISODE_TAIL, '').trim();
+  return cut.length > 0 ? cut : name.trim();
+}
 
 /**
  * 6-stage heuristic classifier for IPTV content.

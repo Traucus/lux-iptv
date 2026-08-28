@@ -139,14 +139,13 @@ describe('ingest-orchestrator', () => {
     });
 
     it('forwards PROGRESS messages from the worker to the renderer', () => {
-      orchestrator.start({
+      const { jobId } = orchestrator.start({
         source: 'm3u',
         url: 'https://example.com/playlist.m3u',
         listName: 'Test',
       });
       const w = workerInstances[0];
       if (!w) throw new Error('expected a worker instance');
-      const jobId = 'job-1';
 
       w.emit('message', {
         type: 'PROGRESS',
@@ -170,14 +169,13 @@ describe('ingest-orchestrator', () => {
     });
 
     it('forwards DONE messages and signals catalog:ingestion-complete', () => {
-      orchestrator.start({
+      const { jobId } = orchestrator.start({
         source: 'm3u',
         url: 'https://example.com/playlist.m3u',
         listName: 'Test',
       });
       const w = workerInstances[0];
       if (!w) throw new Error('expected a worker instance');
-      const jobId = 'job-1';
 
       w.emit('message', {
         type: 'DONE',
@@ -198,14 +196,13 @@ describe('ingest-orchestrator', () => {
     });
 
     it('forwards ERROR messages from the worker', () => {
-      orchestrator.start({
+      const { jobId } = orchestrator.start({
         source: 'm3u',
         url: 'https://example.com/playlist.m3u',
         listName: 'Test',
       });
       const w = workerInstances[0];
       if (!w) throw new Error('expected a worker instance');
-      const jobId = 'job-1';
 
       w.emit('message', {
         type: 'ERROR',

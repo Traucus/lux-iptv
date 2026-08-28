@@ -78,12 +78,15 @@ export class SqlJsCompatDb {
     };
   }
 
+  /** Write the in-memory snapshot to disk without closing. */
+  flush(): void {
+    if (this.filePath === ':memory:') return;
+    const data = this.db.export();
+    writeFileSync(this.filePath, Buffer.from(data));
+  }
+
   close(): void {
-    // Save to file before closing (except :memory: databases)
-    if (this.filePath !== ':memory:') {
-      const data = this.db.export();
-      writeFileSync(this.filePath, Buffer.from(data));
-    }
+    this.flush();
     this.db.close();
   }
 

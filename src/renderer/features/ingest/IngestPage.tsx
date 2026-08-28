@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { CredentialsForm, type CredentialsFormValue, validateCredentials } from './CredentialsForm';
 import { IngestOverlay } from './IngestOverlay';
+import { SourceVaultCard } from './SourceVaultCard';
 import { useStartIngest, useCancelIngest, useIngestProgress } from '../../queries/use-ingest';
+import { useSourceSummary } from '../../queries/use-source';
 import { createLuxAPI } from '../../lib/api';
 import { Sidebar, type SidebarSection } from '../../components/organisms/Sidebar';
 import type { CredentialSource } from '../../components/molecules/CredentialFormTabs';
@@ -11,6 +14,9 @@ const api = createLuxAPI();
 
 const INITIAL_FORM: CredentialsFormValue = {
   source: 'm3u',
+  server: '',
+  username: '',
+  password: '',
   url: '',
   listName: '',
 };
@@ -26,14 +32,15 @@ interface ProgressState {
 const ZERO_COUNTS = { live: 0, movies: 0, series: 0, radio: 0, total: 0 };
 
 /**
- * IngestPage — Screen 2 onboarding flow.
- * Tab switch Xtream/M3U, URL validation, IngestOverlay on start, auto-transition to dashboard on DONE.
- * Includes sidebar for navigation back to other sections.
+ * IngestPage — Screen 2 vault: configured card vs blank first-run/replace form.
+ * Overlay stays page-local in this slice; first-run DONE navigates Home.
  */
 export function IngestPage(): React.ReactElement {
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient();
   const [form, setForm] = useState<CredentialsFormValue>(INITIAL_FORM);
+  const [replacing, setReplacing] = useState(false);
   const [progress, setProgress] = useState<ProgressState>({
     phase: null,
     percent: 0,
@@ -45,27 +52,11 @@ export function IngestPage(): React.ReactElement {
 
   const startIngest = useStartIngest();
   const cancelIngest = useCancelIngest();
+  const { data: summary } = useSourceSummary();
 
   const jobId = progress.jobId;
   const { data: progressData } = useIngestProgress(jobId);
-
-  // Load saved credentials on mount to auto-fill the form.
-  useEffect(() => {
-    let cancelled = false;
-    api.config.loadCredentials().then((result) => {
-      if (cancelled || !result.data) return;
-      const c = result.data;
-      setForm({
-        source: c.source ?? 'm3u',
-        server: c.server ?? '',
-        username: c.username ?? '',
-        password: c.password ?? '',
-        listName: c.listName ?? '',
-        url: c.url ?? '',
-      });
-    }).catch(() => { /* no saved creds */ });
-    return () => { cancelled = true; };
-  }, []);
+  const showCard = Boolean(summary?.configured) && !replacing;
 
   // Listen for IPC progress events to keep the overlay in sync.
   // The orchestrator sends flat { phase, live, movies, series, radio, total }
@@ -119,10 +110,9 @@ export function IngestPage(): React.ReactElement {
     }
   }, [startIngest.error]);
 
-  // Auto-transition to dashboard when DONE.
+  // Persist after DONE. First-run navigates Home; replace stays on S2 and shows the card.
   useEffect(() => {
     if (progress.phase === 'DONE' && showOverlay) {
-      // Persist credentials so next time the user doesn't have to re-enter them.
       api.config.saveCredentials({
         source: form.source,
         server: form.server,
@@ -131,14 +121,27 @@ export function IngestPage(): React.ReactElement {
         listName: form.listName,
         url: form.url,
       }).catch(() => { /* best-effort */ });
+      const stayOnVault = replacing;
+      void queryClient.invalidateQueries({ queryKey: ['catalog'] });
+      void queryClient.invalidateQueries({ queryKey: ['catalog-grouped'] });
       const timer = window.setTimeout(() => {
         setShowOverlay(false);
-        navigate('/');
+        if (stayOnVault) {
+          setReplacing(false);
+          void queryClient.invalidateQueries({ queryKey: ['config'] });
+        } else {
+          navigate('/');
+        }
       }, 2000);
       return () => window.clearTimeout(timer);
     }
     return undefined;
-  }, [progress.phase, showOverlay, navigate, form]);
+  }, [progress.phase, showOverlay, navigate, form, replacing, queryClient]);
+
+  const handleReplaceSource = (): void => {
+    setReplacing(true);
+    setForm(INITIAL_FORM);
+  };
 
   const handleSourceChange = (source: CredentialSource): void => {
     setForm((prev) => ({ ...prev, source }));
@@ -206,20 +209,30 @@ export function IngestPage(): React.ReactElement {
 
       <main className="flex-1 flex items-center justify-center px-6 py-12">
         <div className="w-full max-w-2xl p-8 rounded-2xl glass-heavy shadow-glass-lg">
-          <div className="flex flex-col gap-2 mb-8">
-            <h1 className="text-display-sm font-bold text-white">Add your IPTV source</h1>
-            <p className="text-gray-400">
-              Choose Xtream Codes API or paste an M3U playlist URL to get started.
-            </p>
-          </div>
-          <CredentialsForm
-            source={form.source}
-            onSourceChange={handleSourceChange}
-            value={form}
-            onChange={setForm}
-            onSubmit={handleSubmit}
-            submitting={startIngest.isPending}
-          />
+          {showCard ? (
+            <SourceVaultCard
+              listName={summary?.listName ?? 'Saved source'}
+              source={summary?.source ?? 'xtream'}
+              onReplace={handleReplaceSource}
+            />
+          ) : (
+            <>
+              <div className="flex flex-col gap-2 mb-8">
+                <h1 className="text-display-sm font-bold text-white">Add your IPTV source</h1>
+                <p className="text-gray-400">
+                  Choose Xtream Codes API or paste an M3U playlist URL to get started.
+                </p>
+              </div>
+              <CredentialsForm
+                source={form.source}
+                onSourceChange={handleSourceChange}
+                value={form}
+                onChange={setForm}
+                onSubmit={handleSubmit}
+                submitting={startIngest.isPending}
+              />
+            </>
+          )}
         </div>
 
         {showOverlay && progress.phase ? (
