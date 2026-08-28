@@ -10,6 +10,6 @@
     "types": ["node"],
     "noEmit": false
   },
-  "include": ["src/preload/**/*.ts", "src/shared/**/*.ts"],
+  "include": ["src/preload/**/*.ts"],
   "exclude": ["node_modules", "dist", "**/*.test.ts"]
 }
