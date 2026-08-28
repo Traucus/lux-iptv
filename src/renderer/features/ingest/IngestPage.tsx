@@ -56,7 +56,7 @@ export function IngestPage(): React.ReactElement {
 
   const jobId = progress.jobId;
   const { data: progressData } = useIngestProgress(jobId);
-  const showCard = Boolean(summary?.configured && summary.source) && !replacing;
+  const showCard = Boolean(summary?.configured) && !replacing;
 
   // Listen for IPC progress events to keep the overlay in sync.
   // The orchestrator sends flat { phase, live, movies, series, radio, total }
@@ -207,10 +207,10 @@ export function IngestPage(): React.ReactElement {
 
       <main className="flex-1 flex items-center justify-center px-6 py-12">
         <div className="w-full max-w-2xl p-8 rounded-2xl glass-heavy shadow-glass-lg">
-          {showCard && summary?.source ? (
+          {showCard ? (
             <SourceVaultCard
-              listName={summary.listName ?? ''}
-              source={summary.source}
+              listName={summary?.listName ?? 'Saved source'}
+              source={summary?.source ?? 'xtream'}
               onReplace={handleReplaceSource}
             />
           ) : (

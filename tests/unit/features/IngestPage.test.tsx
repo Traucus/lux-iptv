@@ -173,6 +173,20 @@ describe('IngestPage', () => {
     expect(mockApi.config.loadCredentials).not.toHaveBeenCalled();
   });
 
+  it('shows the vault card for a legacy save that has no source field', async () => {
+    mockApi.config.sourceSummary.mockResolvedValue({
+      data: { configured: true, listName: 'Legacy List' },
+    });
+    const { wrapper } = setup();
+    render(<IngestPage />, { wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText('Legacy List')).toBeTruthy();
+    });
+    expect(document.getElementById('cf-password')).toBeNull();
+    expect(screen.getByRole('button', { name: /Replace source/i })).toBeTruthy();
+  });
+
   it('shows a blank form with password show/hide when no source is saved', async () => {
     const { wrapper } = setup();
     render(<IngestPage />, { wrapper });

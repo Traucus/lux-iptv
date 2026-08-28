@@ -59,6 +59,26 @@ describe('config vault IPC', () => {
     expect(result.data).not.toHaveProperty('url');
   });
 
+  it('treats a legacy vault without source as configured Xtream when server is present', async () => {
+    const service = tempService();
+    service.saveCredentials({
+      server: 'http://legacy.example:8080',
+      username: 'old-user',
+      password: 'old-secret',
+      listName: 'Legacy List',
+    });
+    const handlers = register(service);
+    const has = await handlers['config:hasSource']({});
+    const summary = (await handlers['config:sourceSummary']({})) as { data: Record<string, unknown> };
+    expect(has).toEqual({ data: { configured: true } });
+    expect(summary.data).toEqual({
+      configured: true,
+      listName: 'Legacy List',
+      source: 'xtream',
+    });
+    expect(summary.data).not.toHaveProperty('password');
+  });
+
   it('sourceSummary omits the M3U playlist URL', async () => {
     const service = tempService();
     service.saveCredentials({
