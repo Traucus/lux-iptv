@@ -65,40 +65,6 @@ interface XtreamSeries {
   category_ids: number[];
 }
 
-interface XtreamSeriesInfo {
-  seasons: Array<{
-    air_date: string;
-    episode_count: number;
-    id: number;
-    name: string;
-    overview: string;
-    season_number: number;
-    cover: string;
-    cover_big: string;
-  }>;
-  episodes: Record<string, Array<{
-    id: string;
-    episode_num: number;
-    title: string;
-    container_extension: string;
-    info: {
-      tmdb_id: number;
-      releasedate: string;
-      plot: string;
-      duration_secs: number;
-      duration: string;
-      movie_image: string;
-      rating: number;
-      name: string;
-      season: number;
-    };
-    custom_sid: string;
-    added: string;
-    season: number;
-    direct_source: string;
-  }>>;
-}
-
 function buildUrl(server: string, params: Record<string, string>): string {
   const base = server.replace(/\/+$/, '');
   const qs = new URLSearchParams(params).toString();
