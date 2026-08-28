@@ -101,6 +101,7 @@ export const PlayerPage: React.FC = () => {
   const contentId = parseInt(id ?? '0', 10);
 
   const [playbackSource, setPlaybackSource] = useState<PlaybackSource | null>(null);
+  const [proxyError, setProxyError] = useState(false);
   const [resumePosition, setResumePosition] = useState<number | null>(null);
   const [showResumeDialog, setShowResumeDialog] = useState(false);
   const [seasons, setSeasons] = useState<Season[]>([]);
@@ -127,55 +128,67 @@ export const PlayerPage: React.FC = () => {
     retry: false,
   });
 
-  // Resolve playback source from catalog item
+  // Resolve playback src only from player:getProxiedUrl (never origin).
   useEffect(() => {
     if (!catalogItem) return;
+    let cancelled = false;
+    setProxyError(false);
 
-    if (contentType === 'series') {
-      // For series, we need the first episode of first season
-      const seriesData = catalogItem as { series: CatalogItem; seasons: Season[] };
-      setSeasons(seriesData.seasons);
-      const firstSeason = seriesData.seasons[0];
-      const firstEpisode = firstSeason?.episodes[0];
-      if (firstEpisode) {
-        setCurrentEpisode(firstEpisode);
-        setPlaybackSource({
-          url: firstEpisode.url,
-          mediaFormat: seriesData.series.mediaFormat,
-          httpHeaders: seriesData.series.httpHeaders,
-          type: 'episode',
-        });
+    (async () => {
+      const luxAPI = createLuxAPI();
+      let playType: 'live' | 'movie' | 'episode' =
+        contentType === 'live' ? 'live' : contentType === 'movie' ? 'movie' : 'episode';
+      let playId = contentId;
+
+      if (contentType === 'series') {
+        const seriesData = catalogItem as { series: CatalogItem; seasons: Season[] };
+        const firstEpisode = seriesData.seasons[0]?.episodes[0];
+        if (!firstEpisode) throw new Error('Series has no episodes');
+        playType = 'episode';
+        playId = firstEpisode.id;
+        if (!cancelled) {
+          setSeasons(seriesData.seasons);
+          setCurrentEpisode(firstEpisode);
+        }
+      } else if (contentType === 'episode') {
+        const item = catalogItem as CatalogItem;
+        if (!cancelled) {
+          setCurrentEpisode({
+            id: item.id,
+            seriesId: 0,
+            name: item.name,
+            url: item.url,
+            season: 1,
+            episode: 1,
+            cover: item.cover,
+            addedAt: 0,
+          });
+        }
       }
-    } else if (contentType === 'episode') {
-      // Episode is already a CatalogItem
-      const item = catalogItem as CatalogItem;
+
+      const [meta, proxied] = await Promise.all([
+        luxAPI.player.getSource({ type: playType, id: playId }),
+        luxAPI.player.getProxiedUrl({ type: playType, id: playId }),
+      ]);
+      if (proxied.error) throw new Error(proxied.error.message);
+      if (meta.error) throw new Error(meta.error.message);
+      if (cancelled) return;
       setPlaybackSource({
-        url: item.url,
-        mediaFormat: item.mediaFormat,
-        httpHeaders: item.httpHeaders,
-        type: 'episode',
+        url: proxied.data.url,
+        mediaFormat: meta.data.mediaFormat,
+        type: playType,
       });
-      setCurrentEpisode({
-        id: item.id,
-        seriesId: 0,
-        name: item.name,
-        url: item.url,
-        season: 1,
-        episode: 1,
-        cover: item.cover,
-        addedAt: 0,
-      });
-    } else {
-      // Live or movie
-      const item = catalogItem as CatalogItem;
-      setPlaybackSource({
-        url: item.url,
-        mediaFormat: item.mediaFormat,
-        httpHeaders: item.httpHeaders,
-        type: contentType === 'live' ? 'live' : 'movie',
-      });
-    }
-  }, [catalogItem, contentType]);
+    })().catch(() => {
+      if (!cancelled) {
+        setPlaybackSource(null);
+        setProxyError(true);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [catalogItem, contentType, contentId]);
 
   // Check resume position for VOD
   useEffect(() => {
@@ -199,7 +212,7 @@ export const PlayerPage: React.FC = () => {
     setResumePosition(null);
   }, []);
 
-  if (isLoading) {
+  if (isLoading || (catalogItem && !playbackSource && !proxyError)) {
     return (
       <div
         className="min-h-screen bg-black flex items-center justify-center"
@@ -213,7 +226,7 @@ export const PlayerPage: React.FC = () => {
     );
   }
 
-  if (error || !playbackSource) {
+  if (error || proxyError || !playbackSource) {
     return (
       <div
         className="min-h-screen bg-black flex items-center justify-center"
@@ -234,10 +247,7 @@ export const PlayerPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-black relative">
       <VideoPlayer
-        source={{
-          ...playbackSource,
-          url: playbackSource.url, // In real app, this would be the proxied URL
-        }}
+        source={playbackSource}
         onEnded={() => {
           throttler.flush().catch(console.error);
           // For episodes, next-episode card handles navigation

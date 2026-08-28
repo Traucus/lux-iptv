@@ -9,8 +9,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 
 vi.mock('react-tv-space-navigation', () => ({
   SpatialNavigationFocusableView: ({ children, ...rest }: { children: React.ReactNode }) =>
@@ -203,5 +203,39 @@ describe('DashboardPage', () => {
       // The HeroMetadata renders the synopsis in a <p> with line-clamp-3.
       expect(screen.getByText(/hacker discovers reality/i)).toBeTruthy();
     });
+  });
+
+  it('navigates hero Play to /watch/movie/42', async () => {
+    mockApi.catalog.list.mockImplementation(async (input: { type: string }) => {
+      if (input.type === 'movie') {
+        return {
+          data: {
+            items: [{ id: 42, name: 'Inception', url: '', groupTitle: null, cover: null, year: 2010 }],
+            total: 1,
+          },
+        };
+      }
+      return { data: { items: [], total: 0 } };
+    });
+
+    function LocationProbe(): React.ReactElement {
+      const location = useLocation();
+      return <div data-testid="location-pathname">{location.pathname}</div>;
+    }
+
+    const { wrapper } = setup();
+    render(
+      <>
+        <DashboardPage />
+        <LocationProbe />
+      </>,
+      { wrapper },
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Play Inception' })).toBeTruthy();
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Play Inception' }));
+    expect(screen.getByTestId('location-pathname').textContent).toBe('/watch/movie/42');
   });
 });

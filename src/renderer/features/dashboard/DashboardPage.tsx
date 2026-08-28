@@ -154,7 +154,7 @@ export function DashboardPage(): React.ReactElement {
                   rating: featured.voteAverage,
                 }}
                 backdropUrl={featured.backdropUrl}
-                onPlay={() => navigate(`/content/${featured.id}`)}
+                onPlay={() => navigate(`/watch/movie/${featured.id}`)}
                 onMoreInfo={() => navigate(`/content/${featured.id}`)}
               />
             ) : (

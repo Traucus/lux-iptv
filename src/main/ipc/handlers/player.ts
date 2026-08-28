@@ -86,19 +86,6 @@ function loadEpisodeRow(db: SqlJsCompatDb, id: number): CatalogRow | null {
   return row ?? null;
 }
 
-function safeParseHeaders(raw: string | null): Record<string, string> {
-  if (!raw) return {};
-  try {
-    const parsed = JSON.parse(raw);
-    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-      return parsed as Record<string, string>;
-    }
-    return {};
-  } catch {
-    return {};
-  }
-}
-
 function resolveMediaFormat(raw: string | null): MediaFormat {
   const v = (raw ?? 'unknown') as MediaFormat;
   const allowed: MediaFormat[] = ['hls', 'mp4', 'dash', 'ts', 'unknown'];
@@ -107,9 +94,7 @@ function resolveMediaFormat(raw: string | null): MediaFormat {
 
 export function registerPlayerHandlers(ipcMain: IpcMain, deps: PlayerHandlerDeps): void {
   // ─── player:getSource ──────────────────────────────────────────────────
-  // Resolves a catalog row to the payload the renderer needs to start
-  // playback. Returns the original URL + headers; the renderer hands the URL
-  // to hls.js / <video> directly until the G5 proxy is wired up.
+  // Format + live/VOD metadata only. Playback src comes from getProxiedUrl.
   ipcMain.handle('player:getSource', async (_event, input: unknown) => {
     const result = PlayerGetSourceInputSchema.safeParse(input);
     if (!result.success) {
@@ -124,8 +109,6 @@ export function registerPlayerHandlers(ipcMain: IpcMain, deps: PlayerHandlerDeps
       data: {
         type,
         id,
-        url: row.url,
-        httpHeaders: safeParseHeaders(row.http_headers),
         mediaFormat: resolveMediaFormat(row.media_format),
       },
     };

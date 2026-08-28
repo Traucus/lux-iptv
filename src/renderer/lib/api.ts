@@ -1,4 +1,18 @@
-import type { IpcResult, IngestStartInput, IngestStartOutput, IngestCancelInput, IngestProgressInput, IngestProgress, CatalogListInput, CatalogListOutput, CatalogGetByIdInput, CatalogItem, CatalogType, CatalogGroupedInput, CatalogGroupedOutput, SeriesDetail, EnrichmentStatus, TmdbKeyInput, TmdbKeyOutput, HasSource, SourceSummary } from '../../shared/types/ipc';
+import type { IpcResult, IngestStartInput, IngestStartOutput, IngestCancelInput, IngestProgressInput, IngestProgress, CatalogListInput, CatalogListOutput, CatalogGetByIdInput, CatalogItem, CatalogType, CatalogGroupedInput, CatalogGroupedOutput, SeriesDetail, EnrichmentStatus, TmdbKeyInput, TmdbKeyOutput, HasSource, SourceSummary, Episode } from '../../shared/types/ipc';
+import type { MediaFormat } from '../../shared/types/player';
+import type {
+  PlayerGetSourceInputParsed,
+  PlayerGetProxiedUrlInputParsed,
+  PlayerReportErrorInputParsed,
+  PlayerReportProgressInputParsed,
+  PlayerGetNextEpisodeInputParsed,
+} from '../../shared/schemas/player';
+
+export type PlayerSourceMeta = {
+  type: CatalogType;
+  id: number;
+  mediaFormat: MediaFormat;
+};
 
 export type TypedLuxAPI = {
   ingest: {
@@ -27,6 +41,13 @@ export type TypedLuxAPI = {
     loadCredentials: () => Promise<IpcResult<CredentialsConfig | null>>;
     hasSource: () => Promise<IpcResult<HasSource>>;
     sourceSummary: () => Promise<IpcResult<SourceSummary>>;
+  };
+  player: {
+    getSource: (input: PlayerGetSourceInputParsed) => Promise<IpcResult<PlayerSourceMeta>>;
+    getProxiedUrl: (input: PlayerGetProxiedUrlInputParsed) => Promise<IpcResult<{ url: string }>>;
+    reportError: (input: PlayerReportErrorInputParsed) => Promise<IpcResult<void>>;
+    reportProgress: (input: PlayerReportProgressInputParsed) => Promise<IpcResult<void>>;
+    getNextEpisode: (input: PlayerGetNextEpisodeInputParsed) => Promise<IpcResult<Episode | null>>;
   };
 };
 
