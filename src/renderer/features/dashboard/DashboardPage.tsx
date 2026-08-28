@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Sidebar, type SidebarSection } from '../../components/organisms/Sidebar';
 import { HeroBanner } from '../../components/organisms/HeroBanner';
 import { ContentCarousel } from '../../components/organisms/ContentCarousel';
@@ -48,9 +48,19 @@ function itemToChannel(item: EnrichedCatalogItem): ChannelCardData {
  * Featured content (hero) reads from IndexedDB enrichment so the synopsis,
  * backdrop, and rating are populated when TMDB has hydrated the record.
  */
+function routeToSection(pathname: string): SidebarSection {
+  if (pathname.startsWith('/live')) return 'live';
+  if (pathname.startsWith('/movies')) return 'movies';
+  if (pathname.startsWith('/series')) return 'series';
+  return 'home';
+}
+
 export function DashboardPage(): React.ReactElement {
   const navigate = useNavigate();
+  const location = useLocation();
   const data = useDashboardData();
+
+  const activeSection = routeToSection(location.pathname);
 
   const onSidebarSelect = (section: SidebarSection): void => {
     switch (section) {
@@ -73,7 +83,7 @@ export function DashboardPage(): React.ReactElement {
 
   return (
     <div className="min-h-screen bg-surface flex">
-      <Sidebar active="home" onSelect={onSidebarSelect} />
+      <Sidebar active={activeSection} onSelect={onSidebarSelect} />
 
       <main className="flex-1 overflow-y-auto p-6 safe-area">
         {data.loading ? (
