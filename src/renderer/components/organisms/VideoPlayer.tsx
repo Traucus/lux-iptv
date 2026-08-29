@@ -102,11 +102,19 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
     // Load the stream
     setEngineState('loading');
-    engine.load().catch((err) => {
-      setEngineState('error');
-      setErrorMessage(err.message);
-      onError?.(err);
-    });
+    engine.load()
+      .then(() => {
+        const video = videoRef.current;
+        if (!video) return;
+        video.muted = false;
+        video.volume = 1;
+        return video.play();
+      })
+      .catch((err) => {
+        setEngineState('error');
+        setErrorMessage(err.message);
+        onError?.(err);
+      });
 
     return () => {
       unsubProgress();
@@ -239,12 +247,13 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const audioTracks = engineRef.current?.audioTracks ?? [];
   const subtitleTracks = engineRef.current?.subtitleTracks ?? [];
 
-  // Video aspect ratio style
   const videoStyle: React.CSSProperties = {
+    position: 'absolute',
+    inset: 0,
     width: '100%',
     height: '100%',
-    objectFit: aspectRatio === 'zoom' ? 'cover' : aspectRatio === 'fit' ? 'contain' : 'contain',
-    transition: 'object-fit 0.2s ease',
+    objectFit: aspectRatio === 'zoom' ? 'cover' : 'contain',
+    background: '#000',
   };
 
   if (aspectRatio === '4:3') {

@@ -105,6 +105,12 @@ private attachEventListeners(): void {
       if (this.hls && this.hls.levels.length > 0) {
         this.hls.startLevel = Math.floor((this.hls.levels.length - 1) / 2);
       }
+      if (this.hls && this.hls.audioTracks.length > 0 && this.hls.audioTrack < 0) {
+        this.hls.audioTrack = 0;
+      }
+      this.videoEl.muted = false;
+      this.videoEl.volume = 1;
+      void this.videoEl.play()?.catch(() => undefined);
       this.emit('MANIFEST_PARSED', data as unknown as HlsEventData);
       this.attempt = 0;
       this.nextDelay = 1000;

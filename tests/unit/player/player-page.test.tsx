@@ -70,6 +70,7 @@ describe('PlayerPage proxied playback', () => {
     });
     expect(screen.getByTestId('video-player').getAttribute('data-src')).not.toContain('origin.example');
     expect(mockApi.player.getProxiedUrl).toHaveBeenCalledWith({ type: 'movie', id: 42 });
+    expect(screen.getByTestId('player-shell')).toHaveClass('h-screen', 'w-screen');
   });
 
   it('shows player-error when getProxiedUrl fails and does not use origin as src', async () => {
