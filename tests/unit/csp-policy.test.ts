@@ -90,6 +90,12 @@ describe('Content-Security-Policy', () => {
       const directives = parseCsp(cspContent);
       expect(hasSource(directives.get('media-src'), 'blob:')).toBe(true);
     });
+
+    it('media-src allows the loopback stream proxy (any ephemeral port)', () => {
+      const directives = parseCsp(cspContent);
+      expect(hasSource(directives.get('media-src'), 'http://127.0.0.1:*')).toBe(true);
+      expect(hasSource(directives.get('media-src'), 'http://localhost:*')).toBe(true);
+    });
   });
 
   describe('REQ-CSP-2: connect-src', () => {
