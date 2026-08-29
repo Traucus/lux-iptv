@@ -346,12 +346,19 @@ export class StreamProxyService {
         url: originUrl,
         headers,
       } as any);
-      (request as any).setTimeout(DEFAULT_TIMEOUT_MS);
       let responseReceived = false;
       let responseSent = false;
+      // Electron net.ClientRequest has abort(), not Node's request.setTimeout().
+      const timeoutHandle = setTimeout(() => {
+        if (responseReceived) return;
+        if (typeof request.abort === 'function') request.abort();
+        reject(new Error('Upstream timeout'));
+      }, DEFAULT_TIMEOUT_MS);
+      const clearFetchTimeout = () => clearTimeout(timeoutHandle);
 
       request.on('response', (response) => {
         responseReceived = true;
+        clearFetchTimeout();
         const status = response.statusCode;
         const contentType = String(response.headers['content-type'] ?? '');
 
@@ -429,6 +436,7 @@ export class StreamProxyService {
       });
 
       request.on('error', (error) => {
+        clearFetchTimeout();
         if (!responseReceived) {
           this.emitError('NETWORK', `Network error: ${error.message}`);
           if (!responseSent) {
