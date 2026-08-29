@@ -490,10 +490,10 @@ https://cdn.example.com/stream.m3u8`;
       mockRequest.mockReturnValue(mockRequestObj);
 
       const port = service.getPort();
-      await fetch(`http://127.0.0.1:${port}/proxy/live/1`);
-
-      // Verify setTimeout was called with 10000ms
-      expect(mockRequestObj.setTimeout).toHaveBeenCalledWith(10000);
+      const response = await fetch(`http://127.0.0.1:${port}/proxy/live/1`);
+      expect(response.status).toBe(200);
+      // Electron net.request has no setTimeout; timeout is a JS timer + abort().
+      expect(mockRequestObj.setTimeout).not.toHaveBeenCalled();
     });
   });
 
