@@ -245,7 +245,7 @@ export const PlayerPage: React.FC = () => {
   const throttler = createPositionThrottler();
 
   return (
-    <div className="min-h-screen bg-black relative">
+    <div className="h-screen w-screen bg-black relative overflow-hidden" data-testid="player-shell">
       <VideoPlayer
         source={playbackSource}
         onEnded={() => {

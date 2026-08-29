@@ -380,6 +380,20 @@ describe('HlsClient ABR and latency', () => {
     client.destroy();
   });
 
+  it('unmutes and plays after MANIFEST_PARSED', () => {
+    const video = document.createElement('video');
+    const play = vi.spyOn(video, 'play').mockResolvedValue(undefined);
+    const client = new RealHlsClient({
+      src: 'http://127.0.0.1/proxy/movie/1',
+      videoEl: video,
+    });
+    hlsState.instances[0].emit('MANIFEST_PARSED');
+    expect(video.muted).toBe(false);
+    expect(video.volume).toBe(1);
+    expect(play).toHaveBeenCalled();
+    client.destroy();
+  });
+
   it('enables lowLatencyMode for live and disables it for VOD', () => {
     const live = makeClient(true);
     expect(hlsState.instances[0].config.lowLatencyMode).toBe(true);
