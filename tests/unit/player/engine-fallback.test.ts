@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isHlsNetworkFailure } from '../../../src/renderer/services/media-engine';
+import { isHlsNetworkFailure, probeOrder } from '../../../src/renderer/services/media-engine';
 
 describe('isHlsNetworkFailure', () => {
   it('stops the probe after HLS origin retries are exhausted', () => {
@@ -12,10 +12,14 @@ describe('isHlsNetworkFailure', () => {
   });
 });
 
-describe('HLS network stop is live-only', () => {
-  it('does not treat episode/mp4 HLS timeout as terminal', () => {
-    const err = new Error('HLS fatal error: networkError');
-    expect(isHlsNetworkFailure(err)).toBe(true);
-    // FallbackMediaEngine only throws on this when source.type === 'live'.
+describe('probeOrder', () => {
+  it('does not put mpegts on mp4 or hls VOD', () => {
+    expect(probeOrder('episode', 'mp4')).toEqual(['native', 'hls']);
+    expect(probeOrder('movie', 'hls')).toEqual(['hls', 'native']);
+  });
+
+  it('keeps mpegts for live and ts only', () => {
+    expect(probeOrder('live', 'hls')).toEqual(['hls', 'mpegts', 'native']);
+    expect(probeOrder('episode', 'ts')).toEqual(['mpegts', 'hls', 'native']);
   });
 });

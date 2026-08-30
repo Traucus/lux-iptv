@@ -73,6 +73,18 @@ export function isHlsNetworkFailure(error: unknown): boolean {
   return /HLS fatal error: networkError/i.test(message);
 }
 
+/** mpegts.js only understands MPEG-TS/FLV. Do not put it on mp4/hls paths. */
+export function probeOrder(
+  type: PlaybackSource['type'],
+  mediaFormat: MediaFormat,
+): EngineKind[] {
+  if (type === 'live') return ['hls', 'mpegts', 'native'];
+  if (mediaFormat === 'mp4') return ['native', 'hls'];
+  if (mediaFormat === 'hls' || mediaFormat === 'dash') return ['hls', 'native'];
+  if (mediaFormat === 'ts') return ['mpegts', 'hls', 'native'];
+  return ['hls', 'native', 'mpegts'];
+}
+
 /**
  * HLS-based media engine using hls.js via HlsClient wrapper.
  */
@@ -509,19 +521,12 @@ class FallbackMediaEngine implements MediaEngine {
   }
 
   private buildCandidates(): MediaEngine[] {
-    const hls = () => new HlsMediaEngine(this.videoEl, this.source);
-    const mpegtsEngine = () => new MpegtsMediaEngine(this.videoEl, this.source);
-    const native = () => new NativeMediaEngine(this.videoEl, this.source);
-    if (this.source.type === 'live') {
-      return [hls(), mpegtsEngine(), native()];
-    }
-    if (this.source.mediaFormat === 'mp4') {
-      return [native(), mpegtsEngine(), hls()];
-    }
-    if (this.source.mediaFormat === 'ts') {
-      return [mpegtsEngine(), hls(), native()];
-    }
-    return [hls(), mpegtsEngine(), native()];
+    const make: Record<EngineKind, () => MediaEngine> = {
+      hls: () => new HlsMediaEngine(this.videoEl, this.source),
+      mpegts: () => new MpegtsMediaEngine(this.videoEl, this.source),
+      native: () => new NativeMediaEngine(this.videoEl, this.source),
+    };
+    return probeOrder(this.source.type, this.source.mediaFormat).map((kind) => make[kind]());
   }
 
   on(event: MediaEngineEvent, handler: (data: MediaEngineEventData) => void): () => void {
