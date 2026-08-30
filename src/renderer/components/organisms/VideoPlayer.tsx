@@ -60,6 +60,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
   const { visible: osdVisible } = useIdleOSD(4000);
   const stallOverlayTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const loadSettledRef = useRef(false);
   const STALL_OVERLAY_MS = 1000;
 
   // Initialize media engine
@@ -102,17 +103,24 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       }
     });
 
-    // Load the stream
+    // Probe may fail a native attempt before HLS/mpegts; video.onError must
+    // not paint Playback Error until load() settles.
+    loadSettledRef.current = false;
     setEngineState('loading');
     engine.load()
       .then(() => {
+        loadSettledRef.current = true;
         const video = videoRef.current;
         if (!video) return;
         video.muted = false;
         video.volume = 1;
-        return video.play();
+        return video.play()?.catch((err: unknown) => {
+          if (err instanceof Error && err.name === 'AbortError') return;
+          throw err;
+        });
       })
       .catch((err) => {
+        loadSettledRef.current = true;
         setEngineState('error');
         setErrorMessage(err.message);
         onError?.(err);
@@ -130,6 +138,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       unsubError();
       engine.destroy();
       engineRef.current = null;
+      if (videoRef.current) {
+        videoRef.current.removeAttribute('src');
+        videoRef.current.load();
+      }
     };
   }, [source, onError]);
 
@@ -183,6 +195,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   }, [onEnded]);
 
   const handleError = useCallback((e: React.SyntheticEvent<HTMLVideoElement>) => {
+    if (!loadSettledRef.current) return;
     const video = e.currentTarget;
     setEngineState('error');
     const msg = video.error?.message || 'Playback error';

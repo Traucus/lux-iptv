@@ -305,8 +305,8 @@ class NativeMediaEngine implements MediaEngine {
   destroy(): void {
     this.destroyed = true;
     this.cleanupEventListeners();
-    this.videoEl.src = '';
-    this.videoEl.load();
+    // Do not clear video.src here. Fallback may hand the same element to
+    // mpegts/hls next; emptying src fires Empty src / AbortError on <video>.
     this.handlers.clear();
   }
 
@@ -463,11 +463,7 @@ class FallbackMediaEngine implements MediaEngine {
   }
 
   async load(): Promise<void> {
-    const candidates: MediaEngine[] = [
-      new HlsMediaEngine(this.videoEl, this.source),
-      new MpegtsMediaEngine(this.videoEl, this.source),
-      new NativeMediaEngine(this.videoEl, this.source),
-    ];
+    const candidates = this.buildCandidates();
 
     let lastError: unknown;
     for (const engine of candidates) {
@@ -487,7 +483,13 @@ class FallbackMediaEngine implements MediaEngine {
         lastError = error;
         engine.destroy();
         this.active = null;
-        if (engine.kind === 'hls' && isHlsNetworkFailure(error)) {
+        // Live is HLS. A timeout there is a dead origin, not a container miss.
+        // VOD/episode mp4 times out in hls.js the same way — still try native.
+        if (
+          this.source.type === 'live' &&
+          engine.kind === 'hls' &&
+          isHlsNetworkFailure(error)
+        ) {
           this.emit('fatal', { attempts: 3, reason: 'hls-network' });
           throw error;
         }
@@ -504,6 +506,22 @@ class FallbackMediaEngine implements MediaEngine {
     this.active?.destroy();
     this.active = null;
     this.handlers.clear();
+  }
+
+  private buildCandidates(): MediaEngine[] {
+    const hls = () => new HlsMediaEngine(this.videoEl, this.source);
+    const mpegtsEngine = () => new MpegtsMediaEngine(this.videoEl, this.source);
+    const native = () => new NativeMediaEngine(this.videoEl, this.source);
+    if (this.source.type === 'live') {
+      return [hls(), mpegtsEngine(), native()];
+    }
+    if (this.source.mediaFormat === 'mp4') {
+      return [native(), mpegtsEngine(), hls()];
+    }
+    if (this.source.mediaFormat === 'ts') {
+      return [mpegtsEngine(), hls(), native()];
+    }
+    return [hls(), mpegtsEngine(), native()];
   }
 
   on(event: MediaEngineEvent, handler: (data: MediaEngineEventData) => void): () => void {

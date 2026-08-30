@@ -11,3 +11,11 @@ describe('isHlsNetworkFailure', () => {
     expect(isHlsNetworkFailure(new Error('HLS fatal error: mediaError'))).toBe(false);
   });
 });
+
+describe('HLS network stop is live-only', () => {
+  it('does not treat episode/mp4 HLS timeout as terminal', () => {
+    const err = new Error('HLS fatal error: networkError');
+    expect(isHlsNetworkFailure(err)).toBe(true);
+    // FallbackMediaEngine only throws on this when source.type === 'live'.
+  });
+});
