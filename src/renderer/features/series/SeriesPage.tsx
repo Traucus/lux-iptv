@@ -29,7 +29,7 @@ export function SeriesPage(): React.ReactElement {
         posterPath: item.cover,
         enriched: false,
       }}
-      onSelect={(m) => navigate(`/content/${m.id}`)}
+      onSelect={(m) => navigate(`/content/series/${m.id}`)}
     />
   );
 

@@ -50,8 +50,8 @@ function setup(path: string) {
         MemoryRouter,
         { initialEntries: [path] },
         React.createElement(Routes, null,
+          React.createElement(Route, { path: '/content/:type/:id', element: children }),
           React.createElement(Route, { path: '/content/:id', element: children }),
-          React.createElement(Route, { path: '/content', element: children }),
         ),
       ),
     );
@@ -64,7 +64,7 @@ beforeEach(() => {
 
 describe('DetailPage', () => {
   it('renders invalid id state for non-numeric IDs', async () => {
-    const { wrapper } = setup('/content/abc');
+    const { wrapper } = setup('/content/movie/abc');
     render(<DetailPage />, { wrapper });
     expect(screen.getByText(/Invalid content ID/i)).toBeTruthy();
   });
@@ -73,7 +73,7 @@ describe('DetailPage', () => {
     mockApi.catalog.getById.mockResolvedValue({
       data: { id: 1, name: 'Raw Title', url: 'http://x', groupTitle: 'Drama', cover: null, year: null },
     });
-    const { wrapper } = setup('/content/1');
+    const { wrapper } = setup('/content/movie/1');
     render(<DetailPage />, { wrapper });
 
     await waitFor(() => {
@@ -102,10 +102,11 @@ describe('DetailPage', () => {
         ],
       },
     });
-    const { wrapper } = setup('/content/1000000000');
+    const { wrapper } = setup('/content/series/1');
     render(<DetailPage />, { wrapper });
 
     await waitFor(() => {
+      expect(mockApi.catalog.getById).toHaveBeenCalledWith({ type: 'series', id: 1 });
       expect(screen.getByText(/Breaking Bad/i)).toBeTruthy();
       expect(screen.getByText(/Season 1/i)).toBeTruthy();
       expect(screen.getByText(/Season 2/i)).toBeTruthy();
@@ -127,7 +128,7 @@ describe('DetailPage', () => {
         ],
       },
     });
-    const { wrapper } = setup('/content/1000000000');
+    const { wrapper } = setup('/content/series/1');
     render(<DetailPage />, { wrapper });
 
     // The fix for verify report #2: "Ep. 7" comes from ep.episode, not ep.id=42.
@@ -141,7 +142,7 @@ describe('DetailPage', () => {
     mockApi.catalog.getById.mockResolvedValue({
       error: { code: 'NOT_FOUND', message: 'Item not found' },
     });
-    const { wrapper } = setup('/content/1');
+    const { wrapper } = setup('/content/movie/1');
     render(<DetailPage />, { wrapper });
 
     await waitFor(() => {

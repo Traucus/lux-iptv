@@ -153,9 +153,9 @@ export function DashboardPage(): React.ReactElement {
                   synopsis: featured.overview,
                   rating: featured.voteAverage,
                 }}
-                backdropUrl={featured.backdropUrl}
+                backdropUrl={featured.backdropUrl ?? featured.posterUrl ?? featured.cover}
                 onPlay={() => navigate(`/watch/movie/${featured.id}`)}
-                onMoreInfo={() => navigate(`/content/${featured.id}`)}
+                onMoreInfo={() => navigate(`/content/movie/${featured.id}`)}
               />
             ) : (
               <DegradedHero onAddSource={() => navigate('/ingest')} />
@@ -168,7 +168,7 @@ export function DashboardPage(): React.ReactElement {
                 <MoviePosterCard
                   key={movie.id}
                   movie={movie}
-                  onSelect={(m) => navigate(`/content/${m.id}`)}
+                  onSelect={(m) => navigate(`/content/movie/${m.id}`)}
                 />
               )}
             />
@@ -188,7 +188,7 @@ export function DashboardPage(): React.ReactElement {
                 <MoviePosterCard
                   key={movie.id}
                   movie={movie}
-                  onSelect={(m) => navigate(`/content/${m.id}`)}
+                  onSelect={(m) => navigate(`/content/movie/${m.id}`)}
                 />
               )}
             />
@@ -200,7 +200,7 @@ export function DashboardPage(): React.ReactElement {
                 <SeriesPosterCard
                   key={series.id}
                   series={series}
-                  onSelect={(s) => navigate(`/content/${s.id}`)}
+                  onSelect={(s) => navigate(`/content/series/${s.id}`)}
                 />
               )}
             />

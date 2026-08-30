@@ -83,7 +83,7 @@ export function SeriesDetailView({
         year={view.year}
         genres={view.genres}
         enriched={enriched}
-        backdropUrl={view.backdropUrl}
+        backdropUrl={view.backdropUrl ?? view.posterUrl ?? view.cover}
       >
         {onPlay ? (
           <Button onClick={onPlay} variant="primary" size="lg">

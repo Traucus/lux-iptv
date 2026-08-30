@@ -21,7 +21,7 @@ import { IngestProgressHost } from './features/ingest/IngestProgressHost';
  *   /live              → LivePage
  *   /movies            → MoviesPage
  *   /series            → SeriesPage
- *   /content/:id       → DetailPage (Screen 4)
+ *   /content/:type/:id → DetailPage (Screen 4). Type is movie|series — never inferred from id.
  *   /watch/:type/:id   → PlayerPage
  */
 function App(): React.ReactElement {
@@ -34,7 +34,7 @@ function App(): React.ReactElement {
         <Route path="/live" element={<LivePage />} />
         <Route path="/movies" element={<MoviesPage />} />
         <Route path="/series" element={<SeriesPage />} />
-        <Route path="/content/:id" element={<DetailPage />} />
+        <Route path="/content/:type/:id" element={<DetailPage />} />
         <Route path="/watch/:type/:id" element={<PlayerPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

@@ -13,7 +13,7 @@ test.describe('detail-view flow', () => {
         { id: 1, name: 'Inception', url: 'http://x/1', groupTitle: 'Drama', cover: 'http://x/poster.jpg', year: 2010 },
       ];
       const fakeSeries = {
-        series: { id: 1000000000, name: 'Breaking Bad', url: 'http://x/sb', groupTitle: 'Drama', cover: null, year: 2008 },
+        series: { id: 1, name: 'Breaking Bad', url: 'http://x/sb', groupTitle: 'Drama', cover: null, year: 2008 },
         seasons: [
           { seasonNumber: 1, episodes: [
             { id: 100, name: 'Pilot', url: 'http://x/sb-s1e1', groupTitle: null, cover: null, year: null },
@@ -35,7 +35,7 @@ test.describe('detail-view flow', () => {
           },
           getById: async (input: { type: string; id: number }) => {
             if (input.type === 'movie') return { data: fakeMovies.find((m) => m.id === input.id) ?? null };
-            if (input.type === 'series') return { data: input.id >= 1_000_000_000 ? fakeSeries : null };
+            if (input.type === 'series') return { data: input.id === fakeSeries.series.id ? fakeSeries : null };
             return { data: null };
           },
         },
@@ -60,7 +60,7 @@ test.describe('detail-view flow', () => {
   });
 
   test('series detail shows season tabs and episode grid', async ({ page }) => {
-    await page.goto('/content/1000000000');
+    await page.goto('/#/content/series/1');
 
     await expect(page.getByRole('heading', { name: 'Breaking Bad', level: 1 })).toBeVisible({ timeout: 5000 });
     await expect(page.getByRole('tab', { name: /Season 1/i })).toBeVisible();
@@ -75,7 +75,7 @@ test.describe('detail-view flow', () => {
   });
 
   test('detail view falls back to gradient when no backdrop', async ({ page }) => {
-    await page.goto('/content/1');
+    await page.goto('/#/content/movie/1');
 
     // Wait for header to render
     await expect(page.getByRole('heading', { name: 'Inception', level: 1 })).toBeVisible({ timeout: 5000 });

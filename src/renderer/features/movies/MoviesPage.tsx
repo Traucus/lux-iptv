@@ -29,7 +29,7 @@ export function MoviesPage(): React.ReactElement {
         posterPath: item.cover,
         enriched: false,
       }}
-      onSelect={(m) => navigate(`/content/${m.id}`)}
+      onSelect={(m) => navigate(`/content/movie/${m.id}`)}
     />
   );
 

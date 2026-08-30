@@ -32,7 +32,7 @@ export function MovieDetail({ item, onPlay, onAddToFavorites }: MovieDetailProps
         year={item.year}
         genres={item.genres}
         enriched={enriched}
-        backdropUrl={item.backdropUrl}
+        backdropUrl={item.backdropUrl ?? posterUrl}
       />
 
       <div className="grid grid-cols-1 md:grid-cols-[300px_1fr] gap-6 px-8 -mt-16 relative z-10">

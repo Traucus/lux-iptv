@@ -58,7 +58,7 @@ test.describe('degraded-mode flow', () => {
   });
 
   test('movie detail renders raw name + degraded indicator', async ({ page }) => {
-    await page.goto('/content/1');
+    await page.goto('/#/content/movie/1');
 
     // Raw name as title
     await expect(page.getByRole('heading', { name: 'Raw Title 1', level: 1 })).toBeVisible({ timeout: 5000 });
@@ -68,7 +68,7 @@ test.describe('degraded-mode flow', () => {
   });
 
   test('series detail season tabs work without enrichment', async ({ page }) => {
-    // Series API returns a series detail with episodes for ids >= 1_000_000_000
+    // Series detail is addressed by type in the URL, not by a magic id range.
     await page.addInitScript(() => {
       const originalLux = (window as unknown as { luxAPI: { catalog: { getById: unknown } } }).luxAPI;
       (window as unknown as { luxAPI: unknown }).luxAPI = {
@@ -93,7 +93,7 @@ test.describe('degraded-mode flow', () => {
       };
     });
 
-    await page.goto('/content/1000000000');
+    await page.goto('/#/content/series/3');
 
     await expect(page.getByRole('heading', { name: 'Raw Series', level: 1 })).toBeVisible({ timeout: 5000 });
     await expect(page.getByRole('tab', { name: /Season 1/i })).toBeVisible();

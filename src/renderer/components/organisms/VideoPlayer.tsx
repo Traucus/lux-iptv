@@ -59,6 +59,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [showNextEpisodeCardState, setShowNextEpisodeCardState] = useState(false);
 
   const { visible: osdVisible } = useIdleOSD(4000);
+  const stallOverlayTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const STALL_OVERLAY_MS = 1000;
 
   // Initialize media engine
   useEffect(() => {
@@ -117,6 +119,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       });
 
     return () => {
+      if (stallOverlayTimer.current) {
+        clearTimeout(stallOverlayTimer.current);
+        stallOverlayTimer.current = null;
+      }
       unsubProgress();
       unsubBuffered();
       unsubRecovering();
@@ -185,10 +191,17 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   }, [onError]);
 
   const handleWaiting = useCallback(() => {
-    setEngineState('recovering');
+    if (stallOverlayTimer.current) clearTimeout(stallOverlayTimer.current);
+    stallOverlayTimer.current = setTimeout(() => {
+      setEngineState('recovering');
+    }, STALL_OVERLAY_MS);
   }, []);
 
   const handlePlaying = useCallback(() => {
+    if (stallOverlayTimer.current) {
+      clearTimeout(stallOverlayTimer.current);
+      stallOverlayTimer.current = null;
+    }
     setEngineState('playing');
   }, []);
 

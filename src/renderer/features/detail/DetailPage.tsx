@@ -14,23 +14,22 @@ function isSeriesDetail(value: CatalogItem | SeriesDetail): value is SeriesDetai
 
 /**
  * DetailPage — Screen 4 detail view.
- * Routes /content/:id to either Movie or Series detail based on the type.
- * Loads IndexedDB enrichment so the synopsis, genres, backdrop, and rating
- * are displayed when available. Falls back to degraded mode otherwise.
+ * Routes /content/:type/:id. Type must be movie or series — catalog ids are
+ * per-table autoincrement and must never be used to guess content kind.
  */
 export function DetailPage(): React.ReactElement {
-  const { id } = useParams<{ id: string }>();
+  const { type, id } = useParams<{ type: string; id: string }>();
   const navigate = useNavigate();
   const numericId = id ? Number(id) : NaN;
+  const contentType: CatalogType | null =
+    type === 'movie' || type === 'series' ? type : null;
 
-  // We need to figure out the type from the ID; the API requires both type + id.
-  // Convention: IDs < 100_000_000 are movies, larger are series (very rough heuristic).
-  // In a real implementation this would come from a separate "type lookup" call.
-  const inferredType: CatalogType = !Number.isNaN(numericId) && numericId >= 1_000_000_000 ? 'series' : 'movie';
+  const { data, isLoading, isError, error } = useContentById(
+    contentType ?? 'movie',
+    contentType && !Number.isNaN(numericId) ? numericId : null,
+  );
 
-  const { data, isLoading, isError, error } = useContentById(inferredType, numericId);
-
-  if (Number.isNaN(numericId)) {
+  if (!contentType || Number.isNaN(numericId)) {
     return <InvalidIdState onBack={() => navigate('/')} />;
   }
   if (isLoading) {
