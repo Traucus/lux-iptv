@@ -35,7 +35,7 @@ export function MovieDetail({ item, onPlay, onAddToFavorites }: MovieDetailProps
         backdropUrl={item.backdropUrl ?? posterUrl}
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-[300px_1fr] gap-6 px-8 -mt-16 relative z-10">
+      <div className="grid grid-cols-1 md:grid-cols-[300px_1fr] gap-6 px-8 -mt-8 relative z-10">
         <div className="aspect-[2/3] w-full max-w-[300px] rounded-2xl overflow-hidden bg-glass border border-white/10 shadow-glass-lg">
           {posterUrl ? (
             <img src={posterUrl} alt={item.name} className="w-full h-full object-cover" loading="lazy" />

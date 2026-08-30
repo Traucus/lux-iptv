@@ -132,6 +132,10 @@ export type SeriesDetail = {
     seasonNumber: number;
     episodes: Episode[];
   }>;
+  /** Xtream get_series_info plot; not TMDB. */
+  plot?: string | null;
+  backdropUrl?: string | null;
+  genres?: string[];
 };
 
 // ─── Enrichment ───────────────────────────────────────────────────────────────

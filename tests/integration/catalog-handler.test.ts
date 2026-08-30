@@ -77,6 +77,8 @@ describe('catalog handler', () => {
         season INTEGER NOT NULL,
         episode INTEGER NOT NULL,
         cover TEXT,
+        http_headers TEXT NOT NULL DEFAULT '{}',
+        media_format TEXT NOT NULL DEFAULT 'unknown',
         added_at INTEGER NOT NULL,
         FOREIGN KEY (series_id) REFERENCES series(id) ON DELETE CASCADE
       );
@@ -289,6 +291,39 @@ describe('catalog handler', () => {
       expect(data.seasons[0].episodes[0].name).toBe('Pilot');
       expect(data.seasons[1].seasonNumber).toBe(2);
       expect(data.seasons[1].episodes).toHaveLength(1);
+    });
+
+    it('hydrates episodes from get_series_info when the table is empty', async () => {
+      db.prepare(
+        `INSERT INTO series (name, url, group_title, stream_type, added_at)
+         VALUES (?, ?, ?, ?, ?)`,
+      ).run('24', 'http://xtream.example/series/user/pass/99.m3u8', 'Action', 'series', 1000);
+
+      const { ipc, captured } = captureIpcMain();
+      registerCatalogHandlers(ipc, {
+        db,
+        loadXtreamCredentials: () => ({
+          server: 'http://xtream.example',
+          username: 'user',
+          password: 'pass',
+        }),
+        fetchSeriesInfo: async () => ({
+          plot: 'Jack Bauer has a long day.',
+          genre: 'Action, Drama',
+          backdropUrl: 'http://img/24.jpg',
+          cover: null,
+          episodes: [
+            { season: 1, episode: 1, streamId: 501, name: '12:00 AM', cover: null, extension: 'mp4' },
+            { season: 1, episode: 2, streamId: 502, name: '1:00 AM', cover: null, extension: 'mp4' },
+          ],
+        }),
+      });
+      const getById = captured.find((c) => c.channel === 'catalog:getById')!.fn;
+      const result = await getById({}, { type: 'series', id: 1 });
+      const data = (result as { data: { plot: string; seasons: Array<{ episodes: unknown[] }> } }).data;
+      expect(data.plot).toBe('Jack Bauer has a long day.');
+      expect(data.seasons).toHaveLength(1);
+      expect(data.seasons[0].episodes).toHaveLength(2);
     });
   });
 });

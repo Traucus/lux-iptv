@@ -33,17 +33,31 @@ export function SeriesDetailView({
   onSelectEpisode,
   onAddToFavorites,
 }: SeriesDetailProps): React.ReactElement {
-  const view: EnrichedCatalogItem = enrichedSeries ?? {
+  const base: EnrichedCatalogItem = {
     ...series.series,
     enrichmentStatus: 'pending',
-    overview: null,
+    overview: series.plot ?? null,
     posterUrl: null,
-    backdropUrl: null,
+    backdropUrl: series.backdropUrl ?? null,
     voteAverage: null,
     runtime: null,
-    genres: series.series.groupTitle ? [series.series.groupTitle] : [],
+    genres: series.genres?.length
+      ? series.genres
+      : series.series.groupTitle
+        ? [series.series.groupTitle]
+        : [],
   };
-  const enriched = view.enrichmentStatus === 'enriched';
+  const view: EnrichedCatalogItem = {
+    ...(enrichedSeries ?? base),
+    overview: enrichedSeries?.overview ?? series.plot ?? null,
+    backdropUrl: enrichedSeries?.backdropUrl ?? series.backdropUrl ?? enrichedSeries?.posterUrl ?? series.series.cover,
+    posterUrl: enrichedSeries?.posterUrl ?? series.series.cover,
+    genres:
+      enrichedSeries?.genres && enrichedSeries.genres.length > 0
+        ? enrichedSeries.genres
+        : base.genres,
+  };
+  const enriched = view.enrichmentStatus === 'enriched' || Boolean(view.overview);
 
   const sortedSeasons = [...series.seasons].sort((a, b) => a.seasonNumber - b.seasonNumber);
   const initialSeason = sortedSeasons[0]?.seasonNumber ?? 1;
@@ -97,7 +111,7 @@ export function SeriesDetailView({
         ) : null}
       </DetailHeader>
 
-      <div className="px-8 -mt-12 relative z-10">
+      <div className="px-8 -mt-8 relative z-10">
         <div className="flex flex-col gap-4 md:flex-row md:items-start gap-6">
           <div className="aspect-[2/3] w-48 rounded-2xl overflow-hidden bg-glass border border-white/10 shadow-glass flex-shrink-0">
             {view.posterUrl ?? view.cover ? (

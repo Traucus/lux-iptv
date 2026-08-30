@@ -9,6 +9,13 @@ import type {
 } from '../../../shared/types/ipc.js';
 import { CatalogListInputSchema, CatalogGetByIdInputSchema, CatalogGroupedInputSchema } from '../../../shared/schemas/catalog.js';
 import { seriesShowTitle } from '../../services/classifier.js';
+import {
+  fetchXtreamSeriesInfo,
+  parseXtreamSeriesId,
+  xtreamEpisodeUrl,
+  type XtreamCredentials,
+  type XtreamSeriesInfo,
+} from '../../services/xtream-client.js';
 
 /**
  * Catalog IPC handler — exposes paginated reads against the SQLite catalog DB
@@ -20,6 +27,8 @@ import { seriesShowTitle } from '../../services/classifier.js';
  */
 export interface CatalogHandlerDeps {
   db: SqlJsCompatDb;
+  loadXtreamCredentials?: () => XtreamCredentials | null;
+  fetchSeriesInfo?: typeof fetchXtreamSeriesInfo;
 }
 
 function invalidInput(details: unknown) {
@@ -121,6 +130,62 @@ function uniqueSeriesRows(rows: Record<string, unknown>[]): Record<string, unkno
   return unique;
 }
 
+type EpisodeRow = {
+  id: number;
+  series_id: number;
+  name: string;
+  url: string;
+  season: number;
+  episode: number;
+  cover: string | null;
+  added_at: number;
+};
+
+function loadSeriesEpisodes(db: SqlJsCompatDb, seriesId: number): EpisodeRow[] {
+  return db
+    .prepare(
+      `SELECT id, series_id, name, url, season, episode, cover, added_at
+       FROM episodes
+       WHERE series_id = ?
+       ORDER BY season, episode`,
+    )
+    .all(seriesId) as EpisodeRow[];
+}
+
+async function hydrateSeriesEpisodes(
+  deps: CatalogHandlerDeps,
+  sqliteSeriesId: number,
+  row: Record<string, unknown>,
+): Promise<XtreamSeriesInfo | null> {
+  const creds = deps.loadXtreamCredentials?.() ?? null;
+  if (!creds) return null;
+  const xtreamId = Number(row.xtream_id) || parseXtreamSeriesId(String(row.url ?? ''));
+  if (!xtreamId) return null;
+  const fetchInfo = deps.fetchSeriesInfo ?? fetchXtreamSeriesInfo;
+  let info: XtreamSeriesInfo;
+  try {
+    info = await fetchInfo(creds, xtreamId);
+  } catch {
+    return null;
+  }
+  const now = Date.now();
+  const insert = deps.db.prepare(
+    `INSERT INTO episodes (series_id, name, url, season, episode, cover, http_headers, media_format, added_at)
+     VALUES (?, ?, ?, ?, ?, ?, '{}', ?, ?)
+     ON CONFLICT(url) DO UPDATE SET
+       name = excluded.name,
+       season = excluded.season,
+       episode = excluded.episode,
+       cover = excluded.cover`,
+  );
+  for (const ep of info.episodes) {
+    const url = xtreamEpisodeUrl(creds, ep.streamId, ep.extension);
+    const format = ep.extension === 'm3u8' ? 'hls' : ep.extension === 'ts' ? 'ts' : 'mp4';
+    insert.run(sqliteSeriesId, ep.name, url, ep.season, ep.episode, ep.cover, format, now);
+  }
+  return info;
+}
+
 function mapRowForType(type: CatalogType, row: Record<string, unknown>): CatalogItem {
   switch (type) {
     case 'live':
@@ -199,32 +264,26 @@ export function registerCatalogHandlers(ipcMain: IpcMain, deps: CatalogHandlerDe
     }
 
     if (parsed.type === 'series') {
-      // For series, return the parent + its seasons/episodes. Episodes live in
-      // a separate table joined by series_id; ordering is (season, episode).
-      const episodes = deps.db
-        .prepare(
-          `SELECT id, series_id, name, url, season, episode, cover, added_at
-           FROM episodes
-           WHERE series_id = ?
-           ORDER BY season, episode`,
-        )
-        .all(parsed.id) as Array<{
-          id: number;
-          series_id: number;
-          name: string;
-          url: string;
-          season: number;
-          episode: number;
-          cover: string | null;
-          added_at: number;
-        }>;
+      let xtreamInfo: XtreamSeriesInfo | null = null;
+      let episodes = loadSeriesEpisodes(deps.db, parsed.id);
 
-      const seasons = new Map<number, Array<typeof episodes[number]>>();
+      if (episodes.length === 0) {
+        xtreamInfo = await hydrateSeriesEpisodes(deps, parsed.id, row);
+        if (xtreamInfo) {
+          episodes = loadSeriesEpisodes(deps.db, parsed.id);
+        }
+      }
+
+      const seasons = new Map<number, Array<(typeof episodes)[number]>>();
       for (const ep of episodes) {
         const arr = seasons.get(ep.season) ?? [];
         arr.push(ep);
         seasons.set(ep.season, arr);
       }
+
+      const genreList = xtreamInfo?.genre
+        ? xtreamInfo.genre.split(/[,/|]/).map((g) => g.trim()).filter(Boolean)
+        : undefined;
 
       const detail: SeriesDetail = {
         series: mapSeriesRow(row),
@@ -243,6 +302,9 @@ export function registerCatalogHandlers(ipcMain: IpcMain, deps: CatalogHandlerDe
               addedAt: e.added_at,
             })),
           })),
+        plot: xtreamInfo?.plot ?? null,
+        backdropUrl: xtreamInfo?.backdropUrl ?? null,
+        genres: genreList,
       };
       return { data: detail };
     }

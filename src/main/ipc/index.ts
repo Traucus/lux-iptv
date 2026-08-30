@@ -46,7 +46,14 @@ export interface HandlerDeps {
 export function registerHandlers(deps: HandlerDeps): void {
   console.log('[ipc] registering handlers');
   registerIngestHandlers(ipcMain, deps.ingestOrchestrator, deps.configService);
-  registerCatalogHandlers(ipcMain, { db: deps.db });
+  registerCatalogHandlers(ipcMain, {
+    db: deps.db,
+    loadXtreamCredentials: () => {
+      const creds = deps.configService.loadCredentials();
+      if (!creds?.server || !creds.username || !creds.password) return null;
+      return { server: creds.server, username: creds.username, password: creds.password };
+    },
+  });
   registerEnrichmentHandlers(ipcMain);
   registerTmdbHandlers(ipcMain, deps.tmdbVault);
   registerPlayerHandlers(ipcMain, {

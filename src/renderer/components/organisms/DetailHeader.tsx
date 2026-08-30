@@ -28,7 +28,7 @@ export function DetailHeader({
 }: DetailHeaderProps): React.ReactElement {
   return (
     <header
-      className={`relative w-full h-[55vh] min-h-[400px] overflow-hidden ${className}`}
+      className={`relative w-full h-[28vh] min-h-[180px] max-h-[280px] overflow-hidden ${className}`}
       aria-label={title}
     >
       {backdropUrl ? (
@@ -36,13 +36,7 @@ export function DetailHeader({
           <img
             src={backdropUrl}
             alt=""
-            className="absolute inset-0 w-full h-full object-cover scale-110 blur-xl"
-            aria-hidden="true"
-          />
-          <img
-            src={backdropUrl}
-            alt=""
-            className="absolute inset-0 w-full h-full object-cover"
+            className="absolute inset-0 w-full h-full object-cover object-top"
             loading="eager"
           />
         </>
@@ -50,8 +44,8 @@ export function DetailHeader({
         <div className="absolute inset-0 bg-gradient-to-br from-surface-200 via-surface-300 to-surface-400" />
       )}
 
-      <div className="absolute inset-0 bg-black/80" />
-      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
+      <div className="absolute inset-0 bg-black/40" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent" />
 
       <div className="relative z-10 h-full flex flex-col justify-end p-8 gap-4">
         <div className="flex flex-col gap-2 max-w-3xl">
