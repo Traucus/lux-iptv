@@ -54,6 +54,7 @@ function renderWatch(path: string) {
 
 describe('PlayerPage proxied playback', () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     mockApi.catalog.getById.mockResolvedValue({ data: movieItem });
     mockApi.player.getSource.mockImplementation(async (input: { type: string; id: number }) => ({
       data: { type: input.type, id: input.id, mediaFormat: 'hls' },
@@ -114,5 +115,18 @@ describe('PlayerPage proxied playback', () => {
     });
     expect(mockApi.player.getProxiedUrl).toHaveBeenCalledWith({ type: 'episode', id: 101 });
     expect(mockApi.player.getProxiedUrl).not.toHaveBeenCalledWith({ type: 'series', id: 7 });
+  });
+
+  it('plays /watch/episode/:id via proxy without catalog.getById(episode)', async () => {
+    renderWatch('/watch/episode/501');
+    await waitFor(() => {
+      expect(screen.getByTestId('video-player')).toHaveAttribute(
+        'data-src',
+        'http://127.0.0.1:12345/proxy/episode/501',
+      );
+    });
+    expect(mockApi.catalog.getById).not.toHaveBeenCalled();
+    expect(mockApi.player.getProxiedUrl).toHaveBeenCalledWith({ type: 'episode', id: 501 });
+    expect(mockApi.player.getSource).toHaveBeenCalledWith({ type: 'episode', id: 501 });
   });
 });

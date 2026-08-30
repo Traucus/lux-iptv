@@ -115,22 +115,27 @@ export const PlayerPage: React.FC = () => {
     }
   }, [contentType, navigate]);
 
-  // Fetch catalog item
+  // Catalog getById does not accept `episode` — those rows live in `episodes`
+  // and are resolved via player:getSource / getProxiedUrl only.
   const { data: catalogItem, isLoading, error } = useQuery({
     queryKey: ['playback-source', contentType, contentId],
     queryFn: async () => {
       const luxAPI = createLuxAPI();
-      const result = await luxAPI.catalog.getById({ type: contentType, id: contentId });
+      const catalogType = contentType === 'live' || contentType === 'movie' || contentType === 'series'
+        ? contentType
+        : null;
+      if (!catalogType) return null;
+      const result = await luxAPI.catalog.getById({ type: catalogType, id: contentId });
       if (result.error) throw new Error(result.error.message);
       return result.data as CatalogItem | { series: CatalogItem; seasons: Season[] };
     },
-    enabled: !!contentId && ['live', 'movie', 'series', 'episode'].includes(contentType),
+    enabled: !!contentId && ['live', 'movie', 'series'].includes(contentType),
     retry: false,
   });
 
   // Resolve playback src only from player:getProxiedUrl (never origin).
   useEffect(() => {
-    if (!catalogItem) return;
+    if (contentType !== 'episode' && !catalogItem) return;
     let cancelled = false;
     setProxyError(false);
 
@@ -151,16 +156,15 @@ export const PlayerPage: React.FC = () => {
           setCurrentEpisode(firstEpisode);
         }
       } else if (contentType === 'episode') {
-        const item = catalogItem as CatalogItem;
         if (!cancelled) {
           setCurrentEpisode({
-            id: item.id,
+            id: contentId,
             seriesId: 0,
-            name: item.name,
-            url: item.url,
+            name: '',
+            url: '',
             season: 1,
             episode: 1,
-            cover: item.cover,
+            cover: null,
             addedAt: 0,
           });
         }
@@ -212,7 +216,7 @@ export const PlayerPage: React.FC = () => {
     setResumePosition(null);
   }, []);
 
-  if (isLoading || (catalogItem && !playbackSource && !proxyError)) {
+  if (isLoading || (!playbackSource && !proxyError && !error && (contentType === 'episode' || catalogItem))) {
     return (
       <div
         className="min-h-screen bg-black flex items-center justify-center"
