@@ -34,8 +34,16 @@ export interface HlsClientOptions {
   videoEl: HTMLVideoElement;
   /** Optional headers to inject via xhrSetup (degraded path without proxy) */
   headers?: Record<string, string>;
-  /** When true, enable hls.js lowLatencyMode (live only) */
+  /** When true, apply live sync defaults (not LL-HLS). */
   live?: boolean;
+}
+
+function isManifestFormatError(details: unknown): boolean {
+  const text =
+    typeof details === 'string'
+      ? details
+      : JSON.stringify(details ?? '');
+  return /manifestParsingError|manifestIncompatibleCodecsError/i.test(text);
 }
 
 export class HlsClient {
@@ -43,7 +51,6 @@ export class HlsClient {
   private videoEl: HTMLVideoElement;
   private src: string;
   private headers?: Record<string, string>;
-  private live: boolean;
   private destroyed = false;
 
   // Resilience state
@@ -59,7 +66,6 @@ export class HlsClient {
     this.videoEl = options.videoEl;
     this.src = options.src;
     this.headers = options.headers;
-    this.live = options.live === true;
     this.initializeHls();
   }
 
@@ -77,13 +83,19 @@ export class HlsClient {
       return;
     }
 
+    // IPTV/Xtream is not LL-HLS. hls.js 1.x defaults lowLatencyMode=true,
+    // which starves the buffer on typical provider CDNs.
     this.hls = new Hls({
-      lowLatencyMode: this.live,
-      capLevelToPlayerSize: true,
+      lowLatencyMode: false,
+      capLevelToPlayerSize: false,
+      startLevel: -1,
+      abrEwmaDefaultEstimate: 500_000,
+      liveSyncDurationCount: 3,
       backBufferLength: 30,
-      maxBufferLength: 60,
+      maxBufferLength: 30,
       maxMaxBufferLength: 600,
-      // Header injection for degraded path (no proxy)
+      enableWorker: true,
+      testBandwidth: true,
       xhrSetup: this.headers
         ? (xhr: XMLHttpRequest, _url: string) => {
             for (const [key, value] of Object.entries(this.headers!)) {
@@ -102,9 +114,6 @@ private attachEventListeners(): void {
     if (!this.hls) return;
 
     this.hls.on(Hls.Events.MANIFEST_PARSED, (_, data) => {
-      if (this.hls && this.hls.levels.length > 0) {
-        this.hls.startLevel = Math.floor((this.hls.levels.length - 1) / 2);
-      }
       if (this.hls && this.hls.audioTracks.length > 0 && this.hls.audioTrack < 0) {
         this.hls.audioTrack = 0;
       }
@@ -147,6 +156,12 @@ private attachEventListeners(): void {
     if (!fatal) {
       // Non-fatal errors are just forwarded
       this.emit('ERROR', data as unknown as HlsEventData);
+      return;
+    }
+
+    if (isManifestFormatError(details)) {
+      this.emit('fatal', { attempts: this.attempt });
+      this.emit('ERROR', { fatal: true, type, details: { ...(typeof details === 'object' && details ? details as Record<string, unknown> : { details }), attempts: this.attempt } });
       return;
     }
 

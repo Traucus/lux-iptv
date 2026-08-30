@@ -409,6 +409,10 @@ export class StreamProxyService {
       targetUrl = allowed;
     }
     const headers = sanitizeHeaders(parseHttpHeaders(row.http_headers));
+    const range = _req.headers.range;
+    if (typeof range === 'string' && range.length > 0) {
+      headers['Range'] = range;
+    }
 
     const cacheKey = uParam ? `${type}:${id}:${targetUrl}` : `${type}:${id}`;
     const cached = this.manifestCache.get(cacheKey);
@@ -522,6 +526,19 @@ export class StreamProxyService {
           : 'peek';
         const chunks: Buffer[] = [];
 
+        const pipeExtras = (): Record<string, string | number> => {
+          const extra: Record<string, string | number> = { 'Cache-Control': 'no-cache' };
+          const contentLength = response.headers['content-length'];
+          if (typeof contentLength === 'string' && contentLength.length > 0) {
+            extra['Content-Length'] = contentLength;
+          }
+          const acceptRanges = response.headers['accept-ranges'];
+          if (typeof acceptRanges === 'string' && acceptRanges.length > 0) {
+            extra['Accept-Ranges'] = acceptRanges;
+          }
+          return extra;
+        };
+
         const sendHead = (extra: Record<string, string | number> = {}) => {
           if (responseSent) return;
           responseSent = true;
@@ -548,7 +565,7 @@ export class StreamProxyService {
         response.on('data', (chunk: Buffer) => {
           if (aborted) return;
           if (mode === 'pipe') {
-            sendHead({ 'Cache-Control': 'no-cache' });
+            sendHead(pipeExtras());
             res.write(chunk);
             return;
           }
@@ -559,7 +576,7 @@ export class StreamProxyService {
               return;
             }
             mode = 'pipe';
-            sendHead({ 'Cache-Control': 'no-cache' });
+            sendHead(pipeExtras());
             res.write(chunk);
             return;
           }
@@ -575,7 +592,7 @@ export class StreamProxyService {
             finishManifest();
             return;
           }
-          sendHead({ 'Cache-Control': 'no-cache' });
+          sendHead(pipeExtras());
           res.end();
           settle(() => resolve());
         });

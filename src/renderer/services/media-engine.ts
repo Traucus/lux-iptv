@@ -1,17 +1,13 @@
+import mpegts from 'mpegts.js';
 import { HlsClient } from './hls-client';
 
 /**
- * MediaEngine — Unified playback engine that selects between hls.js and native
- * <video> based on media format.
+ * MediaEngine — Unified playback engine.
  *
- * Design §7.2: Engine selection:
- * - hls.js for HLS, DASH, TS, unknown
- * - native <video> for MP4
- *
- * Resilience loop (player-core spec §hls.js Engine with Resilience):
- * - NetworkError: exponential backoff 1s/2s/4s, max 3 retries, then fatal
- * - MediaError: single recoverMediaError() attempt, then fatal if still failing
- * - Other fatal errors: immediate fatal emission
+ * IPTV origins lie about extensions. Probe in order:
+ * 1. hls.js (playlists / HLS-disguised URLs)
+ * 2. mpegts.js (raw MPEG-TS, common Xtream "mp4")
+ * 3. native <video> (real progressive MP4)
  */
 
 export type MediaFormat = 'hls' | 'mp4' | 'dash' | 'ts' | 'unknown';
@@ -27,7 +23,7 @@ export interface PlaybackSource {
   type: 'live' | 'movie' | 'episode';
 }
 
-export type EngineKind = 'hls' | 'native';
+export type EngineKind = 'hls' | 'mpegts' | 'native';
 
 export type MediaEngineEvent =
   | 'progress'
@@ -61,21 +57,14 @@ export interface MediaEngine {
 }
 
 /**
- * Creates a MediaEngine instance for the given source.
- * The engine kind is determined by mediaFormat.
+ * Creates a MediaEngine that probes HLS → MPEG-TS → native.
+ * mediaFormat is a hint, not a hard engine switch.
  */
 export function createMediaEngine(
   videoEl: HTMLVideoElement,
   source: PlaybackSource
 ): MediaEngine {
-  const { mediaFormat } = source;
-  const kind: EngineKind = mediaFormat === 'mp4' ? 'native' : 'hls';
-
-  if (kind === 'hls') {
-    return new HlsMediaEngine(videoEl, source);
-  } else {
-    return new NativeMediaEngine(videoEl, source);
-  }
+  return new FallbackMediaEngine(videoEl, source);
 }
 
 /**
@@ -333,5 +322,206 @@ class NativeMediaEngine implements MediaEngine {
     const set = this.handlers.get(event);
     if (!set || set.size === 0) return;
     for (const h of set) h(data);
+  }
+}
+
+class MpegtsMediaEngine implements MediaEngine {
+  readonly kind: EngineKind = 'mpegts';
+  private player: ReturnType<typeof mpegts.createPlayer> | null = null;
+  private videoEl: HTMLVideoElement;
+  private source: PlaybackSource;
+  private destroyed = false;
+  private handlers = new Map<string, Set<(data: MediaEngineEventData) => void>>();
+
+  constructor(videoEl: HTMLVideoElement, source: PlaybackSource) {
+    this.videoEl = videoEl;
+    this.source = source;
+  }
+
+  get levels(): Array<{ width: number; height: number; bitrate: number }> {
+    return [];
+  }
+
+  get audioTracks(): Array<{ id: number; name: string; lang?: string }> {
+    return [];
+  }
+
+  get subtitleTracks(): Array<{ id: number; name: string; lang?: string }> {
+    return [];
+  }
+
+  get currentLevel(): number {
+    return -1;
+  }
+
+  load(): Promise<void> {
+    if (this.destroyed) {
+      return Promise.reject(new Error('MediaEngine destroyed'));
+    }
+    if (typeof mpegts.isSupported === 'function' && !mpegts.isSupported()) {
+      return Promise.reject(new Error('mpegts.js not supported'));
+    }
+
+    return new Promise((resolve, reject) => {
+      const player = mpegts.createPlayer({
+        type: 'mse',
+        isLive: this.source.type === 'live',
+        url: this.source.url,
+      });
+      this.player = player;
+
+      const onMeta = () => {
+        this.videoEl.removeEventListener('loadedmetadata', onMeta);
+        this.emit('progress', { loaded: true });
+        this.videoEl.muted = false;
+        this.videoEl.volume = 1;
+        void this.videoEl.play()?.catch(() => undefined);
+        resolve();
+      };
+
+      player.on(mpegts.Events.ERROR, (errorType: string, errorDetail: string) => {
+        this.videoEl.removeEventListener('loadedmetadata', onMeta);
+        this.emit('fatal', { type: errorType, detail: errorDetail });
+        reject(new Error(`mpegts error: ${errorType}`));
+      });
+
+      this.videoEl.addEventListener('loadedmetadata', onMeta);
+      player.attachMediaElement(this.videoEl);
+      player.load();
+    });
+  }
+
+  destroy(): void {
+    this.destroyed = true;
+    if (this.player) {
+      this.player.unload();
+      this.player.detachMediaElement();
+      this.player.destroy();
+      this.player = null;
+    }
+    this.handlers.clear();
+  }
+
+  on(event: MediaEngineEvent, handler: (data: MediaEngineEventData) => void): () => void {
+    let set = this.handlers.get(event);
+    if (!set) {
+      set = new Set();
+      this.handlers.set(event, set);
+    }
+    set.add(handler);
+    return () => set.delete(handler);
+  }
+
+  off(event: MediaEngineEvent, handler: (data: MediaEngineEventData) => void): void {
+    this.handlers.get(event)?.delete(handler);
+  }
+
+  private emit(event: MediaEngineEvent, data: MediaEngineEventData): void {
+    const set = this.handlers.get(event);
+    if (!set || set.size === 0) return;
+    for (const h of set) h(data);
+  }
+}
+
+class FallbackMediaEngine implements MediaEngine {
+  private active: MediaEngine | null = null;
+  private videoEl: HTMLVideoElement;
+  private source: PlaybackSource;
+  private destroyed = false;
+  private unsubs: Array<() => void> = [];
+  private handlers = new Map<string, Set<(data: MediaEngineEventData) => void>>();
+
+  constructor(videoEl: HTMLVideoElement, source: PlaybackSource) {
+    this.videoEl = videoEl;
+    this.source = source;
+  }
+
+  get kind(): EngineKind {
+    return this.active?.kind ?? 'hls';
+  }
+
+  get levels(): Array<{ width: number; height: number; bitrate: number }> {
+    return this.active?.levels ?? [];
+  }
+
+  get audioTracks(): Array<{ id: number; name: string; lang?: string }> {
+    return this.active?.audioTracks ?? [];
+  }
+
+  get subtitleTracks(): Array<{ id: number; name: string; lang?: string }> {
+    return this.active?.subtitleTracks ?? [];
+  }
+
+  get currentLevel(): number {
+    return this.active?.currentLevel ?? -1;
+  }
+
+  async load(): Promise<void> {
+    const candidates: MediaEngine[] = [
+      new HlsMediaEngine(this.videoEl, this.source),
+      new MpegtsMediaEngine(this.videoEl, this.source),
+      new NativeMediaEngine(this.videoEl, this.source),
+    ];
+
+    let lastError: unknown;
+    for (const engine of candidates) {
+      if (this.destroyed) {
+        engine.destroy();
+        throw new Error('MediaEngine destroyed');
+      }
+      this.detachActive();
+      this.active = engine;
+      this.attachActive();
+      try {
+        await engine.load();
+        return;
+      } catch (error) {
+        lastError = error;
+        engine.destroy();
+      }
+    }
+
+    throw lastError instanceof Error ? lastError : new Error('No playback engine could load the stream');
+  }
+
+  destroy(): void {
+    this.destroyed = true;
+    this.detachActive();
+    this.active?.destroy();
+    this.active = null;
+    this.handlers.clear();
+  }
+
+  on(event: MediaEngineEvent, handler: (data: MediaEngineEventData) => void): () => void {
+    let set = this.handlers.get(event);
+    if (!set) {
+      set = new Set();
+      this.handlers.set(event, set);
+    }
+    set.add(handler);
+    return () => set.delete(handler);
+  }
+
+  off(event: MediaEngineEvent, handler: (data: MediaEngineEventData) => void): void {
+    this.handlers.get(event)?.delete(handler);
+  }
+
+  private attachActive(): void {
+    if (!this.active) return;
+    const events: MediaEngineEvent[] = ['progress', 'buffered', 'error', 'ended', 'fatal', 'recovering'];
+    for (const event of events) {
+      this.unsubs.push(
+        this.active.on(event, (data) => {
+          const set = this.handlers.get(event);
+          if (!set) return;
+          for (const handler of set) handler(data);
+        }),
+      );
+    }
+  }
+
+  private detachActive(): void {
+    for (const unsub of this.unsubs) unsub();
+    this.unsubs = [];
   }
 }

@@ -370,13 +370,15 @@ describe('HlsClient ABR and latency', () => {
     });
   }
 
-  it('caps level to player size and starts at mid rung for 5 levels', () => {
+  it('uses the IPTV ABR profile: no size cap, auto start, 30s buffer', () => {
     const client = makeClient(false);
     const hls = hlsState.instances[0];
-    expect(hls.config.capLevelToPlayerSize).toBe(true);
+    expect(hls.config.capLevelToPlayerSize).toBe(false);
+    expect(hls.config.startLevel).toBe(-1);
+    expect(hls.config.maxBufferLength).toBe(30);
+    expect(hls.config.lowLatencyMode).toBe(false);
     hls.emit('MANIFEST_PARSED');
-    expect(hls.startLevel).toBe(2);
-    expect(hls.startLevel).not.toBe(hls.levels.length - 1);
+    expect(hls.startLevel).toBe(-1);
     client.destroy();
   });
 
@@ -394,9 +396,9 @@ describe('HlsClient ABR and latency', () => {
     client.destroy();
   });
 
-  it('enables lowLatencyMode for live and disables it for VOD', () => {
+  it('keeps lowLatencyMode off for live IPTV and VOD', () => {
     const live = makeClient(true);
-    expect(hlsState.instances[0].config.lowLatencyMode).toBe(true);
+    expect(hlsState.instances[0].config.lowLatencyMode).toBe(false);
     live.destroy();
     const vod = makeClient(false);
     expect(hlsState.instances[1].config.lowLatencyMode).toBe(false);
