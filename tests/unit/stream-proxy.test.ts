@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, beforeAll, vi } from 'vitest';
+import { createServer } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import { createSqlJsDb, initSqlJsModule, type SqlJsCompatDb } from '../../src/main/db/sqljs-adapter.js';
-import { net } from 'electron';
 import { StreamProxyService } from '../../src/main/services/stream-proxy';
 
 // Mock the Electron net module - use vi.hoisted to avoid hoisting issues
@@ -91,8 +92,8 @@ describe('StreamProxyService', () => {
        VALUES (?, ?, ?, ?, ?)`,
     ).run('Avatar', 'https://cdn.example.com/avatar.mp4', JSON.stringify({ Cookie: 'session=abc123' }), 'mp4', 1000);
 
-    service = new StreamProxyService();
-    mockRequest = vi.mocked(net.request);
+    mockRequest = mockRequestFn;
+    service = new StreamProxyService((opts) => mockRequest(opts));
   });
 
   afterEach(async () => {
@@ -396,7 +397,7 @@ https://cdn.example.com/stream.m3u8`;
     });
 
     it('follows redirects up to 5 hops', async () => {
-      // Electron's net.request follows redirects automatically
+      // Origin client follows redirects up to 5 hops; this mock delivers the final 200.
       const mockResponse = {
         statusCode: 200,
         headers: { 'content-type': 'application/vnd.apple.mpegurl' },
@@ -424,7 +425,6 @@ https://cdn.example.com/stream.m3u8`;
       const port = service.getPort();
       await fetch(`http://127.0.0.1:${port}/proxy/live/1`);
 
-      // Verify request was made (redirects handled by Electron net)
       expect(mockRequest).toHaveBeenCalled();
     });
   });
@@ -492,7 +492,7 @@ https://cdn.example.com/stream.m3u8`;
       const port = service.getPort();
       const response = await fetch(`http://127.0.0.1:${port}/proxy/live/1`);
       expect(response.status).toBe(200);
-      // Electron net.request has no setTimeout; timeout is a JS timer + abort().
+      // Timeout is a JS timer + abort(), not Node/Electron request.setTimeout().
       expect(mockRequestObj.setTimeout).not.toHaveBeenCalled();
     });
   });
@@ -640,6 +640,7 @@ https://cdn.example.com/stream.m3u8`;
           });
         }),
         end: vi.fn(),
+        abort: vi.fn(),
         setHeader: vi.fn(),
         setTimeout: vi.fn(),
       });
@@ -668,6 +669,69 @@ https://cdn.example.com/stream.m3u8`;
       const response = await fetch(`http://127.0.0.1:${service.getPort()}/proxy/live/1?u=${u}`);
       expect(response.status).toBe(403);
       expect(mockRequest).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('origin body errors (content-length mismatch class)', () => {
+    it('ends the player response when origin emits error after headers', async () => {
+      await service.start(db);
+      const mockResponse = {
+        statusCode: 200,
+        headers: { 'content-type': 'video/mp4' },
+        on: vi.fn((event: string, cb: (arg?: unknown) => void) => {
+          if (event === 'data') {
+            setImmediate(() => cb(Buffer.from('partial')));
+          }
+          if (event === 'error') {
+            setImmediate(() => cb(new Error('net::ERR_CONTENT_LENGTH_MISMATCH')));
+          }
+        }),
+      };
+      mockRequest.mockReturnValue({
+        on: vi.fn((event: string, cb: (arg: unknown) => void) => {
+          if (event === 'response') setImmediate(() => cb(mockResponse));
+        }),
+        end: vi.fn(),
+        abort: vi.fn(),
+        setHeader: vi.fn(),
+        setTimeout: vi.fn(),
+      });
+
+      const response = await fetch(`http://127.0.0.1:${service.getPort()}/proxy/movie/1`);
+      const body = Buffer.from(await response.arrayBuffer());
+      expect(body.toString()).toContain('partial');
+      expect(response.status).toBe(200);
+    });
+
+    it('does not throw when a real origin closes with a lying Content-Length', async () => {
+      const origin = createServer((_req, originRes) => {
+        originRes.writeHead(200, {
+          'Content-Type': 'video/mp4',
+          'Content-Length': '99999',
+        });
+        originRes.write('partial-body');
+        originRes.socket?.destroy();
+      });
+      await new Promise<void>((resolve) => origin.listen(0, '127.0.0.1', resolve));
+      const originPort = (origin.address() as AddressInfo).port;
+
+      db.prepare(
+        `INSERT INTO vod_movies (name, url, http_headers, media_format, added_at)
+         VALUES (?, ?, ?, ?, ?)`,
+      ).run('Mismatch', `http://127.0.0.1:${originPort}/video.mp4`, '{}', 'mp4', 1000);
+
+      const realService = new StreamProxyService();
+      await realService.start(db);
+      try {
+        const response = await fetch(`http://127.0.0.1:${realService.getPort()}/proxy/movie/2`);
+        await response.arrayBuffer();
+        expect(response.status).toBeGreaterThanOrEqual(200);
+      } finally {
+        await realService.stop();
+        await new Promise<void>((resolve, reject) => {
+          origin.close((err) => (err ? reject(err) : resolve()));
+        });
+      }
     });
   });
 });

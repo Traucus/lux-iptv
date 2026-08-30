@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, beforeAll, vi } from 'vitest';
 import { createSqlJsDb, initSqlJsModule, type SqlJsCompatDb } from '../../src/main/db/sqljs-adapter.js';
-import { net } from 'electron';
 import { StreamProxyService } from '../../src/main/services/stream-proxy';
 
 // Mock the Electron net module
@@ -48,8 +47,8 @@ describe('StreamProxyService - Header Whitelist Security', () => {
       );
     `);
 
-    service = new StreamProxyService();
-    mockRequest = vi.mocked(net.request);
+    mockRequest = mockRequestFn;
+    service = new StreamProxyService((opts) => mockRequest(opts));
   });
 
   afterEach(async () => {

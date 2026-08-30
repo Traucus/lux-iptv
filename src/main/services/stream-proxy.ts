@@ -1,5 +1,6 @@
-import { createServer, IncomingMessage, ServerResponse, Server } from 'node:http';
-import { net, IpcMain } from 'electron';
+import { createServer, IncomingMessage, ServerResponse, Server, request as httpRequest } from 'node:http';
+import { request as httpsRequest } from 'node:https';
+import type { IpcMain } from 'electron';
 import type { SqlJsCompatDb } from '../db/sqljs-adapter.js';
 import { URL } from 'node:url';
 import { resolveSameOriginHttp, rewritePlaylist } from './hls-rewrite.js';
@@ -10,8 +11,10 @@ import { resolveSameOriginHttp, rewritePlaylist } from './hls-rewrite.js';
  * Architecture (per design §G5):
  * - Binds to 127.0.0.1 on an ephemeral port inside the Electron main process.
  * - Uses Node's `createServer()` for the inbound HTTP server.
- * - Uses Electron's `net.request()` for outbound fetches (header injection,
- *   redirect following up to 5 hops, 10s timeout).
+ * - Uses Node `http`/`https` for outbound fetches (header injection,
+ *   redirect following up to 5 hops, 10s timeout). Chromium `net.request`
+ *   treats Content-Length as fatal (`ERR_CONTENT_LENGTH_MISMATCH`) and can
+ *   crash the main process mid-playback.
  * - Manifest cache: 30s TTL, 50-entry LRU bound. Only caches
  *   `application/vnd.apple.mpegurl` and `application/x-mpegurl` responses.
  *
@@ -47,6 +50,105 @@ const HEADER_KEY_REGEX = /^[A-Za-z0-9-]+$/;
 const DEFAULT_TTL_MS = 30_000;
 const MAX_CACHE_ENTRIES = 50;
 const DEFAULT_TIMEOUT_MS = 10_000;
+const MAX_ORIGIN_REDIRECTS = 5;
+
+export interface OriginRequest {
+  on(event: 'response', listener: (response: IncomingMessage) => void): void;
+  on(event: 'error', listener: (error: Error) => void): void;
+  abort(): void;
+  end(): void;
+}
+
+export type OriginRequestFactory = (opts: {
+  method: string;
+  url: string;
+  headers: Record<string, string>;
+}) => OriginRequest;
+
+export function createNodeOriginRequest(opts: {
+  method: string;
+  url: string;
+  headers: Record<string, string>;
+}): OriginRequest {
+  let current: { destroy: () => void } | null = null;
+  let aborted = false;
+  let started = false;
+  const responseListeners: Array<(response: IncomingMessage) => void> = [];
+  const errorListeners: Array<(error: Error) => void> = [];
+
+  const fail = (error: Error) => {
+    if (aborted) return;
+    for (const listener of errorListeners) listener(error);
+  };
+
+  const open = (urlString: string, hops: number) => {
+    if (aborted) return;
+    let parsed: URL;
+    try {
+      parsed = new URL(urlString);
+    } catch (error) {
+      fail(error as Error);
+      return;
+    }
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      fail(new Error(`Unsupported origin protocol: ${parsed.protocol}`));
+      return;
+    }
+    const request = (parsed.protocol === 'https:' ? httpsRequest : httpRequest)(
+      {
+        protocol: parsed.protocol,
+        hostname: parsed.hostname,
+        port: parsed.port || undefined,
+        path: `${parsed.pathname}${parsed.search}`,
+        method: opts.method,
+        headers: opts.headers,
+      },
+      (response) => {
+        const status = response.statusCode ?? 0;
+        const location = response.headers.location;
+        if (status >= 300 && status < 400 && location && hops < MAX_ORIGIN_REDIRECTS) {
+          response.resume();
+          let next: string;
+          try {
+            next = new URL(location, parsed).href;
+          } catch (error) {
+            fail(error as Error);
+            return;
+          }
+          open(next, hops + 1);
+          return;
+        }
+        for (const listener of responseListeners) listener(response);
+      },
+    );
+    current = request;
+    request.on('error', (error) => {
+      if (aborted) return;
+      fail(error);
+    });
+    request.end();
+  };
+
+  return {
+    on(event, listener) {
+      if (event === 'response') {
+        responseListeners.push(listener as (response: IncomingMessage) => void);
+      }
+      if (event === 'error') {
+        errorListeners.push(listener as (error: Error) => void);
+      }
+    },
+    abort() {
+      aborted = true;
+      current?.destroy();
+    },
+    end() {
+      if (started || aborted) return;
+      started = true;
+      open(opts.url, 0);
+    },
+  };
+}
 
 function tableForType(type: string): string {
   switch (type) {
@@ -143,6 +245,8 @@ export class StreamProxyService {
   private db: SqlJsCompatDb | null = null;
   private manifestCache = new Map<string, CacheEntry>();
   private ipcMain: IpcMain | null = null;
+
+  constructor(private readonly createOriginRequest: OriginRequestFactory = createNodeOriginRequest) {}
 
   /**
    * Starts the proxy server on an ephemeral port.
@@ -330,7 +434,7 @@ export class StreamProxyService {
   }
 
   /**
-   * Fetches from origin using Electron net.request.
+   * Fetches from origin using Node http/https (not Chromium net.request).
    * Manifests are buffered and rewritten; segments are piped without a full buffer.
    */
   private fetchAndStream(
@@ -341,37 +445,74 @@ export class StreamProxyService {
     rewriteCtx: { type: string; id: number },
   ): Promise<void> {
     return new Promise((resolve, reject) => {
-      const request = net.request({
+      const request = this.createOriginRequest({
         method: 'GET',
         url: originUrl,
         headers,
-      } as any);
+      });
       let responseReceived = false;
       let responseSent = false;
-      // Electron net.ClientRequest has abort(), not Node's request.setTimeout().
+      let aborted = false;
+      let settled = false;
+
+      const settle = (action: () => void) => {
+        if (settled) return;
+        settled = true;
+        action();
+      };
+
+      const abortOrigin = () => {
+        if (aborted) return;
+        aborted = true;
+        request.abort();
+      };
+
       const timeoutHandle = setTimeout(() => {
-        if (responseReceived) return;
-        if (typeof request.abort === 'function') request.abort();
-        reject(new Error('Upstream timeout'));
+        if (responseReceived || aborted) return;
+        abortOrigin();
+        settle(() => reject(new Error('Upstream timeout')));
       }, DEFAULT_TIMEOUT_MS);
       const clearFetchTimeout = () => clearTimeout(timeoutHandle);
 
+      const finishClient = (status: number, body: Record<string, string>) => {
+        if (!responseSent) {
+          responseSent = true;
+          res.writeHead(status, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify(body));
+          return;
+        }
+        if (!res.writableEnded) {
+          res.end();
+        }
+      };
+
+      res.on('close', () => {
+        if (res.writableEnded) return;
+        abortOrigin();
+        settle(() => resolve());
+      });
+
       request.on('response', (response) => {
+        if (aborted) {
+          response.resume();
+          return;
+        }
         responseReceived = true;
         clearFetchTimeout();
-        const status = response.statusCode;
+        const status = response.statusCode ?? 0;
         const contentType = String(response.headers['content-type'] ?? '');
 
         if (status >= 500) {
           response.on('data', () => undefined);
           response.on('end', () => {
             this.emitError('STREAM_TIMEOUT', `Upstream returned ${status}`);
-            if (!responseSent) {
-              responseSent = true;
-              res.writeHead(502, { 'Content-Type': 'application/json' });
-              res.end(JSON.stringify({ error: 'Upstream error' }));
-            }
-            resolve();
+            finishClient(502, { error: 'Upstream error' });
+            settle(() => resolve());
+          });
+          response.on('error', () => {
+            this.emitError('STREAM_TIMEOUT', `Upstream returned ${status}`);
+            finishClient(502, { error: 'Upstream error' });
+            settle(() => resolve());
           });
           return;
         }
@@ -401,10 +542,11 @@ export class StreamProxyService {
           });
           res.end(body);
           this.setCacheEntry(cacheKey, body, type);
-          resolve();
+          settle(() => resolve());
         };
 
         response.on('data', (chunk: Buffer) => {
+          if (aborted) return;
           if (mode === 'pipe') {
             sendHead({ 'Cache-Control': 'no-cache' });
             res.write(chunk);
@@ -425,27 +567,45 @@ export class StreamProxyService {
         });
 
         response.on('end', () => {
+          if (aborted) {
+            settle(() => resolve());
+            return;
+          }
           if (mode === 'manifest') {
             finishManifest();
             return;
           }
           sendHead({ 'Cache-Control': 'no-cache' });
           res.end();
-          resolve();
+          settle(() => resolve());
+        });
+
+        response.on('error', (error: Error) => {
+          if (aborted) {
+            settle(() => resolve());
+            return;
+          }
+          this.emitError('NETWORK', `Origin body error: ${error.message}`);
+          finishClient(502, { error: 'Upstream error' });
+          settle(() => resolve());
         });
       });
 
       request.on('error', (error) => {
         clearFetchTimeout();
+        if (aborted) {
+          settle(() => resolve());
+          return;
+        }
         if (!responseReceived) {
           this.emitError('NETWORK', `Network error: ${error.message}`);
-          if (!responseSent) {
-            responseSent = true;
-            res.writeHead(503, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: 'Network error' }));
-          }
+          finishClient(503, { error: 'Network error' });
+          settle(() => resolve());
+          return;
         }
-        reject(error);
+        this.emitError('NETWORK', `Network error: ${error.message}`);
+        finishClient(502, { error: 'Upstream error' });
+        settle(() => resolve());
       });
 
       request.end();
