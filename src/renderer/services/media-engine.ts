@@ -67,6 +67,12 @@ export function createMediaEngine(
   return new FallbackMediaEngine(videoEl, source);
 }
 
+/** True when HLS already exhausted the origin; mpegts/native will not help. */
+export function isHlsNetworkFailure(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return /HLS fatal error: networkError/i.test(message);
+}
+
 /**
  * HLS-based media engine using hls.js via HlsClient wrapper.
  */
@@ -471,16 +477,24 @@ class FallbackMediaEngine implements MediaEngine {
       }
       this.detachActive();
       this.active = engine;
-      this.attachActive();
+      this.attachActive({ forwardFatal: false });
       try {
         await engine.load();
+        this.detachActive();
+        this.attachActive({ forwardFatal: true });
         return;
       } catch (error) {
         lastError = error;
         engine.destroy();
+        this.active = null;
+        if (engine.kind === 'hls' && isHlsNetworkFailure(error)) {
+          this.emit('fatal', { attempts: 3, reason: 'hls-network' });
+          throw error;
+        }
       }
     }
 
+    this.emit('fatal', { attempts: candidates.length, reason: 'all-engines-failed' });
     throw lastError instanceof Error ? lastError : new Error('No playback engine could load the stream');
   }
 
@@ -506,9 +520,17 @@ class FallbackMediaEngine implements MediaEngine {
     this.handlers.get(event)?.delete(handler);
   }
 
-  private attachActive(): void {
+  private emit(event: MediaEngineEvent, data: MediaEngineEventData): void {
+    const set = this.handlers.get(event);
+    if (!set || set.size === 0) return;
+    for (const h of set) h(data);
+  }
+
+  private attachActive(opts: { forwardFatal: boolean }): void {
     if (!this.active) return;
-    const events: MediaEngineEvent[] = ['progress', 'buffered', 'error', 'ended', 'fatal', 'recovering'];
+    const events: MediaEngineEvent[] = opts.forwardFatal
+      ? ['progress', 'buffered', 'error', 'ended', 'fatal', 'recovering']
+      : ['progress', 'buffered', 'error', 'ended', 'recovering'];
     for (const event of events) {
       this.unsubs.push(
         this.active.on(event, (data) => {
