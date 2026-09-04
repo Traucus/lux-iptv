@@ -9,6 +9,16 @@ export interface Season {
   episodes: Episode[];
 }
 
+/** First episode of a series: lowest season, then lowest episode number. */
+export function resolveFirstEpisode(seasons: Season[]): Episode | null {
+  const sortedSeasons = [...seasons].sort((a, b) => a.seasonNumber - b.seasonNumber);
+  for (const season of sortedSeasons) {
+    const first = [...season.episodes].sort((a, b) => a.episode - b.episode)[0];
+    if (first) return first;
+  }
+  return null;
+}
+
 /**
  * Resolves the next episode in series order.
  *

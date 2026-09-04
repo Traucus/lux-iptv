@@ -42,6 +42,8 @@ const mockApi = vi.hoisted(() => ({
   player: {
     getSource: vi.fn().mockResolvedValue({ data: { type: 'movie', id: 42, mediaFormat: 'hls' } }),
     getProxiedUrl: vi.fn().mockResolvedValue({ data: { url: 'http://127.0.0.1:12345/proxy/movie/42' } }),
+    play: vi.fn().mockResolvedValue({ data: { engine: 'libmpv' } }),
+    stop: vi.fn().mockResolvedValue({ data: { stopped: true } }),
     reportError: vi.fn(), reportProgress: vi.fn(), getNextEpisode: vi.fn(),
   },
 }));
@@ -125,6 +127,21 @@ function renderApp(): void {
 }
 
 describe('App /watch mounts PlayerPage', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockApi.catalog.list.mockResolvedValue({ data: { items: [], total: 0 } });
+    mockApi.catalog.getById.mockResolvedValue({
+      data: { id: 42, name: 'Movie', url: 'https://origin.example/stream.m3u8', groupTitle: null, cover: null, year: 2020, contentType: 'movie', mediaFormat: 'hls', httpHeaders: {} },
+    });
+    mockApi.config.hasSource.mockResolvedValue({ data: { configured: false } });
+    mockApi.config.sourceSummary.mockResolvedValue({ data: { configured: false } });
+    mockApi.player.getSource.mockImplementation(async (input: { type: string; id: number }) => ({
+      data: { type: input.type, id: input.id, mediaFormat: 'hls' },
+    }));
+    mockApi.player.play.mockResolvedValue({ data: { engine: 'libmpv' } });
+    mockApi.player.stop.mockResolvedValue({ data: { stopped: true } });
+  });
+
   it('mounts video-player at #/watch/movie/42 and does not render the placeholder', async () => {
     window.location.hash = '#/watch/movie/42';
     renderApp();
@@ -144,5 +161,64 @@ describe('App /watch mounts PlayerPage', () => {
     });
     expect(screen.queryByTestId('player-placeholder')).toBeNull();
     expect(screen.queryByTestId('video-player')).toBeNull();
+  });
+
+  it('plays live via libmpv at #/watch/live/9', async () => {
+    mockApi.catalog.getById.mockResolvedValue({
+      data: {
+        id: 9, name: 'CNN', url: 'https://origin.example/live.m3u8', groupTitle: null,
+        cover: null, year: null, contentType: 'live', mediaFormat: 'hls', httpHeaders: {},
+      },
+    });
+    window.location.hash = '#/watch/live/9';
+    renderApp();
+    await waitFor(() => {
+      expect(mockApi.player.play).toHaveBeenCalledWith({ type: 'live', id: 9 });
+    });
+    expect(screen.getByTestId('video-player')).toBeTruthy();
+  });
+
+  it('plays movie via libmpv at #/watch/movie/42', async () => {
+    window.location.hash = '#/watch/movie/42';
+    renderApp();
+    await waitFor(() => {
+      expect(mockApi.player.play).toHaveBeenCalledWith({ type: 'movie', id: 42 });
+    });
+    expect(screen.getByTestId('video-player')).toBeTruthy();
+  });
+
+  it('plays episode via libmpv at #/watch/episode/501', async () => {
+    window.location.hash = '#/watch/episode/501';
+    renderApp();
+    await waitFor(() => {
+      expect(mockApi.player.play).toHaveBeenCalledWith({ type: 'episode', id: 501 });
+    });
+    expect(mockApi.catalog.getById).not.toHaveBeenCalled();
+    expect(screen.getByTestId('video-player')).toBeTruthy();
+  });
+
+  it('resolves #/watch/series/7 to episode 101 not 102', async () => {
+    mockApi.catalog.getById.mockResolvedValue({
+      data: {
+        series: {
+          id: 7, name: 'Show', url: 'https://origin.example/series', groupTitle: null,
+          cover: null, year: 2020, contentType: 'series', mediaFormat: 'hls', httpHeaders: {},
+        },
+        seasons: [{
+          seasonNumber: 1,
+          episodes: [
+            { id: 102, seriesId: 7, name: 'E2', url: 'https://origin.example/ep102.m3u8', season: 1, episode: 2, cover: null, addedAt: 0 },
+            { id: 101, seriesId: 7, name: 'E1', url: 'https://origin.example/ep101.m3u8', season: 1, episode: 1, cover: null, addedAt: 0 },
+          ],
+        }],
+      },
+    });
+    window.location.hash = '#/watch/series/7';
+    renderApp();
+    await waitFor(() => {
+      expect(mockApi.player.play).toHaveBeenCalledWith({ type: 'episode', id: 101 });
+    });
+    expect(mockApi.player.play).not.toHaveBeenCalledWith({ type: 'episode', id: 102 });
+    expect(mockApi.player.play).not.toHaveBeenCalledWith({ type: 'series', id: 7 });
   });
 });

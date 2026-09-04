@@ -72,3 +72,25 @@ export const PlayerGetProxiedUrlInputSchema = z.object({
 });
 
 export type PlayerGetProxiedUrlInputParsed = z.infer<typeof PlayerGetProxiedUrlInputSchema>;
+
+const PlayableTypeSchema = z.enum(['live', 'movie', 'episode']);
+
+/**
+ * `player:play` input — main loads the catalog origin URL in-process via libmpv.
+ */
+export const PlayerPlayInputSchema = z.object({
+  type: PlayableTypeSchema,
+  id: z.number().int().positive(),
+});
+
+export type PlayerPlayInputParsed = z.infer<typeof PlayerPlayInputSchema>;
+
+export const PlayerStopInputSchema = z.object({}).strict();
+
+export type PlayerStopInputParsed = z.infer<typeof PlayerStopInputSchema>;
+
+export const PlayerSetAudioTrackInputSchema = z.object({ aid: z.number().int() });
+export const PlayerSetSubtitleTrackInputSchema = z.object({ sid: z.number().int() });
+export const PlayerAddSubtitleInputSchema = z.object({ path: z.string().min(1) });
+export const PlayerSeekInputSchema = z.object({ time: z.number().min(0) });
+export const PlayerSetFullScreenInputSchema = z.object({ fullscreen: z.boolean() });

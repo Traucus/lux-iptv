@@ -58,6 +58,8 @@ test.describe('HashRouter / watch route', () => {
         player: {
           getSource: async (i: { type: string; id: number }) => ({ data: { type: i.type, id: i.id, mediaFormat: 'hls' } }),
           getProxiedUrl: async (i: { type: string; id: number }) => ({ data: { url: `http://127.0.0.1:9/proxy/${i.type}/${i.id}` } }),
+          play: async () => ({ data: { engine: 'libmpv' } }),
+          stop: async () => ({ data: { stopped: true } }),
           reportError: async () => ({ data: undefined }),
           reportProgress: async () => ({ data: undefined }),
           getNextEpisode: async () => ({ data: null }),

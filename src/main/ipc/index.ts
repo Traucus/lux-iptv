@@ -59,6 +59,7 @@ export function registerHandlers(deps: HandlerDeps): void {
   registerPlayerHandlers(ipcMain, {
     db: deps.db,
     getProxiedBaseUrl: deps.getProxiedBaseUrl,
+    mainWindow: deps.mainWindow,
   });
   registerConfigHandlers(ipcMain, deps.configService);
   console.log('[ipc] all handlers registered');

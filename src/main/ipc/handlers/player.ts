@@ -1,4 +1,4 @@
-import type { IpcMain } from 'electron';
+import type { BrowserWindow, IpcMain } from 'electron';
 import type { SqlJsCompatDb } from '../../db/sqljs-adapter.js';
 import type { Episode, IpcResult } from '../../../shared/types/ipc.js';
 import type { MediaFormat } from '../../../shared/types/player.js';
@@ -8,7 +8,15 @@ import {
   PlayerReportProgressInputSchema,
   PlayerGetNextEpisodeInputSchema,
   PlayerGetProxiedUrlInputSchema,
+  PlayerPlayInputSchema,
+  PlayerStopInputSchema,
+  PlayerSetAudioTrackInputSchema,
+  PlayerSetSubtitleTrackInputSchema,
+  PlayerAddSubtitleInputSchema,
+  PlayerSeekInputSchema,
+  PlayerSetFullScreenInputSchema,
 } from '../../../shared/schemas/player.js';
+import { createLibmpvEngine, type LibmpvEngine } from '../../player/libmpv-engine.js';
 
 /**
  * Player IPC handlers.
@@ -31,6 +39,8 @@ import {
 export interface PlayerHandlerDeps {
   db: SqlJsCompatDb;
   getProxiedBaseUrl?: () => string | undefined;
+  mainWindow?: BrowserWindow;
+  libmpvEngine?: LibmpvEngine;
 }
 
 function invalidInput(details: unknown): IpcResult<never> {
@@ -92,9 +102,23 @@ function resolveMediaFormat(raw: string | null): MediaFormat {
   return allowed.includes(v) ? v : 'unknown';
 }
 
+function parseHttpHeaders(raw: string | null): Record<string, string> {
+  if (!raw) return {};
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      return parsed as Record<string, string>;
+    }
+  } catch {
+    return {};
+  }
+  return {};
+}
+
 export function registerPlayerHandlers(ipcMain: IpcMain, deps: PlayerHandlerDeps): void {
+  const engine = deps.libmpvEngine ?? createLibmpvEngine();
   // ─── player:getSource ──────────────────────────────────────────────────
-  // Format + live/VOD metadata only. Playback src comes from getProxiedUrl.
+  // getSource is format/metadata only; happy-path playback is origin URL via in-process libmpv player:play.
   ipcMain.handle('player:getSource', async (_event, input: unknown) => {
     const result = PlayerGetSourceInputSchema.safeParse(input);
     if (!result.success) {
@@ -130,6 +154,79 @@ export function registerPlayerHandlers(ipcMain: IpcMain, deps: PlayerHandlerDeps
     }
     const { type, id } = result.data;
     return { data: { url: `${baseUrl}/proxy/${type}/${id}` } };
+  });
+
+  // ─── player:play ───────────────────────────────────────────────────────
+  // Origin URL + item headers into in-process libmpv. Proxy is not required.
+  ipcMain.handle('player:play', async (_event, input: unknown) => {
+    const parsed = PlayerPlayInputSchema.safeParse(input);
+    if (!parsed.success) {
+      return invalidInput(parsed.error.issues);
+    }
+    const { type, id } = parsed.data;
+    const row = type === 'episode' ? loadEpisodeRow(deps.db, id) : loadRowByContentId(deps.db, type, id);
+    if (!row) {
+      return notFound(`${type} id ${id} not found`);
+    }
+    const nativeWindowHandle = deps.mainWindow?.getNativeWindowHandle();
+    const result = await engine.play({
+      url: row.url,
+      httpHeaders: parseHttpHeaders(row.http_headers),
+      profile: type === 'live' ? 'live' : 'vod',
+      ...(nativeWindowHandle ? { nativeWindowHandle } : {}),
+    });
+    if (!result.ok) {
+      return { error: result.error };
+    }
+    return { data: { engine: result.engine } };
+  });
+
+  ipcMain.handle('player:stop', async (_event, input: unknown) => {
+    const parsed = PlayerStopInputSchema.safeParse(input ?? {});
+    if (!parsed.success) {
+      return invalidInput(parsed.error.issues);
+    }
+    await engine.stop();
+    return { data: { stopped: true } };
+  });
+
+  ipcMain.handle('player:getTracks', async () => ({ data: engine.getTracks() }));
+
+  ipcMain.handle('player:setAudioTrack', async (_event, input: unknown) => {
+    const parsed = PlayerSetAudioTrackInputSchema.safeParse(input);
+    if (!parsed.success) return invalidInput(parsed.error.issues);
+    engine.setAudioTrack(parsed.data.aid);
+    return { data: true };
+  });
+
+  ipcMain.handle('player:setSubtitleTrack', async (_event, input: unknown) => {
+    const parsed = PlayerSetSubtitleTrackInputSchema.safeParse(input);
+    if (!parsed.success) return invalidInput(parsed.error.issues);
+    engine.setSubtitleTrack(parsed.data.sid);
+    return { data: true };
+  });
+
+  ipcMain.handle('player:addSubtitle', async (_event, input: unknown) => {
+    const parsed = PlayerAddSubtitleInputSchema.safeParse(input);
+    if (!parsed.success) return invalidInput(parsed.error.issues);
+    engine.addSubtitle(parsed.data.path);
+    return { data: { id: 0, name: parsed.data.path.replace(/^.*[/\\]/, '') } };
+  });
+
+  ipcMain.handle('player:seek', async (_event, input: unknown) => {
+    const parsed = PlayerSeekInputSchema.safeParse(input);
+    if (!parsed.success) return invalidInput(parsed.error.issues);
+    engine.seek(parsed.data.time);
+    return { data: true };
+  });
+
+  ipcMain.handle('player:getStatus', async () => ({ data: engine.getStatus() }));
+
+  ipcMain.handle('player:setFullScreen', async (_event, input: unknown) => {
+    const parsed = PlayerSetFullScreenInputSchema.safeParse(input);
+    if (!parsed.success) return invalidInput(parsed.error.issues);
+    deps.mainWindow?.setFullScreen(parsed.data.fullscreen);
+    return { data: { fullscreen: parsed.data.fullscreen } };
   });
 
   // ─── player:reportError ────────────────────────────────────────────────

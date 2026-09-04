@@ -363,10 +363,12 @@ describe('MediaEngine', () => {
       }, hlsMockFactory);
 
       await engine.load();
-      engine.destroy();
+      const hlsMock = (engine as any)._test.getHlsMock();
+      expect(hlsMock).not.toBeNull();
 
-      // Should not crash
-      expect(true).toBe(true);
+      expect(() => engine.destroy()).not.toThrow();
+      expect(hlsMock.destroyed).toBe(true);
+      expect((engine as any)._test.getHlsMock()).toBeNull();
     });
 
     it('destroy() prevents further events', async () => {

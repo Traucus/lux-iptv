@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { TrackSelectorModal } from './TrackSelectorModal';
 import { AspectRatioSelector } from './AspectRatioSelector';
+import { OSD_CONTROL_TITLES } from '../../../../shared/player-chrome';
 
 /**
  * OsdControls — Bottom controls bar with playback controls and track selectors.
@@ -31,6 +32,8 @@ export interface OsdControlsProps {
   onAudioTrackChange: (index: number) => void;
   onSubtitleTrackChange: (index: number) => void;
   onAspectRatioChange: (ratio: '16:9' | '4:3' | 'zoom' | 'fit') => void;
+  onFullscreen?: () => void;
+  rewindDisabled?: boolean;
   /** Custom className */
   className?: string;
 }
@@ -49,6 +52,8 @@ export const OsdControls: React.FC<OsdControlsProps> = ({
   onAudioTrackChange,
   onSubtitleTrackChange,
   onAspectRatioChange,
+  onFullscreen,
+  rewindDisabled = false,
   className = '',
 }) => {
   const [showAudioModal, setShowAudioModal] = useState(false);
@@ -134,7 +139,9 @@ export const OsdControls: React.FC<OsdControlsProps> = ({
         onMouseDown={(e) => (e.currentTarget.style.transform = 'scale(0.95)')}
         onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
         data-testid="osd-rewind10"
-        aria-label="Rewind 10 seconds"
+        title={OSD_CONTROL_TITLES.rewind}
+        aria-label={OSD_CONTROL_TITLES.rewind}
+        disabled={rewindDisabled}
       >
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <polygon points="19 20 9 12 19 4 19 20" />
@@ -156,6 +163,7 @@ export const OsdControls: React.FC<OsdControlsProps> = ({
         onMouseDown={(e) => (e.currentTarget.style.transform = 'scale(0.95)')}
         onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
         data-testid="osd-play-pause"
+        title={OSD_CONTROL_TITLES.playPause}
         aria-label={isPlaying ? 'Pause' : 'Play'}
       >
         {isPlaying ? (
@@ -179,7 +187,8 @@ export const OsdControls: React.FC<OsdControlsProps> = ({
         onMouseDown={(e) => (e.currentTarget.style.transform = 'scale(0.95)')}
         onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
         data-testid="osd-forward10"
-        aria-label="Forward 10 seconds"
+        title={OSD_CONTROL_TITLES.forward}
+        aria-label={OSD_CONTROL_TITLES.forward}
       >
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <polygon points="5 4 15 12 5 20 5 4" />
@@ -196,7 +205,8 @@ export const OsdControls: React.FC<OsdControlsProps> = ({
           onMouseOver={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.4)')}
           onMouseOut={(e) => (e.currentTarget.style.background = audioTracks.length > 1 ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.2)')}
           data-testid="osd-audio-button"
-          aria-label="Audio tracks"
+          title={OSD_CONTROL_TITLES.audio}
+          aria-label={OSD_CONTROL_TITLES.audio}
           aria-expanded={showAudioModal}
           disabled={audioTracks.length <= 1}
         >
@@ -226,7 +236,8 @@ export const OsdControls: React.FC<OsdControlsProps> = ({
           onMouseOver={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.4)')}
           onMouseOut={(e) => (e.currentTarget.style.background = subtitleTracks.length > 0 ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.2)')}
           data-testid="osd-subtitle-button"
-          aria-label="Subtitle tracks"
+          title={OSD_CONTROL_TITLES.subtitle}
+          aria-label={OSD_CONTROL_TITLES.subtitle}
           aria-expanded={showSubtitleModal}
           disabled={subtitleTracks.length === 0}
         >
@@ -246,6 +257,21 @@ export const OsdControls: React.FC<OsdControlsProps> = ({
           />
         )}
         </div>
+
+      <button
+        onClick={onFullscreen}
+        style={buttonStyle}
+        data-testid="osd-fullscreen"
+        title={OSD_CONTROL_TITLES.fullscreen}
+        aria-label={OSD_CONTROL_TITLES.fullscreen}
+      >
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <polyline points="15 3 21 3 21 9" />
+          <polyline points="9 21 3 21 3 15" />
+          <line x1="21" y1="3" x2="14" y2="10" />
+          <line x1="3" y1="21" x2="10" y2="14" />
+        </svg>
+      </button>
 
       {/* Aspect Ratio Selector */}
       <AspectRatioSelector

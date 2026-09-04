@@ -150,3 +150,28 @@ describe('useIdleOSD', () => {
     expect(result.current.visible).toBe(false);
   });
 });
+
+describe('OSD chrome contracts (slice 3)', () => {
+  it('disables live −10s rewind and keeps VOD rewind on', async () => {
+    const { isLiveRewindEnabled } = await import('../../../src/shared/player-chrome');
+    expect(isLiveRewindEnabled('live')).toBe(false);
+    expect(isLiveRewindEnabled('movie')).toBe(true);
+    expect(isLiveRewindEnabled('episode')).toBe(true);
+  });
+
+  it('every OSD control has a title tooltip', async () => {
+    const { OSD_CONTROL_TITLES } = await import('../../../src/shared/player-chrome');
+    expect(OSD_CONTROL_TITLES.rewind).toMatch(/rewind/i);
+    expect(OSD_CONTROL_TITLES.playPause).toBeTruthy();
+    expect(OSD_CONTROL_TITLES.forward).toMatch(/forward/i);
+    expect(OSD_CONTROL_TITLES.audio).toBeTruthy();
+    expect(OSD_CONTROL_TITLES.subtitle).toBeTruthy();
+    expect(OSD_CONTROL_TITLES.fullscreen).toMatch(/full/i);
+  });
+
+  it('exclusive fullscreen uses setFullScreen not CSS fullscreen', async () => {
+    const { exclusiveFullscreenPayload } = await import('../../../src/shared/player-chrome');
+    expect(exclusiveFullscreenPayload(true)).toEqual({ fullscreen: true });
+    expect(exclusiveFullscreenPayload(false)).toEqual({ fullscreen: false });
+  });
+});

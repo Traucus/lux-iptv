@@ -52,6 +52,15 @@ const luxAPI = {
      * or `null` at the end of the series.
      */
     getNextEpisode: (input: unknown) => ipcRenderer.invoke('player:getNextEpisode', input),
+    play: (input: unknown) => ipcRenderer.invoke('player:play', input),
+    stop: () => ipcRenderer.invoke('player:stop'),
+    getTracks: () => ipcRenderer.invoke('player:getTracks'),
+    setAudioTrack: (input: unknown) => ipcRenderer.invoke('player:setAudioTrack', input),
+    setSubtitleTrack: (input: unknown) => ipcRenderer.invoke('player:setSubtitleTrack', input),
+    addSubtitle: (input: unknown) => ipcRenderer.invoke('player:addSubtitle', input),
+    seek: (input: unknown) => ipcRenderer.invoke('player:seek', input),
+    getStatus: () => ipcRenderer.invoke('player:getStatus'),
+    setFullScreen: (input: unknown) => ipcRenderer.invoke('player:setFullScreen', input),
   },
   config: {
     saveCredentials: (input: unknown) => ipcRenderer.invoke('config:saveCredentials', input),

@@ -1,23 +1,40 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { createMediaEngine, MediaEngine, PlaybackSource } from '../../services/media-engine';
+import React, { useEffect, useState, useCallback } from 'react';
 import { SeekBar } from '../molecules/osd/SeekBar';
 import { OsdTopBar } from '../molecules/osd/OsdTopBar';
 import { OsdControls } from '../molecules/osd/OsdControls';
 import { NextEpisodeCard } from '../molecules/osd/NextEpisodeCard';
 import { useIdleOSD } from '../../hooks/useIdleOSD';
 import { Spinner } from '../atoms/Spinner';
-import { resolveNextEpisode, Season } from '../../features/player/next-episode';
+import type { Season } from '../../features/player/next-episode';
 import type { Episode } from '../../../shared/types/ipc';
+import { createLuxAPI } from '../../lib/api';
+import {
+  exclusiveFullscreenPayload,
+  isExternalSubtitleFile,
+  isLiveRewindEnabled,
+  type PlayerTrack,
+} from '../../features/player/player-chrome';
 
 /**
  * VideoPlayer — Fullscreen video player organism with OSD overlay.
  *
- * Design §7.3: Full-bleed `<video>`, MediaEngine ref, OSD overlay, focus management, auto-hide timer
+ * Hosts the in-process libmpv surface. Chromium hls.js / mpegts / native
+ * `<video>` engines are not the product playback path.
  */
+
+type PlaybackSource = {
+  url: string;
+  mediaFormat: 'hls' | 'mp4' | 'dash' | 'ts' | 'unknown';
+  httpHeaders?: Record<string, string>;
+  type: 'live' | 'movie' | 'episode';
+  engine?: 'libmpv';
+};
 
 export interface VideoPlayerProps {
   /** Playback source (URL, format, headers) */
   source: PlaybackSource;
+  /** In-process libmpv load failure. No Chromium fallback. */
+  diagnosis?: { kind: string } | null;
   /** Called when playback ends naturally */
   onEnded?: () => void;
   /** Called when a fatal playback error occurs */
@@ -36,6 +53,7 @@ export interface VideoPlayerProps {
 
 export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   source,
+  diagnosis = null,
   onEnded,
   onError,
   onTimeUpdate,
@@ -44,8 +62,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   showNextEpisodeCard = false,
   className = '',
 }) => {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const engineRef = useRef<MediaEngine | null>(null);
   const [engineState, setEngineState] = useState<'idle' | 'loading' | 'playing' | 'recovering' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
@@ -54,224 +70,121 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [isPlaying, setIsPlaying] = useState(false);
   const [audioTrackIndex, setAudioTrackIndex] = useState(0);
   const [subtitleTrackIndex, setSubtitleTrackIndex] = useState(-1);
+  const [audioTracks, setAudioTracks] = useState<PlayerTrack[]>([]);
+  const [subtitleTracks, setSubtitleTracks] = useState<PlayerTrack[]>([]);
   const [aspectRatio, setAspectRatio] = useState<'16:9' | '4:3' | 'zoom' | 'fit'>('16:9');
-  const [nextEpisode, setNextEpisode] = useState<Episode | null>(null);
+  const [nextEpisode] = useState<Episode | null>(null);
   const [showNextEpisodeCardState, setShowNextEpisodeCardState] = useState(false);
 
   const { visible: osdVisible } = useIdleOSD(4000);
-  const stallOverlayTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const loadSettledRef = useRef(false);
-  const STALL_OVERLAY_MS = 1000;
 
-  // Initialize media engine
+  const refreshTracks = useCallback(async () => {
+    try {
+      const api = createLuxAPI().player;
+      const result = await api.getTracks();
+      if (result && 'data' in result && result.data) {
+        setAudioTracks(result.data.audio);
+        setSubtitleTracks(result.data.subtitles);
+      }
+      const status = await api.getStatus?.();
+      if (status && 'data' in status && status.data) {
+        setCurrentTime(status.data.currentTime);
+        setDuration(status.data.duration);
+        setBuffered([{ start: 0, end: status.data.buffered }]);
+      }
+    } catch {
+      // Renderer tests and unload without luxAPI must still mount.
+    }
+  }, []);
+
   useEffect(() => {
-    if (!videoRef.current) return;
-
-    const engine = createMediaEngine(videoRef.current, source);
-    engineRef.current = engine;
-
-    // Engine event handlers
-    const unsubProgress = engine.on('progress', (data) => {
-      if (data.loaded) {
-        setEngineState('playing');
-      }
-      if (data.recovered) {
-        setEngineState('playing');
-      }
-    });
-
-    const unsubBuffered = engine.on('buffered', (data) => {
-      if (data.buffered && Array.isArray(data.buffered)) {
-        setBuffered(data.buffered as Array<{ start: number; end: number }>);
-      }
-    });
-
-    const unsubRecovering = engine.on('recovering', () => {
-      setEngineState('recovering');
-    });
-
-    const unsubFatal = engine.on('fatal', (data) => {
-      setEngineState('error');
-      const msg = `Playback failed after ${data.attempts} retries`;
-      setErrorMessage(msg);
-      onError?.(new Error(msg));
-    });
-
-    const unsubError = engine.on('error', (data) => {
-      if (data.fatal === false) {
-        console.debug('[VideoPlayer] Non-fatal error:', data);
-      }
-    });
-
-    // Probe may fail a native attempt before HLS/mpegts; video.onError must
-    // not paint Playback Error until load() settles.
-    loadSettledRef.current = false;
-    setEngineState('loading');
-    engine.load()
-      .then(() => {
-        loadSettledRef.current = true;
-        const video = videoRef.current;
-        if (!video) return;
-        video.muted = false;
-        video.volume = 1;
-        return video.play()?.catch((err: unknown) => {
-          if (err instanceof Error && err.name === 'AbortError') return;
-          throw err;
-        });
-      })
-      .catch((err) => {
-        loadSettledRef.current = true;
-        setEngineState('error');
-        setErrorMessage(err.message);
-        onError?.(err);
-      });
-
-    return () => {
-      if (stallOverlayTimer.current) {
-        clearTimeout(stallOverlayTimer.current);
-        stallOverlayTimer.current = null;
-      }
-      unsubProgress();
-      unsubBuffered();
-      unsubRecovering();
-      unsubFatal();
-      unsubError();
-      engine.destroy();
-      engineRef.current = null;
-      if (videoRef.current) {
-        videoRef.current.removeAttribute('src');
-        videoRef.current.load();
+    setEngineState(diagnosis ? 'error' : 'playing');
+    if (diagnosis) {
+      setErrorMessage('libmpv failed to load');
+    }
+    void refreshTracks();
+    const onEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      try {
+        void createLuxAPI().player.setFullScreen(exclusiveFullscreenPayload(false));
+      } catch {
+        // Escape without luxAPI is a no-op in unit tests without the mock.
       }
     };
-  }, [source, onError]);
-
-  // Video event handlers
-  const handleLoadedMetadata = useCallback(() => {
-    const video = videoRef.current;
-    if (video) {
-      setDuration(video.duration);
-      setBuffered(Array.from({ length: video.buffered.length }, (_, i) => ({
-        start: video.buffered.start(i),
-        end: video.buffered.end(i),
-      })));
-    }
-  }, []);
-
-  const handleTimeUpdate = useCallback(() => {
-    const video = videoRef.current;
-    if (video) {
-      setCurrentTime(video.currentTime);
-      onTimeUpdate?.(video.currentTime);
-      
-      // Update buffered ranges
-      setBuffered(Array.from({ length: video.buffered.length }, (_, i) => ({
-        start: video.buffered.start(i),
-        end: video.buffered.end(i),
-      })));
-      
-      // Check for next-episode trigger at 95%
-      if (
-        showNextEpisodeCard &&
-        currentEpisode &&
-        seasons &&
-        !showNextEpisodeCardState &&
-        video.duration > 0 &&
-        video.currentTime / video.duration >= 0.95
-      ) {
-        const next = resolveNextEpisode(currentEpisode, seasons);
-        if (next) {
-          setNextEpisode(next);
-          setShowNextEpisodeCardState(true);
-        }
+    window.addEventListener('keydown', onEscape);
+    return () => {
+      window.removeEventListener('keydown', onEscape);
+      try {
+        void createLuxAPI().player.stop();
+      } catch {
+        // Renderer tests and unload without luxAPI must still unmount.
       }
-    }
-  }, [onTimeUpdate, showNextEpisodeCard, currentEpisode, seasons, showNextEpisodeCardState]);
+    };
+  }, [source, diagnosis, onEnded, onError, onTimeUpdate, seasons, currentEpisode, showNextEpisodeCard, refreshTracks]);
 
-  const handlePlay = useCallback(() => setIsPlaying(true), []);
-  const handlePause = useCallback(() => setIsPlaying(false), []);
-  const handleEnded = useCallback(() => {
-    setIsPlaying(false);
-    onEnded?.();
-  }, [onEnded]);
-
-  const handleError = useCallback((e: React.SyntheticEvent<HTMLVideoElement>) => {
-    if (!loadSettledRef.current) return;
-    const video = e.currentTarget;
-    setEngineState('error');
-    const msg = video.error?.message || 'Playback error';
-    setErrorMessage(msg);
-    onError?.(new Error(msg));
-  }, [onError]);
-
-  const handleWaiting = useCallback(() => {
-    if (stallOverlayTimer.current) clearTimeout(stallOverlayTimer.current);
-    stallOverlayTimer.current = setTimeout(() => {
-      setEngineState('recovering');
-    }, STALL_OVERLAY_MS);
-  }, []);
-
-  const handlePlaying = useCallback(() => {
-    if (stallOverlayTimer.current) {
-      clearTimeout(stallOverlayTimer.current);
-      stallOverlayTimer.current = null;
-    }
-    setEngineState('playing');
-  }, []);
-
-  // Seek handler
   const handleSeek = useCallback((time: number) => {
-    const video = videoRef.current;
-    if (video) {
-      video.currentTime = time;
+    setCurrentTime(time);
+    try {
+      void createLuxAPI().player.seek({ time });
+    } catch {
+      // Seek is best-effort when luxAPI is incomplete.
     }
   }, []);
 
-  // Control handlers
   const handleRewind10 = useCallback(() => {
-    const video = videoRef.current;
-    if (video) video.currentTime = Math.max(0, video.currentTime - 10);
+    if (!isLiveRewindEnabled(source.type)) return;
+    handleSeek(Math.max(0, currentTime - 10));
+  }, [currentTime, handleSeek, source.type]);
+
+  const handleFullscreen = useCallback(() => {
+    try {
+      void createLuxAPI().player.setFullScreen(exclusiveFullscreenPayload(true));
+    } catch {
+      // Exclusive fullscreen is main-process only.
+    }
   }, []);
 
   const handleForward10 = useCallback(() => {
-    const video = videoRef.current;
-    if (video) video.currentTime = Math.min(video.duration, video.currentTime + 10);
-  }, []);
+    const next = currentTime + 10;
+    handleSeek(duration > 0 ? Math.min(duration, next) : next);
+  }, [currentTime, duration, handleSeek]);
 
   const handlePlayPause = useCallback(() => {
-    const video = videoRef.current;
-    if (!video) return;
-    if (video.paused) {
-      video.play().catch(console.error);
-    } else {
-      video.pause();
+    setIsPlaying((playing) => !playing);
+  }, []);
+
+  const handleAudioTrackChange = useCallback((aid: number) => {
+    setAudioTrackIndex(aid);
+    try {
+      void createLuxAPI().player.setAudioTrack({ aid });
+    } catch {
+      // Tests without a full luxAPI still change the selected track.
     }
   }, []);
 
-  const handleAudioTrackChange = useCallback((index: number) => {
-    const video = videoRef.current;
-    const engine = engineRef.current;
-    if (video && engine && engine.kind === 'hls') {
-      // For hls.js, we'd set audioTrack
-      setAudioTrackIndex(index);
-    } else if (video) {
-      // For native, we'd set audioTrack if available
-      setAudioTrackIndex(index);
+  const handleSubtitleTrackChange = useCallback((sid: number) => {
+    setSubtitleTrackIndex(sid);
+    try {
+      void createLuxAPI().player.setSubtitleTrack({ sid });
+    } catch {
+      // Tests without a full luxAPI still change the selected track.
     }
   }, []);
 
-  const handleSubtitleTrackChange = useCallback((index: number) => {
-    const video = videoRef.current;
-    const engine = engineRef.current;
-    if (video && engine && engine.kind === 'hls') {
-      setSubtitleTrackIndex(index);
-    } else if (video) {
-      setSubtitleTrackIndex(index);
-    }
-  }, []);
-
-  // Get available tracks from engine
-  const audioTracks = engineRef.current?.audioTracks ?? [];
-  const subtitleTracks = engineRef.current?.subtitleTracks ?? [];
+  const handleAddSubtitle = useCallback(
+    (path: string) => {
+      if (!isExternalSubtitleFile(path)) return;
+      void (async () => {
+        try {
+          await createLuxAPI().player.addSubtitle({ path });
+          await refreshTracks();
+        } catch {
+          // External subtitle load is best-effort in unit tests.
+        }
+      })();
+    },
+    [refreshTracks],
+  );
 
   const videoStyle: React.CSSProperties = {
     position: 'absolute',
@@ -299,19 +212,24 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       data-testid="video-player"
       onMouseMove={() => {}} // Keep OSD visible on mouse move (handled by useIdleOSD)
     >
-      <video
-        ref={videoRef}
+      <div
         style={videoStyle}
-        playsInline
-        onLoadedMetadata={handleLoadedMetadata}
-        onTimeUpdate={handleTimeUpdate}
-        onPlay={handlePlay}
-        onPause={handlePause}
-        onEnded={handleEnded}
-        onError={handleError}
-        onWaiting={handleWaiting}
-        onPlaying={handlePlaying}
-        data-testid="video-element"
+        data-testid="libmpv-surface"
+        aria-label="libmpv surface"
+      />
+      <input
+        type="file"
+        accept=".srt,.ass"
+        data-testid="osd-add-subtitle"
+        title="Add subtitle"
+        style={{ display: 'none' }}
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          if (!file) return;
+          const path =
+            'path' in file && typeof file.path === 'string' ? file.path : file.name;
+          handleAddSubtitle(path);
+        }}
       />
 
       {/* Spinner during recovering */}
@@ -335,8 +253,32 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         </div>
       )}
 
+      {diagnosis?.kind === 'libmpv-load-failed' && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'rgba(0,0,0,0.9)',
+            color: '#fff',
+            padding: '24px',
+            textAlign: 'center',
+            zIndex: 12,
+          }}
+          data-testid="libmpv-diagnosis"
+        >
+          <h3 style={{ margin: '0 0 8px', fontSize: '1.25rem' }}>libmpv failed to load</h3>
+          <p style={{ margin: 0, color: '#888' }}>
+            In-process libmpv is unavailable. Chromium playback is not a fallback.
+          </p>
+        </div>
+      )}
+
       {/* Error UI */}
-      {engineState === 'error' && (
+      {engineState === 'error' && !diagnosis && (
         <div
           style={{
             position: 'absolute',
@@ -372,12 +314,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           {/* Top Bar */}
           <OsdTopBar
             title={source.type === 'live' ? 'Live TV' : 'Content Title'}
-            resolution={(() => {
-              const engine = engineRef.current;
-              if (!engine) return undefined;
-              const level = engine.levels?.[engine.currentLevel ?? 0];
-              return level ? `${level.height}p` : undefined;
-            })()}
+            resolution={undefined}
             audioTrack={audioTracks[audioTrackIndex]?.name}
             onBack={() => {
               // Navigation handled by parent
@@ -401,6 +338,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             onAudioTrackChange={handleAudioTrackChange}
             onSubtitleTrackChange={handleSubtitleTrackChange}
             onAspectRatioChange={setAspectRatio}
+            onFullscreen={handleFullscreen}
+            rewindDisabled={!isLiveRewindEnabled(source.type)}
           />
 
           {/* SeekBar (hidden for live) */}

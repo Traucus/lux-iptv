@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { VideoPlayer } from '../../components/organisms/VideoPlayer';
 import { getPosition, createPositionThrottler } from '../../db/playback-resume';
-import { Season } from './next-episode';
+import { Season, resolveFirstEpisode } from './next-episode';
 import type { Episode, CatalogItem } from '../../../shared/types/ipc';
 import { createLuxAPI } from '../../lib/api';
 import { Button } from '../../components/atoms/Button';
@@ -22,6 +22,7 @@ interface PlaybackSource {
   mediaFormat: 'hls' | 'mp4' | 'dash' | 'ts' | 'unknown';
   httpHeaders?: Record<string, string>;
   type: 'live' | 'movie' | 'episode';
+  engine?: 'libmpv';
 }
 
 interface ResumeDialogProps {
@@ -102,6 +103,7 @@ export const PlayerPage: React.FC = () => {
 
   const [playbackSource, setPlaybackSource] = useState<PlaybackSource | null>(null);
   const [proxyError, setProxyError] = useState(false);
+  const [diagnosis, setDiagnosis] = useState<{ kind: string } | null>(null);
   const [resumePosition, setResumePosition] = useState<number | null>(null);
   const [showResumeDialog, setShowResumeDialog] = useState(false);
   const [seasons, setSeasons] = useState<Season[]>([]);
@@ -133,11 +135,12 @@ export const PlayerPage: React.FC = () => {
     retry: false,
   });
 
-  // Resolve playback src only from player:getProxiedUrl (never origin).
+  // Origin play via in-process libmpv. getProxiedUrl is not the happy path.
   useEffect(() => {
     if (contentType !== 'episode' && !catalogItem) return;
     let cancelled = false;
     setProxyError(false);
+    setDiagnosis(null);
 
     (async () => {
       const luxAPI = createLuxAPI();
@@ -147,7 +150,7 @@ export const PlayerPage: React.FC = () => {
 
       if (contentType === 'series') {
         const seriesData = catalogItem as { series: CatalogItem; seasons: Season[] };
-        const firstEpisode = seriesData.seasons[0]?.episodes[0];
+        const firstEpisode = resolveFirstEpisode(seriesData.seasons ?? []);
         if (!firstEpisode) throw new Error('Series has no episodes');
         playType = 'episode';
         playId = firstEpisode.id;
@@ -170,21 +173,34 @@ export const PlayerPage: React.FC = () => {
         }
       }
 
-      const [meta, proxied] = await Promise.all([
+      const [meta, played] = await Promise.all([
         luxAPI.player.getSource({ type: playType, id: playId }),
-        luxAPI.player.getProxiedUrl({ type: playType, id: playId }),
+        luxAPI.player.play({ type: playType, id: playId }),
       ]);
-      if (proxied.error) throw new Error(proxied.error.message);
-      if (meta.error) throw new Error(meta.error.message);
       if (cancelled) return;
+      const loadKind = (played.error?.details as { kind?: string } | undefined)?.kind;
+      if (loadKind === 'libmpv-load-failed') {
+        setDiagnosis({ kind: loadKind });
+        setPlaybackSource({
+          url: '',
+          mediaFormat: meta.data?.mediaFormat ?? 'unknown',
+          type: playType,
+          engine: 'libmpv',
+        });
+        return;
+      }
+      if (played.error) throw new Error(played.error.message);
+      if (meta.error) throw new Error(meta.error.message);
       setPlaybackSource({
-        url: proxied.data.url,
+        url: '',
         mediaFormat: meta.data.mediaFormat,
         type: playType,
+        engine: 'libmpv',
       });
     })().catch(() => {
       if (!cancelled) {
         setPlaybackSource(null);
+        setDiagnosis(null);
         setProxyError(true);
       }
     });
@@ -252,6 +268,7 @@ export const PlayerPage: React.FC = () => {
     <div className="h-screen w-screen bg-black relative overflow-hidden" data-testid="player-shell">
       <VideoPlayer
         source={playbackSource}
+        diagnosis={diagnosis}
         onEnded={() => {
           throttler.flush().catch(console.error);
           // For episodes, next-episode card handles navigation

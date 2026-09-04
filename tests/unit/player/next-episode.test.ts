@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { describe, it, expect } from 'vitest';
-import { resolveNextEpisode, Season } from '../../../src/renderer/features/player/next-episode';
+import { resolveFirstEpisode, resolveNextEpisode, Season } from '../../../src/renderer/features/player/next-episode';
 import type { Episode } from '../../../shared/types/ipc';
 
 describe('resolveNextEpisode', () => {
@@ -126,5 +126,35 @@ describe('resolveNextEpisode', () => {
     
     const next = resolveNextEpisode(ep1, [season1, season2, season3]);
     expect(next).toEqual(ep2);
+  });
+});
+
+describe('resolveFirstEpisode', () => {
+  const ep = (id: number, season: number, episode: number): Episode => ({
+    id,
+    seriesId: 7,
+    name: `E${episode}`,
+    url: `https://origin.example/ep${id}.m3u8`,
+    season,
+    episode,
+    cover: null,
+    addedAt: 0,
+  });
+
+  it('plays series 7 first episode 101 not 102', () => {
+    const seasons: Season[] = [{
+      seasonNumber: 1,
+      episodes: [ep(101, 1, 1), ep(102, 1, 2)],
+    }];
+    expect(resolveFirstEpisode(seasons)?.id).toBe(101);
+  });
+
+  it('still picks 101 when 102 is listed first', () => {
+    const seasons: Season[] = [{
+      seasonNumber: 1,
+      episodes: [ep(102, 1, 2), ep(101, 1, 1)],
+    }];
+    expect(resolveFirstEpisode(seasons)?.id).toBe(101);
+    expect(resolveFirstEpisode(seasons)?.id).not.toBe(102);
   });
 });

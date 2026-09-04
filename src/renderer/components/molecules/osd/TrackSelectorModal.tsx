@@ -172,7 +172,7 @@ export const TrackSelectorModal: React.FC<TrackSelectorModalProps> = ({
             <button
               key={track.id}
               onClick={() => {
-                onSelect(index);
+                onSelect(track.id);
                 onClose();
               }}
               style={{
@@ -181,7 +181,7 @@ export const TrackSelectorModal: React.FC<TrackSelectorModalProps> = ({
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 padding: '12px 16px',
-                background: index === selectedIndex ? 'rgba(255,255,255,0.15)' : 'transparent',
+                background: track.id === selectedIndex ? 'rgba(255,255,255,0.15)' : 'transparent',
                 border: 'none',
                 borderRadius: '8px',
                 color: '#fff',
@@ -191,19 +191,19 @@ export const TrackSelectorModal: React.FC<TrackSelectorModalProps> = ({
                 transition: 'background 0.15s',
               }}
               onMouseOver={(e) => {
-                if (index !== selectedIndex) {
+                if (track.id !== selectedIndex) {
                   e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
                 }
               }}
               onMouseOut={(e) => {
-                if (index !== selectedIndex) {
+                if (track.id !== selectedIndex) {
                   e.currentTarget.style.background = 'transparent';
                 }
               }}
               data-testid={`track-option-${index}`}
             >
               <span>{track.lang ? `[${track.lang}] ${track.name}` : track.name}</span>
-              {index === selectedIndex && (
+              {track.id === selectedIndex && (
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <polyline points="20 6 9 17 4 12" />
                 </svg>

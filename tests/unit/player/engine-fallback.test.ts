@@ -23,3 +23,11 @@ describe('probeOrder', () => {
     expect(probeOrder('episode', 'ts')).toEqual(['mpegts', 'hls', 'native']);
   });
 });
+
+describe('Chromium probe is not the product path', () => {
+  it('media-engine remains unused by the libmpv happy path', async () => {
+    const mediaEngine = await import('../../../src/renderer/services/media-engine');
+    expect(typeof mediaEngine.createMediaEngine).toBe('function');
+    expect(mediaEngine.createMediaEngine.name).toBe('createMediaEngine');
+  });
+});

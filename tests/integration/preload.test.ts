@@ -80,6 +80,36 @@ describe('preload', () => {
     expect(typeof player.reportError).toBe('function');
     expect(typeof player.reportProgress).toBe('function');
     expect(typeof player.getNextEpisode).toBe('function');
+    expect(typeof player.play).toBe('function');
+    expect(typeof player.stop).toBe('function');
+  });
+
+  it('player.play forwards to player:play channel', async () => {
+    await import('../../src/preload/index');
+    const api = (globalThis as Record<string, unknown>).luxAPI as Record<string, unknown>;
+    const player = api.player as Record<string, (input: unknown) => Promise<unknown>>;
+    mockInvoke.mockResolvedValue({ data: { engine: 'libmpv' } });
+
+    await player.play({ type: 'movie', id: 1 });
+    expect(mockInvoke).toHaveBeenCalledWith('player:play', { type: 'movie', id: 1 });
+  });
+
+  it('player.stop forwards to player:stop channel', async () => {
+    await import('../../src/preload/index');
+    const api = (globalThis as Record<string, unknown>).luxAPI as Record<string, unknown>;
+    const player = api.player as Record<string, (input?: unknown) => Promise<unknown>>;
+    mockInvoke.mockResolvedValue({ data: { stopped: true } });
+
+    await player.stop();
+    expect(mockInvoke).toHaveBeenCalledWith('player:stop');
+  });
+
+  it('keeps the sandboxed preload TypeScript module as CommonJS', async () => {
+    const { readFileSync } = await import('node:fs');
+    const { join } = await import('node:path');
+    const raw = readFileSync(join(__dirname, '../../tsconfig.preload.json'), 'utf8');
+    const config = JSON.parse(raw) as { compilerOptions: { module: string } };
+    expect(config.compilerOptions.module).toBe('CommonJS');
   });
 
   it('player.getSource forwards to player:getSource channel', async () => {
