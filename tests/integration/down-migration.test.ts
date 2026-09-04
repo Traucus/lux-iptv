@@ -92,8 +92,8 @@ describe('down-migration', () => {
     const recorded = db
       .prepare(`SELECT version FROM schema_version ORDER BY version`)
       .all() as Array<{ version: number }>;
-    // After rolling back 0001 (version 2), versions 1 (0000) and 3 (0002) remain.
-    expect(recorded.map((r) => r.version)).toEqual([1, 3]);
+    // After rolling back 0001 (version 2), 0000/0002/0003 remain (versions 1, 3, 4).
+    expect(recorded.map((r) => r.version)).toEqual([1, 3, 4]);
 
     // Re-applying the up migration MUST succeed (no-op since version 3 > 2).
     // Columns http_headers/media_format remain absent until version 2 is re-applied.
@@ -105,5 +105,38 @@ describe('down-migration', () => {
     // so these columns stay gone.
     expect(liveCols).not.toContain('http_headers');
     expect(liveCols).not.toContain('media_format');
+  });
+
+  it('0003 down drops only container_extension and direct_source', () => {
+    const ups = loadMigrations(MIGRATIONS_DIR);
+    migrate(db, ups);
+
+    db.prepare(
+      `INSERT INTO live_channels (name, url, http_headers, media_format, container_extension, direct_source, added_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    ).run('Keep Headers', 'http://x/live-keep', '{}', 'hls', 'mkv', 'https://x/direct.mkv', 9000);
+
+    const downs = loadDownMigrations(MIGRATIONS_DIR);
+    const downFor0003 = downs.filter((d) => d.file.includes('0003_add_container_extension_and_direct_source_down'));
+    expect(downFor0003.length).toBe(1);
+
+    migrate(db, downFor0003, { direction: 'down' });
+
+    for (const table of ['live_channels', 'vod_movies', 'series', 'episodes']) {
+      const cols = (db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>).map(
+        (c) => c.name,
+      );
+      expect(cols).not.toContain('container_extension');
+      expect(cols).not.toContain('direct_source');
+      expect(cols).toContain('http_headers');
+      expect(cols).toContain('media_format');
+    }
+
+    const after = db
+      .prepare(`SELECT name, http_headers, media_format FROM live_channels WHERE url = ?`)
+      .get('http://x/live-keep') as { name: string; http_headers: string; media_format: string };
+    expect(after.name).toBe('Keep Headers');
+    expect(after.http_headers).toBe('{}');
+    expect(after.media_format).toBe('hls');
   });
 });

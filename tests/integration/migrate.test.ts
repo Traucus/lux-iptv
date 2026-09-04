@@ -85,6 +85,16 @@ describe('migrate', () => {
     expect(row.version).toBe(2);
   });
 
+  it('records a pending 0003 honest-source migration version when applied from disk', async () => {
+    const { join } = await import('node:path');
+    const { loadMigrations } = await import('../../src/main/db/migrate');
+    const all = loadMigrations(join(__dirname, '../../src/main/db/migrations'));
+    const v3 = all.find((m) => m.file.startsWith('0003_add_container_extension_and_direct_source'));
+    expect(v3).toBeDefined();
+    expect(v3!.sql).toMatch(/container_extension/);
+    expect(v3!.sql).toMatch(/direct_source/);
+  });
+
   it('only applies pending migrations', () => {
     // First, apply version 1
     migrate(db, [{ sql: `CREATE TABLE t1 (id INTEGER PRIMARY KEY);`, version: 1 }]);

@@ -41,6 +41,8 @@ describe('catalog handler', () => {
         stream_type TEXT NOT NULL DEFAULT 'live',
         http_headers TEXT NOT NULL DEFAULT '{}',
         media_format TEXT NOT NULL DEFAULT 'unknown',
+        container_extension TEXT NOT NULL DEFAULT '',
+        direct_source TEXT NOT NULL DEFAULT '',
         added_at INTEGER NOT NULL
       );
       CREATE TABLE vod_movies (
@@ -53,6 +55,8 @@ describe('catalog handler', () => {
         stream_type TEXT NOT NULL DEFAULT 'movie',
         http_headers TEXT NOT NULL DEFAULT '{}',
         media_format TEXT NOT NULL DEFAULT 'unknown',
+        container_extension TEXT NOT NULL DEFAULT '',
+        direct_source TEXT NOT NULL DEFAULT '',
         year INTEGER,
         added_at INTEGER NOT NULL
       );
@@ -66,6 +70,8 @@ describe('catalog handler', () => {
         stream_type TEXT NOT NULL DEFAULT 'series',
         http_headers TEXT NOT NULL DEFAULT '{}',
         media_format TEXT NOT NULL DEFAULT 'unknown',
+        container_extension TEXT NOT NULL DEFAULT '',
+        direct_source TEXT NOT NULL DEFAULT '',
         year INTEGER,
         added_at INTEGER NOT NULL
       );
@@ -79,6 +85,8 @@ describe('catalog handler', () => {
         cover TEXT,
         http_headers TEXT NOT NULL DEFAULT '{}',
         media_format TEXT NOT NULL DEFAULT 'unknown',
+        container_extension TEXT NOT NULL DEFAULT '',
+        direct_source TEXT NOT NULL DEFAULT '',
         added_at INTEGER NOT NULL,
         FOREIGN KEY (series_id) REFERENCES series(id) ON DELETE CASCADE
       );
@@ -121,6 +129,36 @@ describe('catalog handler', () => {
       expect(cnn.contentType).toBe('live');
       expect(cnn.mediaFormat).toBe('hls');
       expect(cnn.httpHeaders).toEqual({ 'User-Agent': 'X' });
+      expect(cnn.containerExtension).toBe('');
+      expect(cnn.directSource).toBe('');
+    });
+
+    it('maps containerExtension and directSource from movie rows', async () => {
+      db.prepare(
+        `INSERT INTO vod_movies (name, url, group_title, stream_type, year, http_headers, media_format, container_extension, direct_source, added_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ).run(
+        'Hevc Film',
+        'https://x/hevc.mkv',
+        'Movies',
+        'movie',
+        2024,
+        '{}',
+        'unknown',
+        'mkv',
+        'https://cdn.example.com/hevc.mkv',
+        1000,
+      );
+
+      const { ipc, captured } = captureIpcMain();
+      registerCatalogHandlers(ipc, { db });
+      const list = captured.find((c) => c.channel === 'catalog:list')!.fn;
+
+      const result = await list({}, { type: 'movie', limit: 10, offset: 0 });
+      const data = (result as { data: { items: Array<Record<string, unknown>> } }).data;
+      expect(data.items[0].containerExtension).toBe('mkv');
+      expect(data.items[0].directSource).toBe('https://cdn.example.com/hevc.mkv');
+      expect(data.items[0].mediaFormat).not.toBe('mp4');
     });
 
     it('returns empty httpHeaders when DB has the default "{}"', async () => {

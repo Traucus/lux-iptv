@@ -33,6 +33,8 @@ describe('catalog bulk insert — http_headers + media_format', () => {
         stream_type TEXT NOT NULL DEFAULT 'live',
         http_headers TEXT NOT NULL DEFAULT '{}',
         media_format TEXT NOT NULL DEFAULT 'unknown',
+        container_extension TEXT NOT NULL DEFAULT '',
+        direct_source TEXT NOT NULL DEFAULT '',
         added_at INTEGER NOT NULL
       );
       CREATE TABLE vod_movies (
@@ -45,6 +47,8 @@ describe('catalog bulk insert — http_headers + media_format', () => {
         stream_type TEXT NOT NULL DEFAULT 'movie',
         http_headers TEXT NOT NULL DEFAULT '{}',
         media_format TEXT NOT NULL DEFAULT 'unknown',
+        container_extension TEXT NOT NULL DEFAULT '',
+        direct_source TEXT NOT NULL DEFAULT '',
         year INTEGER,
         added_at INTEGER NOT NULL
       );
@@ -58,6 +62,8 @@ describe('catalog bulk insert — http_headers + media_format', () => {
         stream_type TEXT NOT NULL DEFAULT 'series',
         http_headers TEXT NOT NULL DEFAULT '{}',
         media_format TEXT NOT NULL DEFAULT 'unknown',
+        container_extension TEXT NOT NULL DEFAULT '',
+        direct_source TEXT NOT NULL DEFAULT '',
         year INTEGER,
         added_at INTEGER NOT NULL
       );

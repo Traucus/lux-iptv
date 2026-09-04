@@ -31,6 +31,10 @@ export interface M3UEntry {
    * Drives engine selection in the renderer (hls.js vs native <video>).
    */
   mediaFormat: MediaFormat;
+  /** Real container extension without a leading dot. Empty when unknown. */
+  containerExtension: string;
+  /** Xtream/M3U direct source when present. Empty when unused. */
+  directSource: string;
 }
 
 const ALLOWED_EXTENSIONS = ['.m3u', '.m3u8'];
@@ -52,6 +56,34 @@ interface FetchOptions {
  *
  * Query strings and fragments are stripped before matching. Case-insensitive.
  */
+export function isUsableDirectSource(value: string | null | undefined): boolean {
+  const trimmed = (value ?? '').trim();
+  if (!trimmed) return false;
+  try {
+    const parsed = new URL(trimmed);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+export function containerExtensionFromUrl(url: string): string {
+  let pathname: string;
+  try {
+    pathname = new URL(url, 'http://x.invalid').pathname;
+  } catch {
+    return '';
+  }
+  return pathname.toLowerCase().match(/\.([a-z0-9]+)$/)?.[1] ?? '';
+}
+
+export function resolveM3UPlayUrl(input: { url: string; directSource?: string | null }): string {
+  if (isUsableDirectSource(input.directSource)) {
+    return (input.directSource ?? '').trim();
+  }
+  return input.url;
+}
+
 export function detectMediaFormat(url: string): MediaFormat {
   // Resolve relative URLs against a synthetic base; pathname extraction strips
   // the query/fragment automatically. `new URL` throws on invalid input; the
@@ -161,6 +193,8 @@ function parseM3UText(text: string): M3UEntry[] {
       // so callers can distinguish "no hints" from "real hints".
       http: hasHttpHints(item.http) ? item.http! : null,
       mediaFormat: detectMediaFormat(item.url),
+      containerExtension: containerExtensionFromUrl(item.url),
+      directSource: '',
     });
   }
 

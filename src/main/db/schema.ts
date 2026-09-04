@@ -20,6 +20,8 @@ export const liveChannels = sqliteTable(
     mediaFormat: text('media_format', { enum: ['hls', 'mp4', 'dash', 'ts', 'unknown'] })
       .notNull()
       .default('unknown'),
+    containerExtension: text('container_extension').notNull().default(''),
+    directSource: text('direct_source').notNull().default(''),
     addedAt: integer('added_at').notNull(),
   },
   (t) => ({
@@ -49,6 +51,8 @@ export const vodMovies = sqliteTable(
     mediaFormat: text('media_format', { enum: ['hls', 'mp4', 'dash', 'ts', 'unknown'] })
       .notNull()
       .default('unknown'),
+    containerExtension: text('container_extension').notNull().default(''),
+    directSource: text('direct_source').notNull().default(''),
     year: integer('year'),
     addedAt: integer('added_at').notNull(),
   },
@@ -79,6 +83,8 @@ export const series = sqliteTable(
     mediaFormat: text('media_format', { enum: ['hls', 'mp4', 'dash', 'ts', 'unknown'] })
       .notNull()
       .default('unknown'),
+    containerExtension: text('container_extension').notNull().default(''),
+    directSource: text('direct_source').notNull().default(''),
     year: integer('year'),
     addedAt: integer('added_at').notNull(),
   },
@@ -111,6 +117,8 @@ export const episodes = sqliteTable(
     mediaFormat: text('media_format', { enum: ['hls', 'mp4', 'dash', 'ts', 'unknown'] })
       .notNull()
       .default('unknown'),
+    containerExtension: text('container_extension').notNull().default(''),
+    directSource: text('direct_source').notNull().default(''),
     addedAt: integer('added_at').notNull(),
   },
   (t) => ({

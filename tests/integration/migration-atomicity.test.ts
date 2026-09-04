@@ -61,6 +61,33 @@ describe('migration-atomicity', () => {
     expect(liveColsAfter).toContain('media_format');
   });
 
+  it('applies 0003 and adds container_extension + direct_source to all 4 tables', () => {
+    const all = loadMigrations(MIGRATIONS_DIR);
+    const v3 = all.find((m) => m.file.includes('0003_add_container_extension_and_direct_source'));
+    expect(v3).toBeDefined();
+
+    migrate(db, all);
+
+    for (const table of ['live_channels', 'vod_movies', 'series', 'episodes']) {
+      const cols = (db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>).map(
+        (c) => c.name,
+      );
+      expect(cols).toContain('container_extension');
+      expect(cols).toContain('direct_source');
+    }
+
+    db.prepare(`INSERT INTO vod_movies (name, url, added_at) VALUES (?, ?, ?)`).run(
+      'Default Movie',
+      'http://x/movie-default',
+      1000,
+    );
+    const row = db
+      .prepare(`SELECT container_extension, direct_source FROM vod_movies WHERE name = ?`)
+      .get('Default Movie') as { container_extension: string; direct_source: string };
+    expect(row.container_extension).toBe('');
+    expect(row.direct_source).toBe('');
+  });
+
   it('populates http_headers = "{}" and media_format = "unknown" for pre-existing rows', () => {
     const all = loadMigrations(MIGRATIONS_DIR);
     const v0 = all.filter((m) => m.version === 1);

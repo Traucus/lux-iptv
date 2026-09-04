@@ -20,6 +20,8 @@ type LiveChannelRow = {
    * Detected media container/format. Drives engine selection in the renderer.
    */
   mediaFormat?: 'hls' | 'mp4' | 'dash' | 'ts' | 'unknown';
+  containerExtension?: string;
+  directSource?: string;
 };
 
 type VodMovieRow = {
@@ -33,6 +35,8 @@ type VodMovieRow = {
   addedAt: number;
   httpHeaders?: Record<string, string>;
   mediaFormat?: 'hls' | 'mp4' | 'dash' | 'ts' | 'unknown';
+  containerExtension?: string;
+  directSource?: string;
 };
 
 type SeriesRow = {
@@ -46,6 +50,8 @@ type SeriesRow = {
   addedAt: number;
   httpHeaders?: Record<string, string>;
   mediaFormat?: 'hls' | 'mp4' | 'dash' | 'ts' | 'unknown';
+  containerExtension?: string;
+  directSource?: string;
 };
 
 /**
@@ -60,8 +66,8 @@ export function bulkInsertLiveChannels(db: SqlJsCompatDb, rows: LiveChannelRow[]
   if (rows.length === 0) return;
 
   const stmt = db.prepare(`
-    INSERT INTO live_channels (xtream_id, name, url, group_title, tvg_id, tvg_logo, stream_type, http_headers, media_format, added_at)
-    VALUES (@xtreamId, @name, @url, @groupTitle, @tvgId, @tvgLogo, @streamType, @httpHeaders, @mediaFormat, @addedAt)
+    INSERT INTO live_channels (xtream_id, name, url, group_title, tvg_id, tvg_logo, stream_type, http_headers, media_format, container_extension, direct_source, added_at)
+    VALUES (@xtreamId, @name, @url, @groupTitle, @tvgId, @tvgLogo, @streamType, @httpHeaders, @mediaFormat, @containerExtension, @directSource, @addedAt)
     ON CONFLICT(url) DO UPDATE SET
       name = excluded.name,
       group_title = excluded.group_title,
@@ -69,7 +75,9 @@ export function bulkInsertLiveChannels(db: SqlJsCompatDb, rows: LiveChannelRow[]
       tvg_logo = excluded.tvg_logo,
       stream_type = excluded.stream_type,
       http_headers = excluded.http_headers,
-      media_format = excluded.media_format
+      media_format = excluded.media_format,
+      container_extension = excluded.container_extension,
+      direct_source = excluded.direct_source
   `);
 
   for (let i = 0; i < rows.length; i += BATCH_SIZE) {
@@ -86,6 +94,8 @@ export function bulkInsertLiveChannels(db: SqlJsCompatDb, rows: LiveChannelRow[]
           streamType: row.streamType ?? 'live',
           httpHeaders: JSON.stringify(row.httpHeaders ?? {}),
           mediaFormat: row.mediaFormat ?? 'unknown',
+          containerExtension: row.containerExtension ?? '',
+          directSource: row.directSource ?? '',
           addedAt: row.addedAt,
         });
       }
@@ -98,8 +108,8 @@ export function bulkInsertVodMovies(db: SqlJsCompatDb, rows: VodMovieRow[]): voi
   if (rows.length === 0) return;
 
   const stmt = db.prepare(`
-    INSERT INTO vod_movies (xtream_id, name, url, group_title, cover, stream_type, year, http_headers, media_format, added_at)
-    VALUES (@xtreamId, @name, @url, @groupTitle, @cover, @streamType, @year, @httpHeaders, @mediaFormat, @addedAt)
+    INSERT INTO vod_movies (xtream_id, name, url, group_title, cover, stream_type, year, http_headers, media_format, container_extension, direct_source, added_at)
+    VALUES (@xtreamId, @name, @url, @groupTitle, @cover, @streamType, @year, @httpHeaders, @mediaFormat, @containerExtension, @directSource, @addedAt)
     ON CONFLICT(url) DO UPDATE SET
       name = excluded.name,
       group_title = excluded.group_title,
@@ -107,7 +117,9 @@ export function bulkInsertVodMovies(db: SqlJsCompatDb, rows: VodMovieRow[]): voi
       stream_type = excluded.stream_type,
       year = excluded.year,
       http_headers = excluded.http_headers,
-      media_format = excluded.media_format
+      media_format = excluded.media_format,
+      container_extension = excluded.container_extension,
+      direct_source = excluded.direct_source
   `);
 
   for (let i = 0; i < rows.length; i += BATCH_SIZE) {
@@ -124,6 +136,8 @@ export function bulkInsertVodMovies(db: SqlJsCompatDb, rows: VodMovieRow[]): voi
           year: row.year ?? null,
           httpHeaders: JSON.stringify(row.httpHeaders ?? {}),
           mediaFormat: row.mediaFormat ?? 'unknown',
+          containerExtension: row.containerExtension ?? '',
+          directSource: row.directSource ?? '',
           addedAt: row.addedAt,
         });
       }
@@ -139,8 +153,8 @@ export function bulkInsertSeries(db: SqlJsCompatDb, rows: SeriesRow[]): void {
   // series with the same title), so we INSERT plain. Caller is responsible
   // for deduplication upstream (e.g. ingest worker batches by series_id).
   const stmt = db.prepare(`
-    INSERT INTO series (xtream_id, name, url, group_title, cover, stream_type, year, http_headers, media_format, added_at)
-    VALUES (@xtreamId, @name, @url, @groupTitle, @cover, @streamType, @year, @httpHeaders, @mediaFormat, @addedAt)
+    INSERT INTO series (xtream_id, name, url, group_title, cover, stream_type, year, http_headers, media_format, container_extension, direct_source, added_at)
+    VALUES (@xtreamId, @name, @url, @groupTitle, @cover, @streamType, @year, @httpHeaders, @mediaFormat, @containerExtension, @directSource, @addedAt)
   `);
 
   for (let i = 0; i < rows.length; i += BATCH_SIZE) {
@@ -157,6 +171,8 @@ export function bulkInsertSeries(db: SqlJsCompatDb, rows: SeriesRow[]): void {
           year: row.year ?? null,
           httpHeaders: JSON.stringify(row.httpHeaders ?? {}),
           mediaFormat: row.mediaFormat ?? 'unknown',
+          containerExtension: row.containerExtension ?? '',
+          directSource: row.directSource ?? '',
           addedAt: row.addedAt,
         });
       }

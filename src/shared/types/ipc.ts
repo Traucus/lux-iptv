@@ -118,6 +118,10 @@ export type CatalogItem = {
   year: number | null;
   contentType: 'live' | 'movie' | 'series' | 'episode';
   mediaFormat: 'hls' | 'mp4' | 'dash' | 'ts' | 'unknown';
+  /** Real container extension (mkv, mp4, m3u8). Empty when unknown. */
+  containerExtension: string;
+  /** Usable origin direct source when present. Empty otherwise. */
+  directSource: string;
   /**
    * Per-stream HTTP request hints in canonical wire format (header name → value).
    * `{}` when the source did not provide any overrides. Consumed by the

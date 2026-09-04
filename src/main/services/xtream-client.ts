@@ -1,4 +1,9 @@
-import type { M3UEntry, M3UEntryHttpHints } from './m3u-client.js';
+import {
+  detectMediaFormat,
+  isUsableDirectSource,
+  type M3UEntry,
+  type M3UEntryHttpHints,
+} from './m3u-client.js';
 
 const DEFAULT_TIMEOUT_MS = 15000;
 
@@ -104,23 +109,40 @@ function extractHttpHints(raw: Record<string, unknown>): M3UEntryHttpHints | nul
   return hints;
 }
 
-function buildStreamUrl(
-  server: string,
-  type: 'live' | 'movie' | 'series',
-  username: string,
-  password: string,
-  streamId: number,
-  extension?: string,
-): string {
-  const base = server.replace(/\/+$/, '');
-  if (type === 'live') {
-    return `${base}/live/${username}/${password}/${streamId}.m3u8`;
+export type HonestStreamUrlInput = {
+  server: string;
+  type: 'live' | 'movie' | 'series';
+  username: string;
+  password: string;
+  streamId: number;
+  containerExtension?: string | null;
+  directSource?: string | null;
+};
+
+export function normalizeContainerExtension(ext: string | null | undefined): string {
+  return (ext ?? '').trim().replace(/^\./, '').toLowerCase();
+}
+
+export function buildHonestStreamUrl(input: HonestStreamUrlInput): string {
+  if (isUsableDirectSource(input.directSource)) {
+    return (input.directSource ?? '').trim();
   }
-  if (type === 'movie') {
-    return `${base}/movie/${username}/${password}/${streamId}.${extension ?? 'mp4'}`;
+
+  const base = input.server.replace(/\/+$/, '');
+  const ext = normalizeContainerExtension(input.containerExtension);
+  const pathType = input.type === 'live' ? 'live' : input.type === 'movie' ? 'movie' : 'series';
+
+  if (input.type === 'live') {
+    if (ext && ext !== 'm3u8') {
+      return `${base}/live/${input.username}/${input.password}/${input.streamId}.${ext}`;
+    }
+    return `${base}/live/${input.username}/${input.password}/${input.streamId}.m3u8`;
   }
-  // series — individual episodes use series endpoint
-  return `${base}/series/${username}/${password}/${streamId}.${extension ?? 'mp4'}`;
+
+  if (!ext) {
+    return `${base}/${pathType}/${input.username}/${input.password}/${input.streamId}`;
+  }
+  return `${base}/${pathType}/${input.username}/${input.password}/${input.streamId}.${ext}`;
 }
 
 async function fetchJson<T>(url: string, timeoutMs: number): Promise<T> {
@@ -195,14 +217,27 @@ export async function fetchXtreamLive(
     .filter((s) => s.name && s.name.trim().length > 0)
     .map((s) => {
       const http = extractHttpHints(s as unknown as Record<string, unknown>);
+      const directSource = (s.direct_source ?? '').trim();
+      const url = buildHonestStreamUrl({
+        server: credentials.server,
+        type: 'live',
+        username: credentials.username,
+        password: credentials.password,
+        streamId: s.stream_id,
+        directSource,
+      });
       return {
         name: s.name.trim(),
-        url: buildStreamUrl(credentials.server, 'live', credentials.username, credentials.password, s.stream_id),
+        url,
         groupTitle: categoryMap.get(s.category_id) ?? null,
         tvgId: s.epg_channel_id ?? null,
         tvgLogo: s.stream_icon || null,
         http,
-        mediaFormat: 'hls' as const,
+        mediaFormat: detectMediaFormat(url),
+        containerExtension: normalizeContainerExtension(
+          isUsableDirectSource(directSource) ? undefined : 'm3u8',
+        ) || 'm3u8',
+        directSource: isUsableDirectSource(directSource) ? directSource : '',
       };
     });
 }
@@ -235,17 +270,28 @@ export async function fetchXtreamVod(
   return streams
     .filter((s) => s.name && s.name.trim().length > 0)
     .map((s) => {
-      const ext = s.container_extension ?? 'mp4';
-      const mediaFormat = ext === 'm3u8' ? 'hls' : ext === 'mpd' ? 'dash' : ext === 'ts' ? 'ts' : 'mp4';
+      const ext = normalizeContainerExtension(s.container_extension);
+      const directSource = (s.direct_source ?? '').trim();
       const http = extractHttpHints(s as unknown as Record<string, unknown>);
+      const url = buildHonestStreamUrl({
+        server: credentials.server,
+        type: 'movie',
+        username: credentials.username,
+        password: credentials.password,
+        streamId: s.stream_id,
+        containerExtension: ext,
+        directSource,
+      });
       return {
         name: s.name.trim(),
-        url: buildStreamUrl(credentials.server, 'movie', credentials.username, credentials.password, s.stream_id, ext),
+        url,
         groupTitle: categoryMap.get(s.category_id) ?? null,
         tvgId: null,
         tvgLogo: s.stream_icon || null,
         http,
-        mediaFormat: mediaFormat as M3UEntry['mediaFormat'],
+        mediaFormat: detectMediaFormat(url),
+        containerExtension: ext,
+        directSource: isUsableDirectSource(directSource) ? directSource : '',
       };
     });
 }
@@ -286,21 +332,24 @@ export async function fetchXtreamSeries(
     if (series.series_id == null) continue;
     const groupTitle =
       categoryMap.get(String(series.category_id)) ?? series.genre ?? null;
+    const url = buildHonestStreamUrl({
+      server: credentials.server,
+      type: 'series',
+      username: credentials.username,
+      password: credentials.password,
+      streamId: series.series_id,
+      containerExtension: 'm3u8',
+    });
     entries.push({
       name: series.name,
-      url: buildStreamUrl(
-        credentials.server,
-        'series',
-        credentials.username,
-        credentials.password,
-        series.series_id,
-        'm3u8',
-      ),
+      url,
       groupTitle,
       tvgId: null,
       tvgLogo: series.cover || null,
       http: null,
-      mediaFormat: 'hls',
+      mediaFormat: detectMediaFormat(url),
+      containerExtension: 'm3u8',
+      directSource: '',
     });
   }
 
@@ -364,7 +413,7 @@ export async function fetchXtreamSeriesInfo(
           streamId,
           name: String(ep.title ?? ep.name ?? `Episode ${ep.episode_num ?? ''}`).trim() || `S${season}E${ep.episode_num ?? ''}`,
           cover: typeof epInfo.movie_image === 'string' ? epInfo.movie_image : null,
-          extension: String(ep.container_extension ?? 'mp4').replace(/^\./, '') || 'mp4',
+          extension: normalizeContainerExtension(String(ep.container_extension ?? '')),
         });
       }
     }
@@ -384,12 +433,12 @@ export function xtreamEpisodeUrl(
   streamId: number,
   extension: string,
 ): string {
-  return buildStreamUrl(
-    credentials.server,
-    'series',
-    credentials.username,
-    credentials.password,
+  return buildHonestStreamUrl({
+    server: credentials.server,
+    type: 'series',
+    username: credentials.username,
+    password: credentials.password,
     streamId,
-    extension,
-  );
+    containerExtension: extension,
+  });
 }

@@ -70,5 +70,21 @@ describe('catalog schema columns (http_headers + media_format)', () => {
       expect(info!.notnull).toBe(1);
       expect(String(info!.dflt_value)).toBe("'unknown'");
     });
+
+    it(`${table} has container_extension column defaulting to empty string`, () => {
+      expect(columns(table)).toContain('container_extension');
+      const info = columnInfo(table, 'container_extension');
+      expect(info).toBeDefined();
+      expect(info!.notnull).toBe(1);
+      expect(String(info!.dflt_value)).toBe("''");
+    });
+
+    it(`${table} has direct_source column defaulting to empty string`, () => {
+      expect(columns(table)).toContain('direct_source');
+      const info = columnInfo(table, 'direct_source');
+      expect(info).toBeDefined();
+      expect(info!.notnull).toBe(1);
+      expect(String(info!.dflt_value)).toBe("''");
+    });
   }
 });

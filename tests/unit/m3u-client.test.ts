@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
-import { fetchM3U, readLocalM3U } from '../../src/main/services/m3u-client';
+import { fetchM3U, readLocalM3U, resolveM3UPlayUrl } from '../../src/main/services/m3u-client';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -39,6 +39,28 @@ describe('m3u-client', () => {
       expect(entries[0].groupTitle).toBe('News');
       expect(entries[0].tvgId).toBe('cnn');
       expect(entries[0].tvgLogo).toBe('https://example.com/cnn.png');
+      expect(entries[0].url.endsWith('.mp4')).toBe(false);
+    });
+
+    it('keeps a .mkv VOD URL and records containerExtension', async () => {
+      const mkvPlaylist = `#EXTM3U
+#EXTINF:-1 group-title="Movies",Hevc Film
+https://stream.example.com/movie/hevc.mkv
+`;
+      server.use(
+        http.get('https://example.com/mkv.m3u', () => {
+          return new HttpResponse(mkvPlaylist, {
+            headers: { 'Content-Type': 'application/x-mpegurl' },
+          });
+        }),
+      );
+
+      const entries = await fetchM3U('https://example.com/mkv.m3u');
+      expect(entries).toHaveLength(1);
+      expect(entries[0].url).toBe('https://stream.example.com/movie/hevc.mkv');
+      expect(entries[0].containerExtension).toBe('mkv');
+      expect(entries[0].directSource).toBe('');
+      expect(entries[0].mediaFormat).toBe('unknown');
     });
 
     it('skips malformed entries without crashing', async () => {
@@ -120,6 +142,35 @@ https://stream.example.com/also-good
     it('rejects path traversal attempts', async () => {
       const filePath = path.join(tmpDir, '..', '..', 'etc', 'passwd');
       await expect(readLocalM3U(filePath, tmpDir)).rejects.toThrow(/INVALID_INPUT|outside/i);
+    });
+  });
+
+  describe('resolveM3UPlayUrl', () => {
+    it('returns the mkv URL unchanged', () => {
+      expect(
+        resolveM3UPlayUrl({
+          url: 'https://stream.example.com/film.mkv',
+          directSource: '',
+        }),
+      ).toBe('https://stream.example.com/film.mkv');
+    });
+
+    it('uses usable https direct_source when present', () => {
+      expect(
+        resolveM3UPlayUrl({
+          url: 'https://stream.example.com/film.mp4',
+          directSource: 'https://cdn.example.com/real.mkv',
+        }),
+      ).toBe('https://cdn.example.com/real.mkv');
+    });
+
+    it('does not invent .mp4 for an extensionless URL', () => {
+      const url = resolveM3UPlayUrl({
+        url: 'https://stream.example.com/movie/avatar',
+        directSource: '',
+      });
+      expect(url).toBe('https://stream.example.com/movie/avatar');
+      expect(url.endsWith('.mp4')).toBe(false);
     });
   });
 });

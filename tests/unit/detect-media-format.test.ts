@@ -57,6 +57,11 @@ describe('detectMediaFormat', () => {
       expect(detectMediaFormat('https://cdn.example.com/movie.avi')).toBe('unknown');
     });
 
+    it('maps .mkv to unknown, never mp4', () => {
+      expect(detectMediaFormat('https://cdn.example.com/vod/movie.mkv')).toBe('unknown');
+      expect(detectMediaFormat('https://cdn.example.com/vod/movie.mkv')).not.toBe('mp4');
+    });
+
     it('returns unknown for empty string', () => {
       expect(detectMediaFormat('')).toBe('unknown');
     });

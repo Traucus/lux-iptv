@@ -44,8 +44,8 @@ export function processM3UEntries(db: SqlJsCompatDb, entries: M3UEntry[]): Inges
 
   // Prepare statements
   const insertLive = db.prepare(`
-    INSERT INTO live_channels (xtream_id, name, url, group_title, tvg_id, tvg_logo, stream_type, http_headers, media_format, added_at)
-    VALUES (@xtreamId, @name, @url, @groupTitle, @tvgId, @tvgLogo, @streamType, @httpHeaders, @mediaFormat, @addedAt)
+    INSERT INTO live_channels (xtream_id, name, url, group_title, tvg_id, tvg_logo, stream_type, http_headers, media_format, container_extension, direct_source, added_at)
+    VALUES (@xtreamId, @name, @url, @groupTitle, @tvgId, @tvgLogo, @streamType, @httpHeaders, @mediaFormat, @containerExtension, @directSource, @addedAt)
     ON CONFLICT(url) DO UPDATE SET
       name = excluded.name,
       group_title = excluded.group_title,
@@ -53,12 +53,14 @@ export function processM3UEntries(db: SqlJsCompatDb, entries: M3UEntry[]): Inges
       tvg_logo = excluded.tvg_logo,
       stream_type = excluded.stream_type,
       http_headers = excluded.http_headers,
-      media_format = excluded.media_format
+      media_format = excluded.media_format,
+      container_extension = excluded.container_extension,
+      direct_source = excluded.direct_source
   `);
 
   const insertMovie = db.prepare(`
-    INSERT INTO vod_movies (xtream_id, name, url, group_title, cover, stream_type, year, http_headers, media_format, added_at)
-    VALUES (@xtreamId, @name, @url, @groupTitle, @cover, @streamType, @year, @httpHeaders, @mediaFormat, @addedAt)
+    INSERT INTO vod_movies (xtream_id, name, url, group_title, cover, stream_type, year, http_headers, media_format, container_extension, direct_source, added_at)
+    VALUES (@xtreamId, @name, @url, @groupTitle, @cover, @streamType, @year, @httpHeaders, @mediaFormat, @containerExtension, @directSource, @addedAt)
     ON CONFLICT(url) DO UPDATE SET
       name = excluded.name,
       group_title = excluded.group_title,
@@ -66,18 +68,22 @@ export function processM3UEntries(db: SqlJsCompatDb, entries: M3UEntry[]): Inges
       stream_type = excluded.stream_type,
       year = excluded.year,
       http_headers = excluded.http_headers,
-      media_format = excluded.media_format
+      media_format = excluded.media_format,
+      container_extension = excluded.container_extension,
+      direct_source = excluded.direct_source
   `);
 
   const insertSeries = db.prepare(`
-    INSERT INTO series (xtream_id, name, url, group_title, cover, stream_type, year, http_headers, media_format, added_at)
-    VALUES (@xtreamId, @name, @url, @groupTitle, @cover, @streamType, @year, @httpHeaders, @mediaFormat, @addedAt)
+    INSERT INTO series (xtream_id, name, url, group_title, cover, stream_type, year, http_headers, media_format, container_extension, direct_source, added_at)
+    VALUES (@xtreamId, @name, @url, @groupTitle, @cover, @streamType, @year, @httpHeaders, @mediaFormat, @containerExtension, @directSource, @addedAt)
     ON CONFLICT(url) DO UPDATE SET
       name = excluded.name,
       group_title = excluded.group_title,
       cover = excluded.cover,
       http_headers = excluded.http_headers,
-      media_format = excluded.media_format
+      media_format = excluded.media_format,
+      container_extension = excluded.container_extension,
+      direct_source = excluded.direct_source
   `);
 
   for (const entry of entries) {
@@ -97,6 +103,8 @@ export function processM3UEntries(db: SqlJsCompatDb, entries: M3UEntry[]): Inges
     // into the canonical header-name → value map the DB column expects.
     const httpHeaders = m3uHttpToWire(entry.http);
     const mediaFormat = entry.mediaFormat ?? 'unknown';
+    const containerExtension = entry.containerExtension ?? '';
+    const directSource = entry.directSource ?? '';
 
     switch (contentType) {
       case 'live':
@@ -110,6 +118,8 @@ export function processM3UEntries(db: SqlJsCompatDb, entries: M3UEntry[]): Inges
           streamType: 'live',
           httpHeaders: JSON.stringify(httpHeaders),
           mediaFormat,
+          containerExtension,
+          directSource,
           addedAt: now,
         });
         counts.live++;
@@ -125,6 +135,8 @@ export function processM3UEntries(db: SqlJsCompatDb, entries: M3UEntry[]): Inges
           year: null,
           httpHeaders: JSON.stringify(httpHeaders),
           mediaFormat,
+          containerExtension,
+          directSource,
           addedAt: now,
         });
         counts.movies++;
@@ -141,6 +153,8 @@ export function processM3UEntries(db: SqlJsCompatDb, entries: M3UEntry[]): Inges
           year: null,
           httpHeaders: JSON.stringify(httpHeaders),
           mediaFormat,
+          containerExtension,
+          directSource,
           addedAt: now,
         });
         counts.series++;
@@ -156,6 +170,8 @@ export function processM3UEntries(db: SqlJsCompatDb, entries: M3UEntry[]): Inges
           streamType: 'radio',
           httpHeaders: JSON.stringify(httpHeaders),
           mediaFormat,
+          containerExtension,
+          directSource,
           addedAt: now,
         });
         counts.radio++;

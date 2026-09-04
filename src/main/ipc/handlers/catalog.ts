@@ -16,6 +16,7 @@ import {
   type XtreamCredentials,
   type XtreamSeriesInfo,
 } from '../../services/xtream-client.js';
+import { detectMediaFormat } from '../../services/m3u-client.js';
 
 /**
  * Catalog IPC handler — exposes paginated reads against the SQLite catalog DB
@@ -39,6 +40,16 @@ function notFound(message: string) {
   return { error: { code: 'NOT_FOUND' as const, message } };
 }
 
+function honestSourceFields(row: Record<string, unknown>): {
+  containerExtension: string;
+  directSource: string;
+} {
+  return {
+    containerExtension: typeof row.container_extension === 'string' ? row.container_extension : '',
+    directSource: typeof row.direct_source === 'string' ? row.direct_source : '',
+  };
+}
+
 function mapLiveRow(row: Record<string, unknown>): CatalogItem {
   return {
     id: row.id as number,
@@ -50,6 +61,7 @@ function mapLiveRow(row: Record<string, unknown>): CatalogItem {
     contentType: (row.stream_type as 'live' | 'movie' | 'series' | 'episode') ?? 'live',
     mediaFormat: ((row.media_format as string) ?? 'unknown') as CatalogItem['mediaFormat'],
     httpHeaders: parseHttpHeaders(row.http_headers),
+    ...honestSourceFields(row),
   };
 }
 
@@ -64,6 +76,7 @@ function mapMovieRow(row: Record<string, unknown>): CatalogItem {
     contentType: 'movie',
     mediaFormat: ((row.media_format as string) ?? 'unknown') as CatalogItem['mediaFormat'],
     httpHeaders: parseHttpHeaders(row.http_headers),
+    ...honestSourceFields(row),
   };
 }
 
@@ -78,6 +91,7 @@ function mapSeriesRow(row: Record<string, unknown>): CatalogItem {
     contentType: 'series',
     mediaFormat: ((row.media_format as string) ?? 'unknown') as CatalogItem['mediaFormat'],
     httpHeaders: parseHttpHeaders(row.http_headers),
+    ...honestSourceFields(row),
   };
 }
 
@@ -180,7 +194,7 @@ async function hydrateSeriesEpisodes(
   );
   for (const ep of info.episodes) {
     const url = xtreamEpisodeUrl(creds, ep.streamId, ep.extension);
-    const format = ep.extension === 'm3u8' ? 'hls' : ep.extension === 'ts' ? 'ts' : 'mp4';
+    const format = detectMediaFormat(url);
     insert.run(sqliteSeriesId, ep.name, url, ep.season, ep.episode, ep.cover, format, now);
   }
   return info;
