@@ -63,6 +63,8 @@ export type SourceSummary = {
   configured: boolean;
   listName?: string;
   source?: IngestSource;
+  /** Hostname only. Never username or password. */
+  host?: string;
 };
 
 export type IngestCancelInput = { jobId: string };

@@ -11,11 +11,6 @@ export function registerConfigHandlers(ipcMain: IpcMain, configService: ConfigSe
     return { data: { ok: true } };
   });
 
-  ipcMain.handle('config:loadCredentials', async () => {
-    const credentials = configService.loadCredentials();
-    return { data: credentials };
-  });
-
   ipcMain.handle('config:hasSource', async () => {
     return { data: configService.hasSource() };
   });

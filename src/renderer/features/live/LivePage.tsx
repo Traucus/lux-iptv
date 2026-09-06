@@ -1,13 +1,17 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Sidebar, type SidebarSection } from '../../components/organisms/Sidebar';
 import { CategoryRow, type CategoryRowItem } from '../../components/molecules/CategoryRow';
 import { ChannelCard } from '../../components/molecules/ChannelCard';
 import { Spinner } from '../../components/atoms/Spinner';
 import { useCatalogGrouped } from '../../queries/use-catalog';
+import { ListRefreshButton } from '../ingest/ListRefreshButton';
+import { GroupSeeAll } from '../catalog/GroupSeeAll';
 
 export function LivePage(): React.ReactElement {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const group = params.get('group');
   const { data, isLoading, error } = useCatalogGrouped('live', 20);
 
   const onSidebarSelect = (section: SidebarSection): void => {
@@ -37,6 +41,28 @@ export function LivePage(): React.ReactElement {
     <div className="min-h-screen bg-surface flex">
       <Sidebar active="live" onSelect={onSidebarSelect} />
       <main className="flex-1 overflow-y-auto p-6 safe-area">
+        <ListRefreshButton />
+        {group ? (
+          <GroupSeeAll
+            type="live"
+            group={group}
+            parentPath="/live"
+            onSelect={(id) => navigate(`/watch/live/${id}`)}
+            renderItem={(item) => (
+              <ChannelCard
+                channel={{
+                  id: item.id,
+                  name: item.name,
+                  groupTitle: group,
+                  logo: item.cover,
+                  currentProgram: null,
+                }}
+                onSelect={(c) => navigate(`/watch/live/${c.id}`)}
+              />
+            )}
+          />
+        ) : (
+          <>
         <h1 className="text-2xl font-bold text-white mb-6">Live TV</h1>
         {isLoading ? (
           <div className="flex items-center justify-center min-h-[50vh]">
@@ -57,6 +83,8 @@ export function LivePage(): React.ReactElement {
               onSeeAll={() => navigate(`/live?group=${encodeURIComponent(group.title)}`)}
             />
           ))
+        )}
+          </>
         )}
       </main>
     </div>

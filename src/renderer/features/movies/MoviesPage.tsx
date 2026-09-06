@@ -1,13 +1,17 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Sidebar, type SidebarSection } from '../../components/organisms/Sidebar';
 import { CategoryRow, type CategoryRowItem } from '../../components/molecules/CategoryRow';
 import { MoviePosterCard } from '../../components/molecules/MoviePosterCard';
 import { Spinner } from '../../components/atoms/Spinner';
 import { useCatalogGrouped } from '../../queries/use-catalog';
+import { ListRefreshButton } from '../ingest/ListRefreshButton';
+import { GroupSeeAll } from '../catalog/GroupSeeAll';
 
 export function MoviesPage(): React.ReactElement {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const group = params.get('group');
   const { data, isLoading, error } = useCatalogGrouped('movie', 20);
 
   const onSidebarSelect = (section: SidebarSection): void => {
@@ -37,6 +41,28 @@ export function MoviesPage(): React.ReactElement {
     <div className="min-h-screen bg-surface flex">
       <Sidebar active="movies" onSelect={onSidebarSelect} />
       <main className="flex-1 overflow-y-auto p-6 safe-area">
+        <ListRefreshButton />
+        {group ? (
+          <GroupSeeAll
+            type="movie"
+            group={group}
+            parentPath="/movies"
+            onSelect={(id) => navigate(`/content/movie/${id}`)}
+            renderItem={(item) => (
+              <MoviePosterCard
+                movie={{
+                  id: item.id,
+                  name: item.name,
+                  year: item.year ?? null,
+                  posterPath: item.cover,
+                  enriched: false,
+                }}
+                onSelect={(m) => navigate(`/content/movie/${m.id}`)}
+              />
+            )}
+          />
+        ) : (
+          <>
         <h1 className="text-2xl font-bold text-white mb-6">Movies</h1>
         {isLoading ? (
           <div className="flex items-center justify-center min-h-[50vh]">
@@ -57,6 +83,8 @@ export function MoviesPage(): React.ReactElement {
               onSeeAll={() => navigate(`/movies?group=${encodeURIComponent(group.title)}`)}
             />
           ))
+        )}
+          </>
         )}
       </main>
     </div>

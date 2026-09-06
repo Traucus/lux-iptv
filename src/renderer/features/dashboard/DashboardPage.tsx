@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Sidebar, type SidebarSection } from '../../components/organisms/Sidebar';
 import { HeroBanner } from '../../components/organisms/HeroBanner';
@@ -8,11 +8,8 @@ import { ChannelCard, type ChannelCardData } from '../../components/molecules/Ch
 import { MoviePosterCard, type MoviePosterData } from '../../components/molecules/MoviePosterCard';
 import { SeriesPosterCard, type SeriesPosterData } from '../../components/molecules/SeriesPosterCard';
 import { useDashboardData } from './useDashboardData';
-import { createLuxAPI } from '../../lib/api';
-import { useHasSource } from '../../queries/use-source';
+import { ListRefreshButton } from '../ingest/ListRefreshButton';
 import type { EnrichedCatalogItem } from '../../../shared/types/ipc';
-
-const api = createLuxAPI();
 
 function itemToMovie(item: EnrichedCatalogItem): MoviePosterData {
   return {
@@ -64,27 +61,8 @@ export function DashboardPage(): React.ReactElement {
   const navigate = useNavigate();
   const location = useLocation();
   const data = useDashboardData();
-  const [refreshing, setRefreshing] = useState(false);
-  const { data: hasSource } = useHasSource();
-  const hasSavedCredentials = Boolean(hasSource?.configured);
 
   const activeSection = routeToSection(location.pathname);
-
-  const handleRefresh = async (): Promise<void> => {
-    setRefreshing(true);
-    try {
-      const result = await api.ingest.refresh();
-      if (result.error) {
-        if (result.error.code === 'NOT_FOUND') {
-          navigate('/ingest');
-        }
-        return;
-      }
-      // Overlay is IngestProgressHost; stay on Home.
-    } finally {
-      setRefreshing(false);
-    }
-  };
 
   const onSidebarSelect = (section: SidebarSection): void => {
     switch (section) {
@@ -113,28 +91,7 @@ export function DashboardPage(): React.ReactElement {
       <Sidebar active={activeSection} onSelect={onSidebarSelect} />
 
       <main className="flex-1 overflow-y-auto p-6 safe-area">
-        {/* Refresh button — only shown when saved credentials exist */}
-        {hasSavedCredentials && (
-          <div className="flex justify-end mb-4">
-            <button
-              type="button"
-              onClick={handleRefresh}
-              disabled={refreshing}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-glass border border-white/10 text-gray-300 hover:text-white hover:border-primary-500/40 transition-colors text-sm disabled:opacity-50"
-            >
-              {refreshing ? (
-                <Spinner size="sm" label="" />
-              ) : (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="23 4 23 10 17 10" />
-                  <polyline points="1 20 1 14 7 14" />
-                  <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
-                </svg>
-              )}
-              {refreshing ? 'Actualizando…' : 'Actualizar listas'}
-            </button>
-          </div>
-        )}
+        <ListRefreshButton />
 
         {data.loading ? (
           <div className="flex items-center justify-center min-h-[50vh]">

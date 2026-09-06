@@ -65,15 +65,16 @@ export class ConfigService {
     return { configured: this.isConfigured(this.loadCredentials()) };
   }
 
-  sourceSummary(): { configured: boolean; listName?: string; source?: 'xtream' | 'm3u' } {
+  sourceSummary(): { configured: boolean; listName?: string; source?: 'xtream' | 'm3u'; host?: string } {
     const credentials = this.loadCredentials();
     if (!this.isConfigured(credentials)) {
       return { configured: false };
     }
     return {
       configured: true,
-      listName: credentials!.listName,
-      source: this.inferSource(credentials!),
+      listName: credentials.listName,
+      source: this.inferSource(credentials),
+      host: publicHost(credentials),
     };
   }
 
@@ -95,5 +96,15 @@ export class ConfigService {
     }
     if (credentials.url && !credentials.server) return 'm3u';
     return 'xtream';
+  }
+}
+
+function publicHost(credentials: NonNullable<AppConfig['credentials']>): string | undefined {
+  const raw = credentials.server || credentials.url;
+  if (!raw) return undefined;
+  try {
+    return new URL(raw).host;
+  } catch {
+    return undefined;
   }
 }

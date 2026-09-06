@@ -213,6 +213,7 @@ export function IngestPage(): React.ReactElement {
             <SourceVaultCard
               listName={summary?.listName ?? 'Saved source'}
               source={summary?.source ?? 'xtream'}
+              host={summary?.host}
               onReplace={handleReplaceSource}
             />
           ) : (

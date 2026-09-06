@@ -10,15 +10,17 @@ const SOURCE_LABEL: Record<IngestSource, string> = {
 export interface SourceVaultCardProps {
   listName: string;
   source: IngestSource;
+  host?: string;
   onReplace: () => void;
 }
 
-export function SourceVaultCard({ listName, source, onReplace }: SourceVaultCardProps): React.ReactElement {
+export function SourceVaultCard({ listName, source, host, onReplace }: SourceVaultCardProps): React.ReactElement {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-2">
         <h1 className="text-display-sm font-bold text-white">{listName}</h1>
         <p className="text-gray-400">{SOURCE_LABEL[source]}</p>
+        {host ? <p className="text-gray-300 text-sm">{host}</p> : null}
       </div>
       <Button type="button" variant="glass" onClick={onReplace}>
         Replace source
