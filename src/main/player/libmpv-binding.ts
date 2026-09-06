@@ -4,8 +4,11 @@
  */
 
 import { createRequire } from 'node:module';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const require = createRequire(import.meta.url);
+const here = dirname(fileURLToPath(import.meta.url));
 
 export interface LibmpvBinding {
   loadLibrary(): boolean;
@@ -34,7 +37,9 @@ type NativeAddon = NativeSession & {
 
 function tryLoadNapiAddon(): NativeAddon | null {
   const candidates = [
-    process.env.LUX_LIBMPV_DIR ? `${process.env.LUX_LIBMPV_DIR}/lux-libmpv.node` : '',
+    process.env.LUX_LIBMPV_DIR ? join(process.env.LUX_LIBMPV_DIR, 'lux-libmpv.node') : '',
+    join(here, '../../../native/lux-libmpv/build/Release/lux-libmpv.node'),
+    join(here, '../../native/lux-libmpv/build/Release/lux-libmpv.node'),
     'lux-libmpv.node',
   ].filter(Boolean);
 

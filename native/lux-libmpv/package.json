@@ -1,0 +1,7 @@
+{
+  "name": "lux-libmpv",
+  "version": "0.1.0",
+  "private": true,
+  "gypfile": true,
+  "description": "In-process libmpv N-API addon. Never spawns mpv.exe."
+}
