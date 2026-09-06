@@ -15,6 +15,7 @@ import {
   PlayerAddSubtitleInputSchema,
   PlayerSeekInputSchema,
   PlayerSetFullScreenInputSchema,
+  PlayerSetPausedInputSchema,
 } from '../../../shared/schemas/player.js';
 import { createLibmpvEngine, type LibmpvEngine } from '../../player/libmpv-engine.js';
 
@@ -188,6 +189,15 @@ export function registerPlayerHandlers(ipcMain: IpcMain, deps: PlayerHandlerDeps
     }
     await engine.stop();
     return { data: { stopped: true } };
+  });
+
+  ipcMain.handle('player:setPaused', async (_event, input: unknown) => {
+    const parsed = PlayerSetPausedInputSchema.safeParse(input);
+    if (!parsed.success) {
+      return invalidInput(parsed.error.issues);
+    }
+    engine.setPaused(parsed.data.paused);
+    return { data: { paused: parsed.data.paused } };
   });
 
   ipcMain.handle('player:getTracks', async () => ({ data: engine.getTracks() }));

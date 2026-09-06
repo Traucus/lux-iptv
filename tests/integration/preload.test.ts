@@ -82,6 +82,7 @@ describe('preload', () => {
     expect(typeof player.getNextEpisode).toBe('function');
     expect(typeof player.play).toBe('function');
     expect(typeof player.stop).toBe('function');
+    expect(typeof player.setPaused).toBe('function');
   });
 
   it('player.play forwards to player:play channel', async () => {

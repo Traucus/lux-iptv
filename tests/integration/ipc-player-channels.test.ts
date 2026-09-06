@@ -98,9 +98,10 @@ describe('player IPC channels (registration + behavior)', () => {
         'player:getProxiedUrl',
         'player:play',
         'player:stop',
+        'player:setPaused',
       ]),
     );
-    expect(channels).toHaveLength(14);
+    expect(channels).toHaveLength(15);
   });
 
   describe('player:play', () => {

@@ -54,6 +54,7 @@ const playerMocks = vi.hoisted(() => {
       data: { currentTime: 50, duration: 100, buffered: 60 },
     })),
     mockSetFullScreen: vi.fn().mockResolvedValue({ data: { fullscreen: true } }),
+    mockSetPaused: vi.fn().mockResolvedValue({ data: { paused: true } }),
     reset() {
       state.audio = [
         { id: 1, name: 'English' },
@@ -75,6 +76,7 @@ vi.mock('../../../src/renderer/lib/api', () => ({
       seek: playerMocks.mockSeek,
       getStatus: playerMocks.mockGetStatus,
       setFullScreen: playerMocks.mockSetFullScreen,
+      setPaused: playerMocks.mockSetPaused,
     },
   }),
 }));
@@ -235,6 +237,12 @@ describe('Production VideoPlayer fullscreen and OSD (slice 3)', () => {
     expect(screen.getByTestId('osd-audio-button')).toHaveAttribute('title');
     expect(screen.getByTestId('osd-subtitle-button')).toHaveAttribute('title');
     expect(screen.getByTestId('osd-fullscreen')).toHaveAttribute('title');
+  });
+
+  it('play/pause toggles libmpv pause property', async () => {
+    render(<ProductionVideoPlayer source={movie} />);
+    fireEvent.click(await screen.findByTestId('osd-play-pause'));
+    expect(playerMocks.mockSetPaused).toHaveBeenCalledWith({ paused: true });
   });
 
   it('forwards 10 seconds via seek', async () => {

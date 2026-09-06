@@ -94,3 +94,4 @@ export const PlayerSetSubtitleTrackInputSchema = z.object({ sid: z.number().int(
 export const PlayerAddSubtitleInputSchema = z.object({ path: z.string().min(1) });
 export const PlayerSeekInputSchema = z.object({ time: z.number().min(0) });
 export const PlayerSetFullScreenInputSchema = z.object({ fullscreen: z.boolean() });
+export const PlayerSetPausedInputSchema = z.object({ paused: z.boolean() });

@@ -143,6 +143,17 @@ describe('LibmpvEngine', () => {
     expect(binding.command).toHaveBeenCalledWith(['seek', 75, 'absolute']);
   });
 
+  it('setPaused writes the libmpv pause property after play', async () => {
+    const binding = playingBinding();
+    binding.setProperty = vi.fn();
+    const engine = createLibmpvEngine(binding);
+    await engine.play({ url: 'https://origin.example/movie.mkv', httpHeaders: {} });
+    engine.setPaused(true);
+    expect(binding.setProperty).toHaveBeenCalledWith('pause', 'yes');
+    engine.setPaused(false);
+    expect(binding.setProperty).toHaveBeenCalledWith('pause', 'no');
+  });
+
   it('applies live options in-process before loading the origin URL', async () => {
     const binding = playingBinding();
     const engine = createLibmpvEngine(binding);

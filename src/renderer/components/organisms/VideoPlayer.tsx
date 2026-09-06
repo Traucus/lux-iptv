@@ -99,6 +99,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
   useEffect(() => {
     setEngineState(diagnosis ? 'error' : 'playing');
+    setIsPlaying(!diagnosis);
     if (diagnosis) {
       setErrorMessage('libmpv failed to load');
     }
@@ -150,7 +151,15 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   }, [currentTime, duration, handleSeek]);
 
   const handlePlayPause = useCallback(() => {
-    setIsPlaying((playing) => !playing);
+    setIsPlaying((playing) => {
+      const nextPlaying = !playing;
+      try {
+        void createLuxAPI().player.setPaused({ paused: !nextPlaying });
+      } catch {
+        // Tests without a full luxAPI still toggle the OSD icon.
+      }
+      return nextPlaying;
+    });
   }, []);
 
   const handleAudioTrackChange = useCallback((aid: number) => {

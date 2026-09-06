@@ -23,6 +23,7 @@ export type LibmpvPlayResult =
 export type LibmpvEngine = {
   play(request: LibmpvPlayRequest): Promise<LibmpvPlayResult>;
   stop(): Promise<void>;
+  setPaused(paused: boolean): void;
   getTracks(): { audio: PlayerTrack[]; subtitles: PlayerTrack[] };
   setAudioTrack(aid: number): void;
   setSubtitleTrack(sid: number): void;
@@ -64,6 +65,10 @@ export function createLibmpvEngine(binding: LibmpvBinding = createNativeLibmpvBi
     async stop(): Promise<void> {
       if (!loaded) return;
       binding.stop();
+    },
+    setPaused(paused: boolean): void {
+      if (!loaded) return;
+      binding.setProperty?.('pause', paused ? 'yes' : 'no');
     },
     getTracks() {
       const list = binding.getTrackList?.() ?? [];

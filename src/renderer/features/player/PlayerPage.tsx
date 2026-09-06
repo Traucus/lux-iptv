@@ -105,6 +105,7 @@ export const PlayerPage: React.FC = () => {
   const [proxyError, setProxyError] = useState(false);
   const [diagnosis, setDiagnosis] = useState<{ kind: string } | null>(null);
   const [resumePosition, setResumePosition] = useState<number | null>(null);
+  const [resumeDuration, setResumeDuration] = useState(0);
   const [showResumeDialog, setShowResumeDialog] = useState(false);
   const [seasons, setSeasons] = useState<Season[]>([]);
   const [currentEpisode, setCurrentEpisode] = useState<Episode | null>(null);
@@ -217,6 +218,7 @@ export const PlayerPage: React.FC = () => {
     getPosition(playbackSource.type, contentId).then((pos) => {
       if (pos && pos.position > 30 && pos.position < pos.duration - 30) {
         setResumePosition(pos.position);
+        setResumeDuration(pos.duration);
         setShowResumeDialog(true);
       }
     });
@@ -224,8 +226,13 @@ export const PlayerPage: React.FC = () => {
 
   const handleResume = useCallback(() => {
     setShowResumeDialog(false);
-    // VideoPlayer will seek to resumePosition on mount
-  }, []);
+    if (resumePosition == null) return;
+    try {
+      void createLuxAPI().player.seek({ time: resumePosition });
+    } catch {
+      // Seek is best-effort when luxAPI is incomplete.
+    }
+  }, [resumePosition]);
 
   const handleRestart = useCallback(() => {
     setShowResumeDialog(false);
@@ -288,7 +295,7 @@ export const PlayerPage: React.FC = () => {
       {showResumeDialog && resumePosition !== null && (
         <ResumeDialog
           position={resumePosition}
-          duration={0} // Would be fetched from video duration
+          duration={resumeDuration}
           onResume={handleResume}
           onRestart={handleRestart}
         />

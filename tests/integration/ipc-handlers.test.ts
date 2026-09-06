@@ -68,6 +68,7 @@ describe('ipc handlers', () => {
       'player:getProxiedUrl',
       'player:play',
       'player:stop',
+      'player:setPaused',
       'player:reportError',
       'player:reportProgress',
       'player:getNextEpisode',

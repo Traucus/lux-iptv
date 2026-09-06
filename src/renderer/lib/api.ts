@@ -39,7 +39,6 @@ export type TypedLuxAPI = {
   };
   config: {
     saveCredentials: (input: CredentialsConfig) => Promise<IpcResult<{ ok: boolean }>>;
-    loadCredentials: () => Promise<IpcResult<CredentialsConfig | null>>;
     hasSource: () => Promise<IpcResult<HasSource>>;
     sourceSummary: () => Promise<IpcResult<SourceSummary>>;
   };
@@ -51,6 +50,7 @@ export type TypedLuxAPI = {
     getNextEpisode: (input: PlayerGetNextEpisodeInputParsed) => Promise<IpcResult<Episode | null>>;
     play: (input: PlayerPlayInputParsed) => Promise<IpcResult<{ engine: 'libmpv' }>>;
     stop: () => Promise<IpcResult<{ stopped: true }>>;
+    setPaused: (input: { paused: boolean }) => Promise<IpcResult<{ paused: boolean }>>;
     getTracks: () => Promise<IpcResult<{ audio: Array<{ id: number; name: string; lang?: string }>; subtitles: Array<{ id: number; name: string; lang?: string }> }>>;
     setAudioTrack: (input: { aid: number }) => Promise<IpcResult<true>>;
     setSubtitleTrack: (input: { sid: number }) => Promise<IpcResult<true>>;

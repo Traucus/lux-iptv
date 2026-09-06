@@ -54,6 +54,7 @@ const luxAPI = {
     getNextEpisode: (input: unknown) => ipcRenderer.invoke('player:getNextEpisode', input),
     play: (input: unknown) => ipcRenderer.invoke('player:play', input),
     stop: () => ipcRenderer.invoke('player:stop'),
+    setPaused: (input: unknown) => ipcRenderer.invoke('player:setPaused', input),
     getTracks: () => ipcRenderer.invoke('player:getTracks'),
     setAudioTrack: (input: unknown) => ipcRenderer.invoke('player:setAudioTrack', input),
     setSubtitleTrack: (input: unknown) => ipcRenderer.invoke('player:setSubtitleTrack', input),
@@ -64,7 +65,6 @@ const luxAPI = {
   },
   config: {
     saveCredentials: (input: unknown) => ipcRenderer.invoke('config:saveCredentials', input),
-    loadCredentials: () => ipcRenderer.invoke('config:loadCredentials'),
     hasSource: () => ipcRenderer.invoke('config:hasSource'),
     sourceSummary: () => ipcRenderer.invoke('config:sourceSummary'),
   },

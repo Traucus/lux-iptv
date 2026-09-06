@@ -18,17 +18,18 @@ export interface LibmpvBinding {
   command?(args: Array<string | number>): void;
 }
 
-type NativeSession = {
+export type NativeSession = {
   play: LibmpvBinding['play'];
   stop: LibmpvBinding['stop'];
   setOptions?: NonNullable<LibmpvBinding['setOptions']>;
+  getTrackList?: NonNullable<LibmpvBinding['getTrackList']>;
+  setProperty?: NonNullable<LibmpvBinding['setProperty']>;
+  getProperty?: NonNullable<LibmpvBinding['getProperty']>;
+  command?: NonNullable<LibmpvBinding['command']>;
 };
 
-type NativeAddon = {
+type NativeAddon = NativeSession & {
   create?: () => NativeSession;
-  play?: LibmpvBinding['play'];
-  stop?: LibmpvBinding['stop'];
-  setOptions?: NonNullable<LibmpvBinding['setOptions']>;
 };
 
 function tryLoadNapiAddon(): NativeAddon | null {
@@ -53,38 +54,71 @@ function tryLoadNapiAddon(): NativeAddon | null {
   return null;
 }
 
-export function createNativeLibmpvBinding(): LibmpvBinding {
-  let session: NativeSession | null = null;
+function sessionFromAddon(addon: NativeAddon): NativeSession | null {
+  if (typeof addon.create === 'function') {
+    return addon.create();
+  }
+  if (typeof addon.play === 'function' && typeof addon.stop === 'function') {
+    return {
+      play: addon.play,
+      stop: addon.stop,
+      setOptions: addon.setOptions,
+      getTrackList: addon.getTrackList,
+      setProperty: addon.setProperty,
+      getProperty: addon.getProperty,
+      command: addon.command,
+    };
+  }
+  return null;
+}
 
+/** Forwards every session method the engine uses. Missing methods stay no-ops. */
+export function createForwardingBinding(getSession: () => NativeSession | null): LibmpvBinding {
   return {
     loadLibrary(): boolean {
-      const addon = tryLoadNapiAddon();
-      if (!addon) {
-        session = null;
-        return false;
-      }
-      if (typeof addon.create === 'function') {
-        session = addon.create();
-        return true;
-      }
-      if (typeof addon.play === 'function' && typeof addon.stop === 'function') {
-        session = { play: addon.play, stop: addon.stop, setOptions: addon.setOptions };
-        return true;
-      }
-      session = null;
-      return false;
+      return getSession() != null;
     },
     play(url: string, headers: Record<string, string>, wid?: Buffer): void {
+      const session = getSession();
       if (!session) {
         throw new Error('libmpv is not loaded');
       }
       session.play(url, headers, wid);
     },
     stop(): void {
-      session?.stop();
+      getSession()?.stop();
     },
     setOptions(options: Record<string, string | number>): void {
-      session?.setOptions?.(options);
+      getSession()?.setOptions?.(options);
+    },
+    getTrackList() {
+      return getSession()?.getTrackList?.() ?? [];
+    },
+    setProperty(name: string, value: string | number): void {
+      getSession()?.setProperty?.(name, value);
+    },
+    getProperty(name: string): string | number | undefined {
+      return getSession()?.getProperty?.(name);
+    },
+    command(args: Array<string | number>): void {
+      getSession()?.command?.(args);
+    },
+  };
+}
+
+export function createNativeLibmpvBinding(): LibmpvBinding {
+  let session: NativeSession | null = null;
+  const binding = createForwardingBinding(() => session);
+  return {
+    ...binding,
+    loadLibrary(): boolean {
+      const addon = tryLoadNapiAddon();
+      if (!addon) {
+        session = null;
+        return false;
+      }
+      session = sessionFromAddon(addon);
+      return session != null;
     },
   };
 }
