@@ -1,3 +1,7 @@
+# SUPERSEDED — Chromium / hls.js player (do not implement)
+
+Superseded by `lux-iptv-player-mpv` (D-10 / D-14). Keep this folder for history only.
+
 # Proposal: Lux IPTV Slice 2 — Video Player + App Shell + OSD
 
 ## Why

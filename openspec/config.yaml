@@ -17,11 +17,8 @@ stack:
     language: "TypeScript"
   backend:
     licensing:
-      runtime: "Node.js 20 LTS"
-      framework: "Fastify"
-      database: "PostgreSQL 16"
-      orm: "Drizzle ORM"
-      deployment: "Docker Compose (dev) → PM2 + nginx + Let's Encrypt (prod)"
+      status: "F14 backlog — not this train"
+      note: "Do not treat Fastify/PostgreSQL as current product. Catalog is sql.js in Electron main."
   desktop:
     framework: "Electron"
     node_version: "20 LTS"
@@ -37,16 +34,15 @@ architecture:
   data_flow: "Unidirectional (React state + IndexedDB)"
 
 features:
-  - "Multi-profile management (up to 5 profiles)"
-  - "Xtream Codes & M3U/M3U8 playlist ingestion"
-  - "Live TV with EPG guide"
-  - "VOD (Movies) with resume playback"
-  - "Series with season/episode hierarchy"
-  - "Parental control with PIN"
-  - "Global search with virtual keyboard"
-  - "TMDB metadata enrichment"
-  - "HWID-based licensing system"
-  - "10-Foot UI for TV/remote control"
+  - "Xtream Codes & M3U playlist ingestion"
+  - "Catalog browse: Live / Movies / Series"
+  - "Windows in-process libmpv player (F2)"
+  - "Source vault + list refresh (F3)"
+  - "TMDB visual layer (F4)"
+  - "VOD resume / next / see-all (F5)"
+  - "EPG (F6)"
+  - "Windows installer bundles libmpv (F7)"
+  - "Backlog after F7: profiles, parental, search, license (F11–F14)"
 
 ui_design:
   stitch_project_id: "13689263770000742462"

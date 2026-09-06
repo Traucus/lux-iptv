@@ -64,15 +64,21 @@ The CSP MUST include `worker-src 'self' blob:` to allow Web Workers and service 
 
 ### Requirement: Dead Sidebar Buttons Hidden
 
-Sidebar navigation buttons for features not yet implemented (Settings, Parental Control, EPG) MUST be hidden or removed from the sidebar until their respective slices.
+Sidebar MUST show Home, Live, Movies, Series, and Settings (vault, D-2). Buttons for features not yet implemented (Parental Control, EPG, Search, Favorites) MUST be hidden until their phases.
 
-(Previously: Dead buttons were visible but non-functional, confusing users.)
+(Previously: Settings was hidden; that contradicted D-2.)
 
-#### Scenario: Settings button not visible
+#### Scenario: Settings is vault
 
-- GIVEN the app is running with foundation features only
+- GIVEN the app is running
 - WHEN the sidebar renders
-- THEN the Settings button MUST NOT be visible
+- THEN Settings MUST be visible and route to `/ingest`
+
+#### Scenario: Unimplemented buttons stay hidden
+
+- GIVEN Parental, EPG, Search, and Favorites are not in F1–F5
+- WHEN the sidebar renders
+- THEN those items MUST NOT be visible
 
 #### Scenario: Implemented buttons remain visible
 

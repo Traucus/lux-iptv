@@ -1,60 +1,100 @@
-# Delta for player-core
+# player-core
 
-## ADDED Requirements
+Windows product player. Happy path is **in-process libmpv** in one Lux window (D-10, D-14). Chromium `hls.js`, mpegts.js, native `<video>`, spawned `mpv.exe`, and `--wid` are not the product engine.
 
-### Requirement: hls.js Engine with Resilience
+## Requirements
 
-The player MUST use hls.js as the HLS playback engine. It MUST implement a resilience loop: on error, attempt reconnect up to 3 times with exponential backoff (1s, 2s, 4s). After 3 failures, report fatal error.
+### Requirement: In-Process libmpv Engine
 
-#### Scenario: Transient error recovers
+The player MUST play with in-process libmpv in one Lux window using the catalog origin URL plus item headers. It MUST NOT spawn `mpv.exe`, use Chromium `--wid`, or use VLC. Live MUST cache ~20s and reconnect; VOD MUST keep origin quality.
 
-- GIVEN hls.js encounters a NETWORK_ERROR
-- WHEN the resilience loop retries after 1s
-- THEN playback MUST resume from the point of failure
+#### Scenario: mkv plays in Lux window
 
-#### Scenario: 3 consecutive failures — fatal
+- GIVEN libmpv is loaded and a movie URL ends `.mkv`
+- WHEN the user opens that movie
+- THEN libmpv MUST play it in the same Lux window
 
-- GIVEN 3 consecutive reconnect attempts all fail
-- WHEN the 4th error occurs
-- THEN the player MUST report a fatal error and show error UI
+#### Scenario: Origin URL is the happy path
+
+- GIVEN origin URL and `http_headers`
+- WHEN playback starts
+- THEN libmpv MUST load that origin with those headers
+- AND a proxied `127.0.0.1` src MUST NOT be the happy path
+
+### Requirement: libmpv Load Failure Diagnosis
+
+If libmpv fails to load, the player MUST show diagnosis UI. It MUST NOT fall back to hls.js, mpegts.js, or native `<video>`.
+
+#### Scenario: Missing libmpv shows diagnosis
+
+- GIVEN libmpv cannot load
+- WHEN playback starts
+- THEN diagnosis UI MUST show and zero Chromium probe MUST run
+
+### Requirement: Tracks Fullscreen And OSD
+
+The player MUST use libmpv `track-list`, include subtitle Off, allow `.srt`/`.ass` load, use exclusive fullscreen covering the taskbar (Escape exits), and give every OSD control a `title` tooltip. Live −10s MUST be disabled.
+
+#### Scenario: Audio track and subs
+
+- GIVEN two audio tracks
+- WHEN the user selects track 2, THEN audible audio MUST switch
+- WHEN the user selects Off, THEN no subtitle MUST show
+- WHEN the user loads `.srt`/`.ass`, THEN it MUST be selectable
+
+#### Scenario: Fullscreen and live OSD
+
+- GIVEN playback in the Lux window
+- WHEN the user enters fullscreen, THEN it MUST cover the taskbar and Escape MUST exit
+- WHEN live OSD appears, THEN −10s MUST be disabled and controls MUST have `title` tooltips
+
+### Requirement: Watch Route Resolves Series To First Episode
+
+`/watch/series/:id` MUST start libmpv playback of the first episode.
+
+#### Scenario: Series resolves first episode
+
+- GIVEN series 7 with episodes 101 then 102
+- WHEN `/watch/series/7` opens
+- THEN libmpv MUST play episode 101
 
 ### Requirement: VideoPlayer Organism
 
-The VideoPlayer component MUST render a fullscreen `<video>` element that fills its container. It MUST accept a `src` prop (proxied URL) and manage the hls.js lifecycle.
+The VideoPlayer MUST host the in-process libmpv surface in the Lux window. It MUST NOT attach hls.js, mpegts.js, or a native `<video>` playback engine.
 
 #### Scenario: VideoPlayer renders fullscreen
 
-- GIVEN VideoPlayer is mounted with a valid src
+- GIVEN VideoPlayer is mounted with a valid catalog item
 - WHEN the component renders
-- THEN a `<video>` element MUST fill the container (width: 100%, height: 100%)
+- THEN the libmpv surface MUST fill the container
 
 #### Scenario: VideoPlayer cleans up on unmount
 
 - GIVEN VideoPlayer is mounted
 - WHEN the component unmounts
-- THEN hls.js MUST be destroyed and the video element removed
+- THEN libmpv MUST stop and release the surface
 
 ### Requirement: SeekBar Interactive
 
-The SeekBar MUST support pointer drag (mouse/touch), D-Pad left/right navigation, and display a buffered range indicator.
+The SeekBar MUST support pointer drag, D-Pad left/right, and a buffered range. Seek MUST change libmpv playback position.
 
 #### Scenario: Pointer drag seeks
 
 - GIVEN the user clicks at 50% of the SeekBar width
 - WHEN they drag to 75% and release
-- THEN `video.currentTime` MUST update to 75% of duration
+- THEN playback position MUST update to 75% of duration
 
 #### Scenario: D-Pad right seeks forward
 
 - GIVEN the SeekBar is focused
 - WHEN D-Pad right is pressed
-- THEN `video.currentTime` MUST advance (e.g., +10s)
+- THEN playback position MUST advance (e.g., +10s)
 
 #### Scenario: Buffered range displayed
 
-- GIVEN the video has buffered 60% of its duration
+- GIVEN 60% of duration is buffered
 - WHEN the SeekBar renders
-- THEN the buffered range MUST be visually indicated up to 60%
+- THEN the buffered range MUST indicate up to 60%
 
 ### Requirement: OSD Auto-Hide
 
@@ -74,7 +114,7 @@ The On-Screen Display (OSD) MUST auto-hide after 4 seconds of user inactivity. A
 
 ### Requirement: OSD Controls
 
-The OSD MUST include: progress/seek bar, audio track selector, subtitle track selector, and aspect ratio toggle (16:9, 4:3, Zoom, Fit).
+The OSD MUST include: progress/seek bar (VOD only), audio track selector, subtitle track selector, play/pause that changes libmpv pause state, and aspect ratio toggle (16:9, 4:3, Zoom, Fit).
 
 #### Scenario: Audio track switch
 
@@ -112,11 +152,11 @@ When playing a series episode, the player MUST show a "Next Episode" overlay whe
 
 ### Requirement: VOD Resume from IndexedDB
 
-For VOD content (movies, episodes), the player MUST check IndexedDB for a saved playback position on load. If found, it MUST seek to that position and show a "Resume from X?" prompt.
+For VOD content (movies, episodes), the player MUST check IndexedDB for a saved playback position on load. If found, it MUST seek to that position and show a "Resume from X?" prompt with a real duration clock (not `0:00`).
 
 #### Scenario: Resume prompt shown
 
-- GIVEN a movie was last watched at 45:00
+- GIVEN a movie was last watched at 45:00 of a known duration
 - WHEN the user opens the movie
 - THEN the player MUST show "Resume from 45:00?" and seek to 45:00 on confirm
 
@@ -142,16 +182,6 @@ For live TV channels, the player MUST operate in live mode: no seek bar, no resu
 - WHEN the user opens the channel
 - THEN playback MUST start from the live edge (no resume prompt)
 
-### Requirement: Native video Fallback for MP4/MKV
-
-For non-HLS formats (MP4, MKV), the player MUST use the native `<video>` element without hls.js. The same OSD and controls MUST apply.
-
-#### Scenario: MP4 plays natively
-
-- GIVEN a catalog item with media_format = 'mp4'
-- WHEN playback starts
-- THEN the native `<video>` element MUST play the file (no hls.js attached)
-
 ### Requirement: onPlay Navigates to /watch
 
 The DetailPage's "Play" button MUST trigger navigation to `/watch/:type/:id` when clicked.
@@ -164,7 +194,7 @@ The DetailPage's "Play" button MUST trigger navigation to `/watch/:type/:id` whe
 
 ### Requirement: Parental Lock Button Deferred
 
-The parental lock button MUST NOT be mounted in the player UI until Slice 4. No placeholder, no disabled button — completely absent.
+The parental lock button MUST NOT be mounted in the player UI until F12. No placeholder, no disabled button — completely absent.
 
 #### Scenario: No parental button in foundation
 
@@ -187,50 +217,6 @@ The player MUST maintain at least 55 FPS during video playback. Frame drops belo
 - GIVEN a video is playing
 - WHEN FPS drops to 40 for 3 consecutive seconds
 - THEN a performance warning MUST be logged
-
-### Requirement: Proxied Playback And Series Resolve
-
-Media `src` MUST come only from `player:getProxiedUrl`.
-
-#### Scenario: No origin URL in renderer
-
-- GIVEN item 42 origin `https://origin.example/stream.m3u8`
-- WHEN PlayerPage starts playback
-- THEN `src` MUST be the `player:getProxiedUrl` result
-
-#### Scenario: getProxiedUrl error has no origin fallback
-
-- GIVEN `player:getProxiedUrl` fails
-- WHEN PlayerPage starts playback
-- THEN error UI MUST show and origin MUST NOT be `src`
-
-#### Scenario: Live channel plays via proxy (FL-03)
-
-- GIVEN live channel 9
-- WHEN location is `/watch/live/9`
-- THEN proxied `src` MUST be used and SeekBar MUST be hidden
-
-#### Scenario: Series resolves first episode
-
-- GIVEN series 7 with episodes 101 then 102
-- WHEN `/watch/series/7` opens
-- THEN `player:getProxiedUrl` MUST run for episode 101
-
-### Requirement: HLS Abr And Latency Policy
-
-HLS MUST use `capLevelToPlayerSize`, mid `startLevel` after `MANIFEST_PARSED`, and `lowLatencyMode` live-only (T-03).
-
-#### Scenario: ABR mid plus cap
-
-- GIVEN HLS with 5 levels
-- WHEN the manifest is parsed
-- THEN `capLevelToPlayerSize` MUST be true and `startLevel` MUST not be highest
-
-#### Scenario: Live-only lowLatencyMode
-
-- GIVEN live HLS and movie HLS
-- WHEN hls.js is created for each
-- THEN live MUST set `lowLatencyMode` true and VOD false
 
 ### Requirement: Hero Play Navigates To Movie Watch
 

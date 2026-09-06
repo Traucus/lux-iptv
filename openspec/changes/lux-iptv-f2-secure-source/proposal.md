@@ -1,8 +1,10 @@
-# Proposal: F2 Secure Source (Vault + Refresh)
+# Proposal: F3 Secure Source (Vault + Refresh)
+
+Folder name `lux-iptv-f2-secure-source` is historical. This change is **F3**, not the F2 libmpv player (`lux-iptv-player-mpv`).
 
 ## Intent
 
-Renderer auto-fills saved IPTV secrets. Refresh exists only on Home and opens S2. F2 closes D-2 plus FL-01, FL-02, T-02: never display saved secrets; chrome refresh on S1/S3/S4/S5; stay on current list.
+Renderer auto-fills saved IPTV secrets. Refresh exists only on Home. F3 closes D-2 plus FL-01, FL-02, T-02: never display saved secrets; chrome refresh on S1/S3/S4/S5; stay on current list.
 
 ## Scope
 
