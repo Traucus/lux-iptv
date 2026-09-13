@@ -1,13 +1,10 @@
 /**
  * Hardware-acceleration policy.
  *
- * On Linux, hardware acceleration is **disabled by default** because the
- * available GL drivers are inconsistent across distros and frequently cause
- * black-screen or segfault issues. Operators who need HW accel can opt
- * back in via the `LUX_HW_ACCEL=true` env var.
- *
- * On macOS and Windows the default is left alone — both platforms have
- * stable drivers and HW accel materially helps hls.js decode performance.
+ * Chromium GPU is **disabled by default** on Linux and Windows.
+ * Linux: unstable GL drivers. Windows: the GPU compositor paints over the
+ * libmpv child HWND (black surface). Decode is libmpv `hwdec=auto-safe`,
+ * not Chromium. Opt back in with `LUX_HW_ACCEL=true`.
  *
  * The decision MUST be applied before `app.whenReady()` resolves.
  */
@@ -21,8 +18,8 @@ export function shouldDisableHwAccel(
   platform: NodeJS.Platform,
   override: string | undefined,
 ): boolean {
-  if (platform !== 'linux') return false;
-  return override?.toLowerCase() !== 'true';
+  if (override?.toLowerCase() === 'true') return false;
+  return platform === 'linux' || platform === 'win32';
 }
 
 /**

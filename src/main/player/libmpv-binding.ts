@@ -12,7 +12,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 
 export interface LibmpvBinding {
   loadLibrary(): boolean;
-  play(url: string, headers: Record<string, string>, wid?: Buffer): void;
+  play(url: string, headers: Record<string, string>, wid?: Buffer): boolean | void;
   stop(): void;
   setOptions?(options: Record<string, string | number>): void;
   getTrackList?(): Array<{ id: number; type: string; title?: string; lang?: string }>;
@@ -117,6 +117,7 @@ export function createNativeLibmpvBinding(): LibmpvBinding {
   return {
     ...binding,
     loadLibrary(): boolean {
+      if (session) return true;
       const addon = tryLoadNapiAddon();
       if (!addon) {
         session = null;

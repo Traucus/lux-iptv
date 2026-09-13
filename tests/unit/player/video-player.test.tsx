@@ -110,10 +110,10 @@ describe('Production VideoPlayer libmpv host', () => {
     expect(screen.getByTestId('libmpv-diagnosis')).toHaveTextContent(/libmpv/i);
   });
 
-  it('stops libmpv on unmount', () => {
+  it('does not stop libmpv when the OSD effect re-runs', () => {
     const { unmount } = render(<ProductionVideoPlayer source={source} />);
     unmount();
-    expect(playerMocks.mockStop).toHaveBeenCalled();
+    expect(playerMocks.mockStop).not.toHaveBeenCalled();
   });
 });
 

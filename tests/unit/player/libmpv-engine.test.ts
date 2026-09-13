@@ -20,7 +20,7 @@ function failingBinding(): LibmpvBinding {
 
 function playingBinding(): LibmpvBinding {
   return {
-    loadLibrary: () => true,
+    loadLibrary: vi.fn(() => true),
     play: vi.fn(),
     stop: vi.fn(),
     setOptions: vi.fn(),
@@ -68,6 +68,48 @@ describe('LibmpvEngine', () => {
       undefined,
     );
     expect(spawn).not.toHaveBeenCalled();
+  });
+
+  it('forwards the native window handle to in-process play', async () => {
+    const binding = playingBinding();
+    const engine = createLibmpvEngine(binding);
+    const nativeWindowHandle = Buffer.alloc(8);
+    nativeWindowHandle.writeBigUInt64LE(0x12345678n);
+    const result = await engine.play({
+      url: 'https://origin.example/movie.mkv',
+      httpHeaders: {},
+      nativeWindowHandle,
+    });
+
+    expect(result).toEqual({ ok: true, engine: 'libmpv' });
+    expect(binding.play).toHaveBeenCalledWith(
+      'https://origin.example/movie.mkv',
+      {},
+      nativeWindowHandle,
+    );
+  });
+
+  it('returns libmpv-open-failed when play reports the file did not open', async () => {
+    const binding = playingBinding();
+    (binding.play as ReturnType<typeof vi.fn>).mockReturnValue(false);
+    const engine = createLibmpvEngine(binding);
+    const result = await engine.play({
+      url: 'https://origin.example/dead.m3u8',
+      httpHeaders: {},
+    });
+    expect(result).toEqual({
+      ok: false,
+      error: { code: 'INTERNAL', details: { kind: 'libmpv-open-failed' } },
+    });
+  });
+
+  it('reuses the same in-process session across two plays', async () => {
+    const binding = playingBinding();
+    const engine = createLibmpvEngine(binding);
+    await engine.play({ url: 'https://origin.example/a.mkv', httpHeaders: {} });
+    await engine.play({ url: 'https://origin.example/b.mkv', httpHeaders: {} });
+    expect(binding.loadLibrary).toHaveBeenCalledTimes(2);
+    expect(binding.play).toHaveBeenCalledTimes(2);
   });
 
   it('does not start a Chromium hls/mpegts/video probe', async () => {

@@ -18,7 +18,7 @@ export type LibmpvPlayRequest = {
 
 export type LibmpvPlayResult =
   | { ok: true; engine: 'libmpv' }
-  | { ok: false; error: { code: 'INTERNAL'; details: { kind: 'libmpv-load-failed' } } };
+  | { ok: false; error: { code: 'INTERNAL'; details: { kind: 'libmpv-load-failed' | 'libmpv-open-failed' } } };
 
 export type LibmpvEngine = {
   play(request: LibmpvPlayRequest): Promise<LibmpvPlayResult>;
@@ -59,7 +59,13 @@ export function createLibmpvEngine(binding: LibmpvBinding = createNativeLibmpvBi
         };
       }
       binding.setOptions?.(libmpvPlaybackOptions(request.profile ?? 'vod'));
-      binding.play(request.url, request.httpHeaders, request.nativeWindowHandle);
+      const opened = binding.play(request.url, request.httpHeaders, request.nativeWindowHandle);
+      if (opened === false) {
+        return {
+          ok: false,
+          error: { code: 'INTERNAL', details: { kind: 'libmpv-open-failed' } },
+        };
+      }
       return { ok: true, engine: 'libmpv' };
     },
     async stop(): Promise<void> {

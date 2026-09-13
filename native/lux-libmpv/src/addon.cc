@@ -1,9 +1,15 @@
 // In-process libmpv via dlopen/LoadLibrary. Never spawn mpv.exe.
 #include <napi.h>
 #include <cstdint>
+#include <atomic>
+#include <chrono>
+#include <condition_variable>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <mutex>
 #include <string>
+#include <thread>
 #include <vector>
 
 #ifdef _WIN32
@@ -57,6 +63,15 @@ typedef void (*mpv_free_fn)(void *);
 typedef void (*mpv_free_node_contents_fn)(mpv_node *);
 typedef void (*mpv_terminate_destroy_fn)(mpv_handle *);
 
+struct mpv_event {
+  int event_id;
+  int error;
+  uint64_t reply_userdata;
+  void *data;
+};
+
+typedef mpv_event *(*mpv_wait_event_fn)(mpv_handle *, double);
+
 struct MpvApi {
   mpv_create_fn create = nullptr;
   mpv_initialize_fn initialize = nullptr;
@@ -69,6 +84,7 @@ struct MpvApi {
   mpv_free_fn free = nullptr;
   mpv_free_node_contents_fn free_node_contents = nullptr;
   mpv_terminate_destroy_fn terminate_destroy = nullptr;
+  mpv_wait_event_fn wait_event = nullptr;
 };
 
 static MpvApi g_api;
@@ -125,8 +141,71 @@ static bool load_libmpv() {
   g_api.free = reinterpret_cast<mpv_free_fn>(sym("mpv_free"));
   g_api.free_node_contents = reinterpret_cast<mpv_free_node_contents_fn>(sym("mpv_free_node_contents"));
   g_api.terminate_destroy = reinterpret_cast<mpv_terminate_destroy_fn>(sym("mpv_terminate_destroy"));
-  return g_api.create && g_api.initialize && g_api.command && g_api.terminate_destroy;
+  g_api.wait_event = reinterpret_cast<mpv_wait_event_fn>(sym("mpv_wait_event"));
+  return g_api.create && g_api.initialize && g_api.command && g_api.terminate_destroy && g_api.wait_event;
 }
+
+#ifdef _WIN32
+static ATOM g_embed_atom = 0;
+static const char kEmbedClass[] = "LuxLibmpvEmbed";
+
+static HWND create_embed_hwnd(HWND parent) {
+  if (!parent) return nullptr;
+  if (!g_embed_atom) {
+    WNDCLASSA wc{};
+    wc.lpfnWndProc = DefWindowProcA;
+    wc.hInstance = GetModuleHandleA(nullptr);
+    wc.lpszClassName = kEmbedClass;
+    wc.hbrBackground = static_cast<HBRUSH>(GetStockObject(BLACK_BRUSH));
+    wc.style = CS_OWNDC;
+    g_embed_atom = RegisterClassA(&wc);
+  }
+  const LONG_PTR style = GetWindowLongPtrA(parent, GWL_STYLE);
+  SetWindowLongPtrA(parent, GWL_STYLE, style | WS_CLIPCHILDREN);
+  RECT rc{};
+  GetClientRect(parent, &rc);
+  const int kOsdTop = 72;
+  const int kOsdBottom = 120;
+  const int width = rc.right - rc.left;
+  const int fullHeight = rc.bottom - rc.top;
+  const int height = fullHeight > kOsdTop + kOsdBottom + 1
+                         ? fullHeight - kOsdTop - kOsdBottom
+                         : fullHeight;
+  HWND hwnd = CreateWindowExA(
+      WS_EX_TRANSPARENT | WS_EX_NOACTIVATE,
+      kEmbedClass,
+      "",
+      WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS,
+      0,
+      kOsdTop,
+      width,
+      height,
+      parent,
+      nullptr,
+      GetModuleHandleA(nullptr),
+      nullptr);
+  if (hwnd) {
+    SetWindowPos(hwnd, HWND_TOP, 0, kOsdTop, width, height, SWP_SHOWWINDOW);
+  }
+  std::fprintf(stderr, "[lux-libmpv] embed hwnd=%p parent=%p size=%dx%d y=%d\n", hwnd, parent, width, height, kOsdTop);
+  std::fflush(stderr);
+  return hwnd;
+}
+
+static HWND hwnd_from_buffer(const Napi::Buffer<uint8_t> &buf) {
+  if (buf.Length() >= 8) {
+    uint64_t raw = 0;
+    std::memcpy(&raw, buf.Data(), 8);
+    return reinterpret_cast<HWND>(static_cast<uintptr_t>(raw));
+  }
+  if (buf.Length() >= 4) {
+    uint32_t raw = 0;
+    std::memcpy(&raw, buf.Data(), 4);
+    return reinterpret_cast<HWND>(static_cast<uintptr_t>(raw));
+  }
+  return nullptr;
+}
+#endif
 
 class Session : public Napi::ObjectWrap<Session> {
  public:
@@ -142,25 +221,128 @@ class Session : public Napi::ObjectWrap<Session> {
     });
   }
 
-  Session(const Napi::CallbackInfo &info) : Napi::ObjectWrap<Session>(info), ctx_(nullptr) {
+  Session(const Napi::CallbackInfo &info)
+      : Napi::ObjectWrap<Session>(info), ctx_(nullptr), initialized_(false) {
     if (!load_libmpv()) return;
     ctx_ = g_api.create();
-    if (!ctx_) return;
-    if (g_api.initialize(ctx_) < 0) {
-      g_api.terminate_destroy(ctx_);
-      ctx_ = nullptr;
+    if (ctx_ && g_api.set_option_string) {
+      g_api.set_option_string(ctx_, "config", "no");
+      g_api.set_option_string(ctx_, "load-scripts", "no");
+      g_api.set_option_string(ctx_, "ytdl", "no");
+      g_api.set_option_string(ctx_, "osc", "no");
+      g_api.set_option_string(ctx_, "user-agent",
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
     }
   }
 
   ~Session() {
+    stop_pump();
+#ifdef _WIN32
+    destroy_embed();
+#endif
     if (ctx_ && g_api.terminate_destroy) g_api.terminate_destroy(ctx_);
     ctx_ = nullptr;
   }
 
   bool ok() const { return ctx_ != nullptr; }
 
- private:
+  private:
+  enum class OpenState { Idle, Pending, Loaded, Failed };
+
   mpv_handle *ctx_;
+  bool initialized_;
+  std::atomic<bool> pump_run_{false};
+  std::thread pump_;
+  std::mutex mu_;
+  std::condition_variable cv_;
+  OpenState open_ = OpenState::Idle;
+#ifdef _WIN32
+  HWND embed_ = nullptr;
+
+  void destroy_embed() {
+    if (embed_) {
+      DestroyWindow(embed_);
+      embed_ = nullptr;
+    }
+  }
+#endif
+
+  void start_pump() {
+    if (!g_api.wait_event || pump_.joinable()) return;
+    pump_run_ = true;
+    pump_ = std::thread([this]() {
+      std::fprintf(stderr, "[lux-libmpv] event pump start\n");
+      std::fflush(stderr);
+      while (pump_run_ && ctx_ && g_api.wait_event) {
+        mpv_event *ev = g_api.wait_event(ctx_, 0.05);
+        if (!ev || ev->event_id == 0) continue;
+        if (ev->event_id == 8) {
+          std::lock_guard<std::mutex> lock(mu_);
+          open_ = OpenState::Loaded;
+          cv_.notify_all();
+        } else if (ev->event_id == 7) {
+          std::lock_guard<std::mutex> lock(mu_);
+          if (open_ == OpenState::Pending) {
+            open_ = OpenState::Failed;
+            cv_.notify_all();
+          }
+        }
+      }
+      std::fprintf(stderr, "[lux-libmpv] event pump stop\n");
+      std::fflush(stderr);
+    });
+  }
+
+  void stop_pump() {
+    pump_run_ = false;
+    if (pump_.joinable()) pump_.join();
+  }
+
+  bool ensure_initialized(void *parent_hwnd) {
+    if (!ctx_) return false;
+    if (initialized_) {
+#ifdef _WIN32
+      if (embed_) ShowWindow(embed_, SW_SHOW);
+#else
+      (void)parent_hwnd;
+#endif
+      return true;
+    }
+#ifdef _WIN32
+    HWND parent = static_cast<HWND>(parent_hwnd);
+    if (parent && g_api.set_option) {
+      destroy_embed();
+      embed_ = create_embed_hwnd(parent);
+      if (embed_) {
+        int64_t wid = reinterpret_cast<int64_t>(embed_);
+        g_api.set_option(ctx_, "wid", MPV_FORMAT_INT64, &wid);
+      }
+    }
+    if (g_api.set_option_string) {
+      g_api.set_option_string(ctx_, "vo", "gpu");
+      g_api.set_option_string(ctx_, "terminal", "yes");
+      g_api.set_option_string(ctx_, "msg-level", "all=v,curl=debug,ffmpeg=debug");
+      g_api.set_option_string(ctx_, "network-timeout", "30");
+    }
+#else
+    (void)parent_hwnd;
+    if (g_api.set_option_string) {
+      g_api.set_option_string(ctx_, "terminal", "yes");
+      g_api.set_option_string(ctx_, "msg-level", "all=v");
+    }
+#endif
+    const int init = g_api.initialize(ctx_);
+    std::fprintf(stderr, "[lux-libmpv] initialize=%d\n", init);
+    std::fflush(stderr);
+    if (init < 0) {
+      g_api.terminate_destroy(ctx_);
+      ctx_ = nullptr;
+      return false;
+    }
+    initialized_ = true;
+    start_pump();
+    return true;
+  }
 
   Napi::Value Play(const Napi::CallbackInfo &info) {
     Napi::Env env = info.Env();
@@ -176,30 +358,48 @@ class Session : public Napi::ObjectWrap<Session> {
         if (!joined.empty()) joined += "\r\n";
         joined += key + ": " + val;
       }
-      if (!joined.empty()) g_api.set_option_string(ctx_, "http-header-fields", joined.c_str());
-    }
-    if (info.Length() >= 3 && info[2].IsBuffer() && g_api.set_option) {
-      Napi::Buffer<uint8_t> buf = info[2].As<Napi::Buffer<uint8_t>>();
-      int64_t wid = 0;
-      if (buf.Length() >= 8) {
-        std::memcpy(&wid, buf.Data(), 8);
-      } else if (buf.Length() >= 4) {
-        uint32_t w32 = 0;
-        std::memcpy(&w32, buf.Data(), 4);
-        wid = w32;
+      if (!joined.empty()) {
+        g_api.set_option_string(ctx_, "http-header-fields", joined.c_str());
+        std::fprintf(stderr, "[lux-libmpv] headers=%s\n", joined.c_str());
+        std::fflush(stderr);
       }
-      if (wid) g_api.set_option(ctx_, "wid", MPV_FORMAT_INT64, &wid);
+    }
+    void *parent_hwnd = nullptr;
+#ifdef _WIN32
+    if (info.Length() >= 3 && info[2].IsBuffer()) {
+      parent_hwnd = hwnd_from_buffer(info[2].As<Napi::Buffer<uint8_t>>());
+    }
+#endif
+    if (!ensure_initialized(parent_hwnd)) {
+      std::fprintf(stderr, "[lux-libmpv] initialize failed url=%s\n", url.c_str());
+      std::fflush(stderr);
+      return Napi::Boolean::New(env, false);
+    }
+    {
+      std::lock_guard<std::mutex> lock(mu_);
+      open_ = OpenState::Pending;
     }
     const char *cmd[] = {"loadfile", url.c_str(), nullptr};
-    g_api.command(ctx_, cmd);
-    return env.Undefined();
+    const int loaded = g_api.command(ctx_, cmd);
+    std::fprintf(stderr, "[lux-libmpv] loadfile=%d url=%s\n", loaded, url.c_str());
+    std::fflush(stderr);
+    if (loaded < 0) return Napi::Boolean::New(env, false);
+    std::unique_lock<std::mutex> lock(mu_);
+    cv_.wait_for(lock, std::chrono::seconds(20), [this] { return open_ != OpenState::Pending; });
+    const bool ok = open_ == OpenState::Loaded;
+    std::fprintf(stderr, "[lux-libmpv] open=%s\n", ok ? "loaded" : "failed");
+    std::fflush(stderr);
+    return Napi::Boolean::New(env, ok);
   }
 
   Napi::Value Stop(const Napi::CallbackInfo &info) {
-    if (ctx_) {
+    if (ctx_ && g_api.command) {
       const char *cmd[] = {"stop", nullptr};
       g_api.command(ctx_, cmd);
     }
+#ifdef _WIN32
+    if (embed_) ShowWindow(embed_, SW_HIDE);
+#endif
     return info.Env().Undefined();
   }
 

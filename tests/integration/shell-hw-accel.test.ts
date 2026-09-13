@@ -47,9 +47,13 @@ describe('shouldDisableHwAccel (policy)', () => {
     expect(shouldDisableHwAccel('darwin', 'false')).toBe(false);
   });
 
-  it('keeps enabled on Windows regardless of override', () => {
-    expect(shouldDisableHwAccel('win32', undefined)).toBe(false);
-    expect(shouldDisableHwAccel('win32', 'false')).toBe(false);
+  it('disables on Windows so libmpv child HWND is visible', () => {
+    expect(shouldDisableHwAccel('win32', undefined)).toBe(true);
+    expect(shouldDisableHwAccel('win32', 'false')).toBe(true);
+  });
+
+  it('keeps enabled on Windows when LUX_HW_ACCEL=true', () => {
+    expect(shouldDisableHwAccel('win32', 'true')).toBe(false);
   });
 });
 
@@ -68,8 +72,9 @@ describe('readHwAccelOverride (reads process.env)', () => {
 describe('entry.cjs applies GPU policy before ESM import', () => {
   const source = readFileSync(join(__dirname, '../../src/main/entry.cjs'), 'utf8');
 
-  it('disables Linux GPU unless LUX_HW_ACCEL=true, before importing index.js', () => {
+  it('disables Linux/Windows GPU unless LUX_HW_ACCEL=true, before importing index.js', () => {
     expect(source).toMatch(/LUX_HW_ACCEL/);
+    expect(source).toMatch(/win32/);
     expect(source.indexOf('disableHardwareAcceleration')).toBeLessThan(source.indexOf("import('./index.js')"));
     expect(source).not.toMatch(
       /if \(process\.platform === 'linux'\) \{\s*app\.disableHardwareAcceleration\(\);\s*\}/,

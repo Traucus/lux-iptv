@@ -115,11 +115,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     window.addEventListener('keydown', onEscape);
     return () => {
       window.removeEventListener('keydown', onEscape);
-      try {
-        void createLuxAPI().player.stop();
-      } catch {
-        // Renderer tests and unload without luxAPI must still unmount.
-      }
     };
   }, [source, diagnosis, onEnded, onError, onTimeUpdate, seasons, currentEpisode, showNextEpisodeCard, refreshTracks]);
 

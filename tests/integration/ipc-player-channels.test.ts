@@ -153,7 +153,7 @@ describe('player IPC channels (registration + behavior)', () => {
       const result = await fn({}, { type: 'live', id: 1 });
       expect(result).toEqual({ data: { engine: 'libmpv' } });
       expect(play).toHaveBeenCalledWith({
-        url: 'https://origin.example/live.m3u8',
+        url: 'https://origin.example/live.ts',
         httpHeaders: { 'User-Agent': 'Lux/1' },
         profile: 'live',
       });

@@ -118,6 +118,12 @@ export const PlayerPage: React.FC = () => {
     }
   }, [contentType, navigate]);
 
+  useEffect(() => {
+    return () => {
+      void createLuxAPI().player.stop();
+    };
+  }, []);
+
   // Catalog getById does not accept `episode` — those rows live in `episodes`
   // and are resolved via player:getSource / getProxiedUrl only.
   const { data: catalogItem, isLoading, error } = useQuery({

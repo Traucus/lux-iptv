@@ -170,11 +170,21 @@ export function registerPlayerHandlers(ipcMain: IpcMain, deps: PlayerHandlerDeps
       return notFound(`${type} id ${id} not found`);
     }
     const nativeWindowHandle = deps.mainWindow?.getNativeWindowHandle();
+    const playUrl =
+      type === 'live' && row.url.endsWith('.m3u8') ? `${row.url.slice(0, -5)}.ts` : row.url;
     const result = await engine.play({
-      url: row.url,
+      url: playUrl,
       httpHeaders: parseHttpHeaders(row.http_headers),
       profile: type === 'live' ? 'live' : 'vod',
       ...(nativeWindowHandle ? { nativeWindowHandle } : {}),
+    });
+    console.info('[player:play]', {
+      type,
+      id,
+      url: playUrl,
+      hasHwnd: Boolean(nativeWindowHandle),
+      ok: result.ok,
+      error: result.ok ? undefined : result.error,
     });
     if (!result.ok) {
       return { error: result.error };
