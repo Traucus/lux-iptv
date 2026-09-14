@@ -11,7 +11,7 @@ export const CatalogListInputSchema = z.object({
 export type CatalogListInputParsed = z.infer<typeof CatalogListInputSchema>;
 
 export const CatalogGetByIdInputSchema = z.object({
-  type: z.enum(['live', 'movie', 'series']),
+  type: z.enum(['live', 'movie', 'series', 'episode']),
   id: z.number().int().positive(),
 });
 

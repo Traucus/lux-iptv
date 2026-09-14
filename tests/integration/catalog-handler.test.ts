@@ -297,6 +297,26 @@ describe('catalog handler', () => {
       expect(data.groups[0].items[0].name).toBe('Orphan Show');
     });
 
+    it('returns an episode CatalogItem for type=episode', async () => {
+      db.prepare(
+        `INSERT INTO series (name, url, group_title, stream_type, year, added_at)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+      ).run('Breaking Bad', 'https://x/bb', 'Drama', 'series', 2008, 1000);
+      db.prepare(
+        `INSERT INTO episodes (series_id, name, url, season, episode, cover, added_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      ).run(1, 'Pilot', 'https://x/bb-s01e01', 1, 1, 'https://x/pilot.jpg', 1000);
+
+      const { ipc, captured } = captureIpcMain();
+      registerCatalogHandlers(ipc, { db });
+      const getById = captured.find((c) => c.channel === 'catalog:getById')!.fn;
+      const result = await getById({}, { type: 'episode', id: 1 });
+      const data = (result as { data: { id: number; name: string; contentType: string; cover: string | null } }).data;
+      expect(data.contentType).toBe('episode');
+      expect(data.name).toBe('Pilot');
+      expect(data.cover).toBe('https://x/pilot.jpg');
+    });
+
     it('returns SeriesDetail with seasons and episodes for type=series', async () => {
       db.prepare(
         `INSERT INTO series (name, url, group_title, stream_type, year, added_at)

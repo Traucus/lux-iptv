@@ -49,6 +49,7 @@ const mockApi = vi.hoisted(() => ({
 }));
 vi.mock('../../src/renderer/lib/api', () => ({ createLuxAPI: () => mockApi }));
 vi.mock('../../src/renderer/db/playback-resume', () => ({
+  listPositions: vi.fn().mockResolvedValue([]),
   getPosition: vi.fn().mockResolvedValue(null),
   createPositionThrottler: () => ({ throttle: vi.fn(), flush: vi.fn().mockResolvedValue(undefined) }),
 }));

@@ -85,7 +85,7 @@ flowchart TD
 | In-process libmpv + HWND child + OSD inset 88/168 (`0204b9c`) | Windows proof live `.m3u8` does not curl-abort (FA-18) |
 | Origin live URL + HLS reconnect (`242a36e`); OSD load `.srt`/`.ass` | Windows proof subtitle file path reaches libmpv (FA-03) |
 | Vault host-only + refresh; TMDB key onboarding UI; enrichment host | Windows proof Movies/Series posters after saved key (PA-06) |
-| Resume clock, next-episode, Continue Watching movies | Continue Watching episodes (FA-09) |
+| Resume clock, next-episode, Continue Watching movies + episodes | Windows proof episode resume appears on Home (FA-09) |
 | — | EPG S9 + now/next (FA-11, FA-12) |
 | — | Installer that bundles libmpv (FA-13); Chromium GPU stays off |
 
@@ -137,7 +137,7 @@ F2 does **not** wait for TMDB. Play does not depend on art. Quality bar for list
 | **F2** | Windows player | Honest URL; **in-process libmpv**; all origin formats; no freeze; audio/subs; load `.srt`; exclusive fullscreen; OSD usable | Engine + OSD inset + origin HLS + load-subtitle control in tree. Remaining: Windows proof of FA-17/FA-18/FA-03 |
 | **F3** | Secure source | Refresh on Home/Live/Movies/Series; vault never shows secrets | Done |
 | **F4** | TMDB layer | Posters, fanart, synopsis, rating on Home, rows, detail. Key is part of the product | Onboarding + worker start + row merge in tree. Remaining: Windows proof of posters (PA-06) |
-| **F5** | VOD flows | See-all, Continue Watching, resume clock, next-episode | See-all/resume/next done. Remaining: Continue Watching episodes |
+| **F5** | VOD flows | See-all, Continue Watching, resume clock, next-episode | See-all/resume/next + episode Continue Watching in tree. Remaining: Windows proof |
 | **F6** | EPG | Guide + now/next on Live, zap to S7 | Missing |
 | **F7** | Windows package | Installer bundles libmpv. Chromium GPU **off** unless `LUX_HW_ACCEL=true` (D-14) | Missing |
 

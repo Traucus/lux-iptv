@@ -80,6 +80,21 @@ function mapMovieRow(row: Record<string, unknown>): CatalogItem {
   };
 }
 
+function mapEpisodeRow(row: Record<string, unknown>): CatalogItem {
+  return {
+    id: row.id as number,
+    name: row.name as string,
+    url: row.url as string,
+    groupTitle: (row.group_title as string | null) ?? null,
+    cover: (row.cover as string | null) ?? null,
+    year: null,
+    contentType: 'episode',
+    mediaFormat: ((row.media_format as string) ?? 'unknown') as CatalogItem['mediaFormat'],
+    httpHeaders: parseHttpHeaders(row.http_headers),
+    ...honestSourceFields(row),
+  };
+}
+
 function mapSeriesRow(row: Record<string, unknown>): CatalogItem {
   return {
     id: row.id as number,
@@ -209,7 +224,7 @@ function mapRowForType(type: CatalogType, row: Record<string, unknown>): Catalog
     case 'series':
       return mapSeriesRow(row);
     case 'episode':
-      throw new Error('Episode type not supported for direct catalog queries');
+      return mapEpisodeRow(row);
   }
 }
 
@@ -267,6 +282,15 @@ export function registerCatalogHandlers(ipcMain: IpcMain, deps: CatalogHandlerDe
       return invalidInput(result.error.issues);
     }
     const parsed: CatalogGetByIdInputParsed = result.data;
+    if (parsed.type === 'episode') {
+      const episodeRow = deps.db
+        .prepare(`SELECT * FROM episodes WHERE id = ?`)
+        .get(parsed.id) as Record<string, unknown> | undefined;
+      if (!episodeRow) {
+        return notFound(`episode id ${parsed.id} not found`);
+      }
+      return { data: mapEpisodeRow(episodeRow) };
+    }
     const table = tableForType(parsed.type);
 
     const row = deps.db

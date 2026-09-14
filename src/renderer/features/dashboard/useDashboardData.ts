@@ -29,12 +29,16 @@ export function useDashboardData(): DashboardData {
       {
         queryKey: ['catalog', 'continue-watching'] as const,
         queryFn: async (): Promise<CatalogListOutput> => {
-          const positions = (await listPositions()).filter((row) => row.id.startsWith('movie:'));
+          const positions = (await listPositions()).filter(
+            (row) => row.id.startsWith('movie:') || row.id.startsWith('episode:'),
+          );
           const items: CatalogItem[] = [];
           for (const row of positions.slice(0, 25)) {
-            const id = Number(row.id.slice('movie:'.length));
-            if (!Number.isFinite(id)) continue;
-            const res = await api.catalog.getById({ type: 'movie', id });
+            const separator = row.id.indexOf(':');
+            const kind = row.id.slice(0, separator);
+            const id = Number(row.id.slice(separator + 1));
+            if ((kind !== 'movie' && kind !== 'episode') || !Number.isFinite(id)) continue;
+            const res = await api.catalog.getById({ type: kind, id });
             if (res.data && 'id' in res.data) items.push(res.data as CatalogItem);
           }
           return { items, total: items.length };

@@ -22,6 +22,15 @@ function itemToMovie(item: EnrichedCatalogItem): MoviePosterData {
   };
 }
 
+function itemToContinue(item: EnrichedCatalogItem): MoviePosterData & { href: string; resumeKey: string } {
+  return {
+    ...itemToMovie(item),
+    resumeKey: `${item.contentType}:${item.id}`,
+    href:
+      item.contentType === 'episode' ? `/watch/episode/${item.id}` : `/content/movie/${item.id}`,
+  };
+}
+
 function itemToSeries(item: EnrichedCatalogItem): SeriesPosterData {
   return {
     id: item.id,
@@ -125,12 +134,12 @@ export function DashboardPage(): React.ReactElement {
 
             <ContentCarousel
               title="Continue Watching"
-              items={data.continueWatching.map(itemToMovie)}
-              renderItem={(movie) => (
+              items={data.continueWatching.map(itemToContinue)}
+              renderItem={(item) => (
                 <MoviePosterCard
-                  key={movie.id}
-                  movie={movie}
-                  onSelect={(m) => navigate(`/content/movie/${m.id}`)}
+                  key={item.resumeKey}
+                  movie={item}
+                  onSelect={() => navigate(item.href)}
                 />
               )}
             />

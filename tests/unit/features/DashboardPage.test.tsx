@@ -49,6 +49,14 @@ vi.mock('../../../src/renderer/lib/api', () => ({
   createLuxAPI: () => mockApi,
 }));
 
+const mockListPositions = vi.hoisted(() => vi.fn(async () => [] as Array<{ id: string }>));
+vi.mock('../../../src/renderer/db/playback-resume', () => ({
+  listPositions: mockListPositions,
+  getPosition: vi.fn(),
+  setPosition: vi.fn(),
+  createPositionThrottler: () => ({ throttle: vi.fn(), flush: vi.fn() }),
+}));
+
 // Mock the enrichment hook so we can return controlled enrichment records
 // (or nothing) without depending on IndexedDB in the test environment.
 const mockEnrichmentBatch = vi.hoisted(() => vi.fn());
@@ -99,6 +107,7 @@ function makeEnrichmentResults(
 beforeEach(() => {
   vi.clearAllMocks();
   mockApi.tmdb.hasKey.mockResolvedValue({ data: true });
+  mockListPositions.mockResolvedValue([]);
   // Default: no enrichment records are present (degraded mode).
   mockEnrichmentBatch.mockImplementation(
     (ids: ReadonlyArray<string | number>) => makeEnrichmentResults(ids.map(String)),
@@ -250,5 +259,30 @@ describe('DashboardPage', () => {
     });
     expect(screen.getByRole('button', { name: /Add TMDB key/i })).toBeTruthy();
     expect(screen.getByText(/Welcome to Lux IPTV/i)).toBeTruthy();
+  });
+
+  it('loads episode resume rows into Continue Watching (FA-09)', async () => {
+    mockListPositions.mockResolvedValue([{ id: 'episode:9' }]);
+    mockApi.catalog.getById.mockResolvedValue({
+      data: {
+        id: 9,
+        name: 'Pilot',
+        url: 'https://origin.example/pilot.mkv',
+        groupTitle: null,
+        cover: null,
+        year: null,
+        contentType: 'episode',
+      },
+    });
+    mockApi.catalog.list.mockResolvedValue({ data: { items: [], total: 0 } });
+
+    const { wrapper } = setup();
+    render(<DashboardPage />, { wrapper });
+
+    await waitFor(() => {
+      expect(mockApi.catalog.getById).toHaveBeenCalledWith({ type: 'episode', id: 9 });
+      expect(screen.getByLabelText('Continue Watching')).toBeTruthy();
+      expect(screen.getByLabelText(/Movie Pilot/i)).toBeTruthy();
+    });
   });
 });

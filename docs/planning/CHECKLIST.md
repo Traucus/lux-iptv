@@ -29,7 +29,7 @@ Refresh on Home/Live/Movies/Series and host-only vault shipped. Not backlog.
 
 | ID | Class | Item | Evidence |
 | --- | --- | --- | --- |
-| FA-09 | PARCIAL | Continue Watching includes episodes, not movies-only. `catalog:getById` still rejects `episode`. | `src/renderer/features/dashboard/useDashboardData.ts:32` |
+| FA-09 | PARCIAL | Continue Watching loads `episode:` positions via `catalog:getById` and opens `/watch/episode/:id`. Windows must prove resume rows appear after watching an episode. | `useDashboardData.ts`; `catalog:getById` episode |
 
 See-all (`?group=`), resume duration, next-episode navigate, Hero Play → `/watch` are done. Not backlog.
 
