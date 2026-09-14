@@ -41,6 +41,8 @@ export function libmpvPlaybackOptions(
       'cache-secs': 20,
       reconnect: 'yes',
       hwdec: 'auto-safe',
+      'hls-bitrate': 'max',
+      'stream-lavf-o': 'reconnect=1,reconnect_streamed=1,reconnect_delay_max=5',
     };
   }
   return {};

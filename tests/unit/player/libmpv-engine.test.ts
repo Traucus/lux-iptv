@@ -131,12 +131,16 @@ describe('LibmpvEngine', () => {
     expect(binding.stop).not.toHaveBeenCalled();
   });
 
-  it('live options enable ~20s cache, reconnect, and auto-safe hwdec', () => {
+  it('live options enable ~20s cache, reconnect, auto-safe hwdec, and HLS reconnect', () => {
     const live = libmpvPlaybackOptions('live');
     expect(live.cache).toBe('yes');
     expect(live['cache-secs']).toBe(20);
     expect(live.reconnect).toBe('yes');
     expect(live.hwdec).toBe('auto-safe');
+    expect(live['hls-bitrate']).toBe('max');
+    expect(live['stream-lavf-o']).toBe(
+      'reconnect=1,reconnect_streamed=1,reconnect_delay_max=5',
+    );
   });
 
   it('VOD options keep origin quality without live cache or downscale', () => {

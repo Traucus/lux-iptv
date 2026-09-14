@@ -170,8 +170,7 @@ export function registerPlayerHandlers(ipcMain: IpcMain, deps: PlayerHandlerDeps
       return notFound(`${type} id ${id} not found`);
     }
     const nativeWindowHandle = deps.mainWindow?.getNativeWindowHandle();
-    const playUrl =
-      type === 'live' && row.url.endsWith('.m3u8') ? `${row.url.slice(0, -5)}.ts` : row.url;
+    const playUrl = row.url;
     const result = await engine.play({
       url: playUrl,
       httpHeaders: parseHttpHeaders(row.http_headers),
