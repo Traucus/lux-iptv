@@ -7,12 +7,18 @@ import { Spinner } from '../../components/atoms/Spinner';
 import { useCatalogGrouped } from '../../queries/use-catalog';
 import { ListRefreshButton } from '../ingest/ListRefreshButton';
 import { GroupSeeAll } from '../catalog/GroupSeeAll';
+import { posterFromRow, useEnrichedPosters } from '../catalog/useEnrichedPosters';
 
 export function SeriesPage(): React.ReactElement {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const group = params.get('group');
   const { data, isLoading, error } = useCatalogGrouped('series', 20);
+  const rowItems = data?.groups.flatMap((entry) => entry.items) ?? [];
+  const posters = useEnrichedPosters(
+    rowItems.map((item) => ({ id: item.id, name: item.name, cover: item.cover, year: item.year })),
+    'tv',
+  );
 
   const onSidebarSelect = (section: SidebarSection): void => {
     switch (section) {
@@ -26,13 +32,10 @@ export function SeriesPage(): React.ReactElement {
 
   const renderSeriesItem = (item: CategoryRowItem) => (
     <MoviePosterCard
-      movie={{
-        id: item.id,
-        name: item.name,
-        year: item.year ?? null,
-        posterPath: item.cover,
-        enriched: false,
-      }}
+      movie={posterFromRow(
+        { id: item.id, name: item.name, cover: item.cover, year: item.year ?? null },
+        posters,
+      )}
       onSelect={(m) => navigate(`/content/series/${m.id}`)}
     />
   );
@@ -50,13 +53,10 @@ export function SeriesPage(): React.ReactElement {
             onSelect={(id) => navigate(`/content/series/${id}`)}
             renderItem={(item) => (
               <MoviePosterCard
-                movie={{
-                  id: item.id,
-                  name: item.name,
-                  year: item.year ?? null,
-                  posterPath: item.cover,
-                  enriched: false,
-                }}
+                movie={posterFromRow(
+                  { id: item.id, name: item.name, cover: item.cover, year: item.year ?? null },
+                  posters,
+                )}
                 onSelect={(m) => navigate(`/content/series/${m.id}`)}
               />
             )}

@@ -32,6 +32,11 @@ export function registerTmdbHandlers(ipcMain: IpcMain, vault: TmdbKeyVault): voi
     return { data: has };
   });
 
+  ipcMain.handle('tmdb:getKey', async () => {
+    const key = await vault.getTmdbKeyPlain();
+    return { data: key ? { key } : null };
+  });
+
   ipcMain.handle('tmdb:clearKey', async () => {
     await vault.clearTmdbKey();
     return { data: undefined };

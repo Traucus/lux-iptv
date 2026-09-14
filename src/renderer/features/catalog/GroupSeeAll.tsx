@@ -3,6 +3,20 @@ import { useNavigate } from 'react-router-dom';
 import { Spinner } from '../../components/atoms/Spinner';
 import { useCatalogList } from '../../queries/use-catalog';
 import type { CatalogType } from '../../../shared/types/ipc';
+import { posterFromRow, useEnrichedPosters } from './useEnrichedPosters';
+
+function toRenderItem(
+  item: { id: number; name: string; cover: string | null; year: number | null },
+  posters: ReturnType<typeof useEnrichedPosters>,
+): { id: number; name: string; cover: string | null; year: number | null } {
+  const poster = posterFromRow(item, posters);
+  return {
+    id: poster.id,
+    name: poster.name,
+    cover: poster.posterPath,
+    year: poster.year,
+  };
+}
 
 export function GroupSeeAll({
   type,
@@ -19,6 +33,16 @@ export function GroupSeeAll({
 }): React.ReactElement {
   const navigate = useNavigate();
   const { data, isLoading, error } = useCatalogList(type, { groupTitle: group, limit: 500 });
+  const mediaType = type === 'series' ? 'tv' : type === 'movie' ? 'movie' : 'live';
+  const posters = useEnrichedPosters(
+    (data?.items ?? []).map((item) => ({
+      id: item.id,
+      name: item.name,
+      cover: item.cover,
+      year: item.year,
+    })),
+    mediaType,
+  );
 
   return (
     <div>
@@ -50,12 +74,7 @@ export function GroupSeeAll({
               role={onSelect ? 'button' : undefined}
               tabIndex={onSelect ? 0 : undefined}
             >
-              {renderItem({
-                id: item.id,
-                name: item.name,
-                cover: item.cover,
-                year: item.year,
-              })}
+              {renderItem(toRenderItem(item, posters))}
             </div>
           ))}
         </div>

@@ -70,6 +70,20 @@ describe('tmdb IPC handlers', () => {
     });
   });
 
+  describe('tmdb:getKey', () => {
+    it('returns the plain key when the vault has one', async () => {
+      vi.mocked(mockVault.getTmdbKeyPlain).mockResolvedValue('abcdef1234567890');
+      const result = await handlers['tmdb:getKey']({});
+      expect(result).toEqual({ data: { key: 'abcdef1234567890' } });
+    });
+
+    it('returns null when the vault is empty', async () => {
+      vi.mocked(mockVault.getTmdbKeyPlain).mockResolvedValue(null);
+      const result = await handlers['tmdb:getKey']({});
+      expect(result).toEqual({ data: null });
+    });
+  });
+
   describe('tmdb:clearKey', () => {
     it('calls vault.clearTmdbKey', async () => {
       const result = await handlers['tmdb:clearKey']({});

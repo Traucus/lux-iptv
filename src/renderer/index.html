@@ -30,6 +30,7 @@
           tmdb: {
             setKey: function() { return Promise.resolve({ data: { valid: false } }); },
             hasKey: function() { return Promise.resolve({ data: false }); },
+            getKey: function() { return Promise.resolve({ data: null }); },
             clearKey: noop,
           },
           player: {

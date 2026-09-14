@@ -175,6 +175,7 @@ export interface LuxAPI {
   // TMDB
   'tmdb:setKey': (input: TmdbKeyInput) => Promise<IpcResult<TmdbKeyOutput>>;
   'tmdb:hasKey': () => Promise<IpcResult<boolean>>;
+  'tmdb:getKey': () => Promise<IpcResult<TmdbKeyPlainOutput>>;
   'tmdb:clearKey': () => Promise<IpcResult<void>>;
 
   // Config (F2 vault — renderer must not call loadCredentials)

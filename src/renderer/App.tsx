@@ -8,6 +8,7 @@ import { SeriesPage } from './features/series/SeriesPage';
 import { DetailPage } from './features/detail/DetailPage';
 import { PlayerPage } from './features/player/PlayerPage';
 import { IngestProgressHost } from './features/ingest/IngestProgressHost';
+import { EnrichmentHost } from './features/catalog/EnrichmentHost';
 
 /**
  * Application root component.
@@ -28,6 +29,7 @@ function App(): React.ReactElement {
   return (
     <HashRouter>
       <IngestProgressHost />
+      <EnrichmentHost />
       <Routes>
         <Route path="/" element={<DashboardPage />} />
         <Route path="/ingest" element={<IngestPage />} />

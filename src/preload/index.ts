@@ -26,6 +26,7 @@ const luxAPI = {
   tmdb: {
     setKey: (input: unknown) => ipcRenderer.invoke('tmdb:setKey', input),
     hasKey: () => ipcRenderer.invoke('tmdb:hasKey'),
+    getKey: () => ipcRenderer.invoke('tmdb:getKey'),
     clearKey: () => ipcRenderer.invoke('tmdb:clearKey'),
   },
   player: {

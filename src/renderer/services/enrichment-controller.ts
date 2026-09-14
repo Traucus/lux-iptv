@@ -4,6 +4,7 @@ let worker: Worker | null = null;
 let isRunning = false;
 let queueLength = 0;
 let lastEnrichedAt: number | null = null;
+let pendingItems: Array<{ contentId: string; name: string; type: 'movie' | 'tv' | 'live'; year?: number | null }> = [];
 
 type StatusListener = (status: EnrichmentStatus) => void;
 const statusListeners: Set<StatusListener> = new Set();
@@ -65,8 +66,14 @@ export function startEnrichment(tmdbKey: string): void {
     notifyStatus();
   });
 
-  // Send START message
   worker.postMessage({ type: 'START', tmdbKey });
+  if (pendingItems.length > 0) {
+    const items = pendingItems;
+    pendingItems = [];
+    queueLength += items.length;
+    worker.postMessage({ type: 'ENRICH_ITEMS', items });
+    notifyStatus();
+  }
 }
 
 /**
@@ -91,8 +98,9 @@ export function resumeEnrichment(): void {
  * Sends items to the enrichment worker for processing.
  */
 export function enqueueItems(items: Array<{ contentId: string; name: string; type: 'movie' | 'tv' | 'live'; year?: number | null }>): void {
+  if (items.length === 0) return;
   if (!worker) {
-    console.warn('Enrichment worker not started');
+    pendingItems.push(...items);
     return;
   }
   queueLength += items.length;
@@ -128,6 +136,7 @@ export function stopEnrichment(): void {
     worker = null;
     isRunning = false;
     queueLength = 0;
+    pendingItems = [];
     notifyStatus();
   }
 }

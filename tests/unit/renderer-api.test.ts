@@ -22,6 +22,7 @@ describe('renderer api', () => {
         tmdb: {
           setKey: vi.fn().mockResolvedValue({ data: { valid: true } }),
           hasKey: vi.fn().mockResolvedValue({ data: true }),
+          getKey: vi.fn().mockResolvedValue({ data: { key: 'abc123def456' } }),
           clearKey: vi.fn().mockResolvedValue({ data: undefined }),
         },
       },

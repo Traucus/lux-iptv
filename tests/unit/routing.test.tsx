@@ -33,7 +33,7 @@ const mockApi = vi.hoisted(() => ({
   },
   ingest: { start: vi.fn(), refresh: vi.fn(), cancel: vi.fn(), getProgress: vi.fn(), onProgress: vi.fn(() => () => undefined) },
   enrichment: { getStatus: vi.fn() },
-  tmdb: { setKey: vi.fn(), hasKey: vi.fn(), clearKey: vi.fn() },
+  tmdb: { setKey: vi.fn(), hasKey: vi.fn().mockResolvedValue({ data: false }), getKey: vi.fn().mockResolvedValue({ data: null }), clearKey: vi.fn() },
   config: {
     saveCredentials: vi.fn(), loadCredentials: vi.fn(),
     hasSource: vi.fn().mockResolvedValue({ data: { configured: false } }),
