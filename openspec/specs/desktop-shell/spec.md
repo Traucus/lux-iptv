@@ -58,13 +58,19 @@ All IPC handlers MUST be registered at startup: ingest (m3u, xtream), tmdb (sear
 
 ### Requirement: Hardware Acceleration Configuration
 
-HW accel MUST be configurable: Linux off by default unless `LUX_HW_ACCEL=true`, Windows/macOS on by default, applied before `app.ready` (T-03).
+Chromium HW accel MUST be off by default on Linux and Windows unless `LUX_HW_ACCEL=true`, applied before `app.ready` (T-03). Decode is libmpv `hwdec=auto-safe`, not Chromium. macOS may keep Chromium GPU on.
 
 (Previously: Linux GPU env switch restated.)
 
 #### Scenario: Linux disables HW accel by default
 
 - GIVEN Linux, no override
+- WHEN the app starts
+- THEN `app.disableHardwareAcceleration()` MUST run before `app.ready`
+
+#### Scenario: Windows disables HW accel by default
+
+- GIVEN Windows, no override
 - WHEN the app starts
 - THEN `app.disableHardwareAcceleration()` MUST run before `app.ready`
 

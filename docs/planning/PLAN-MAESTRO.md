@@ -39,7 +39,7 @@ Decoders are **not** shared:
 
 | Ship | UI | Player |
 | --- | --- | --- |
-| Windows (F1–F7) | Electron UI | **in-process libmpv** (same process as Lux; FFmpeg inside; `hwdec=auto-safe`; live cache ~20s; never `cache=no`). Not spawned `mpv.exe`, not `--wid` into Chromium, not “open with VLC”. |
+| Windows (F1–F7) | Electron UI | **in-process libmpv** (same process as Lux; child HWND of the BrowserWindow; FFmpeg inside; `hwdec=auto-safe`; live cache ~20s; never `cache=no`). Chromium GPU off unless `LUX_HW_ACCEL=true`. Not spawned `mpv.exe`, not Chromium `--wid` to an external player, not “open with VLC”. |
 | Android (F8) | Native | ExoPlayer / Media3 |
 | Samsung (F9) | Tizen web | Platform HTML5 / HLS |
 | LG (F10) | webOS | Platform HTML5 / HLS |
@@ -172,7 +172,8 @@ F2 does **not** wait for TMDB. Play does not depend on art. Quality bar for list
 | 2026-08-30 | D-11 | Player chrome is in F2: real audio select, real subtitle select + load file, exclusive fullscreen covering the Windows taskbar, OSD tooltips and truthful icons. |
 | 2026-08-30 | D-12 | URL builder is honest: real extension, `direct_source`, no fake `.mp4`. |
 | 2026-08-30 | D-13 | One product: **Lux**. First ship: **Lux Desktop**. Engine SDD: **`lux-iptv-player-mpv`**. Stop saying MVP. |
-| 2026-08-30 | D-14 | F2 target is **gold**: libmpv in-process (libmpv API in Lux). Reject as product: spawned `mpv.exe` child window, Chromium `--wid`, and external VLC/mpv. If Electron ABI blocks a Node addon, the fallback is still libmpv in-process (small native host / updated binding) — not a half player. |
+| 2026-08-30 | D-14 | F2 target is **gold**: libmpv in-process (libmpv API in Lux). Reject as product: spawned `mpv.exe` child window, Chromium `--wid` to an external player, and external VLC/mpv. If Electron ABI blocks a Node addon, the fallback is still libmpv in-process (small native host / updated binding) — not a half player. |
+| 2026-09-13 | D-14 clarified | Gold embed is a **child HWND of the Lux BrowserWindow**. Chromium GPU stays **off** on Windows unless `LUX_HW_ACCEL=true`. Decode is libmpv `hwdec`, not Chromium. |
 
 ## Open for owner
 

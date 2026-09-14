@@ -4,7 +4,7 @@
 
 ### Requirement: In-Process libmpv Engine
 
-The player MUST play with in-process libmpv in one Lux window using the catalog origin URL plus item headers. It MUST NOT spawn `mpv.exe`, use Chromium `--wid`, or use VLC. Live MUST cache ~20s and reconnect; VOD MUST keep origin quality.
+The player MUST play with in-process libmpv in one Lux window using the catalog origin URL plus item headers. It MUST render into a child HWND of the Lux BrowserWindow. It MUST NOT spawn `mpv.exe`, attach via Chromium `--wid` to an external process, or use VLC. Live MUST cache ~20s and reconnect; VOD MUST keep origin quality.
 
 #### Scenario: mkv plays in Lux window
 

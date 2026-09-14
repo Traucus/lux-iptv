@@ -1,4 +1,6 @@
-# Delta for media-harness
+# media-harness (STALE)
+
+hls.js / `HTMLMediaElement` mocks are leftover Chromium-player test helpers. They are **not** the product playback happy path (D-10 / D-14). Do not add product features that depend on `hls-client` or `media-engine`.
 
 ## ADDED Requirements
 

@@ -1,3 +1,7 @@
+# HISTORICAL — naming only (D-13)
+
+This change predates the product name freeze. The product is **Lux** / **Lux Desktop**, not MVP. Keep this folder for history. Do not treat "MVP" in this file as current product language.
+
 # Proposal: Lux IPTV MVP — Content Ingestion and Enrichment
 
 ## Why

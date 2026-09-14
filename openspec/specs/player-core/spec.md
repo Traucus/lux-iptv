@@ -1,18 +1,28 @@
 # player-core
 
-Windows product player. Happy path is **in-process libmpv** in one Lux window (D-10, D-14). Chromium `hls.js`, mpegts.js, native `<video>`, spawned `mpv.exe`, and `--wid` are not the product engine.
+Windows product player. Happy path is **in-process libmpv** in one Lux window (D-10, D-14). The gold embed is a **child HWND of the Lux BrowserWindow**. Chromium `hls.js`, mpegts.js, native `<video>`, spawned `mpv.exe`, Chromium `--wid` to an external player, and leftover `hls-client` / `media-engine` are not the product engine.
 
 ## Requirements
 
 ### Requirement: In-Process libmpv Engine
 
-The player MUST play with in-process libmpv in one Lux window using the catalog origin URL plus item headers. It MUST NOT spawn `mpv.exe`, use Chromium `--wid`, or use VLC. Live MUST cache ~20s and reconnect; VOD MUST keep origin quality.
+The player MUST play with in-process libmpv in one Lux window using the catalog origin URL plus item headers. It MUST render into a child HWND of the Lux BrowserWindow. It MUST NOT spawn `mpv.exe`, attach via Chromium `--wid` to an external process, or use VLC. Live MUST cache ~20s and reconnect; VOD MUST keep origin quality.
 
 #### Scenario: mkv plays in Lux window
 
 - GIVEN libmpv is loaded and a movie URL ends `.mkv`
 - WHEN the user opens that movie
-- THEN libmpv MUST play it in the same Lux window
+- THEN libmpv MUST play it in the same Lux window on a child HWND
+
+### Requirement: Chromium GPU Off On Windows
+
+On Windows and Linux, Chromium hardware acceleration MUST be disabled by default so the compositor does not cover the libmpv HWND. Decode MUST remain libmpv `hwdec=auto-safe`. `LUX_HW_ACCEL=true` MAY re-enable Chromium GPU.
+
+#### Scenario: Windows disables Chromium GPU by default
+
+- GIVEN Windows, no override
+- WHEN the app starts
+- THEN `app.disableHardwareAcceleration()` MUST run before `app.ready`
 
 #### Scenario: Origin URL is the happy path
 
