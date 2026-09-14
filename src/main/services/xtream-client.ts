@@ -428,6 +428,24 @@ export async function fetchXtreamSeriesInfo(
   };
 }
 
+export async function fetchXtreamShortEpg(
+  credentials: XtreamCredentials,
+  streamId: number,
+  limit = 4,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+): Promise<unknown> {
+  return fetchJson<unknown>(
+    buildUrl(credentials.server, {
+      username: credentials.username,
+      password: credentials.password,
+      action: 'get_short_epg',
+      stream_id: String(streamId),
+      limit: String(limit),
+    }),
+    timeoutMs,
+  );
+}
+
 export function xtreamEpisodeUrl(
   credentials: XtreamCredentials,
   streamId: number,

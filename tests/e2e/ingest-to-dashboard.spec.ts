@@ -50,6 +50,7 @@ test.describe('ingest-to-dashboard flow', () => {
         },
         enrichment: { getStatus: async () => ({ data: { queueLength: 0, lastEnrichedAt: null, isRunning: false } }) },
         tmdb: { setKey: async () => ({ data: { valid: true } }), hasKey: async () => ({ data: false }), clearKey: async () => ({ data: undefined }) },
+        epg: { nowNext: async () => ({ data: { items: [] } }) },
       };
     });
   });

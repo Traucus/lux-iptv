@@ -37,6 +37,7 @@ const mockApi = vi.hoisted(() => ({
   },
   enrichment: { getStatus: vi.fn() },
   tmdb: { setKey: vi.fn(), hasKey: vi.fn(), clearKey: vi.fn() },
+  epg: { nowNext: vi.fn().mockResolvedValue({ data: { items: [] } }) },
   config: {
     saveCredentials: vi.fn().mockResolvedValue({ data: { ok: true } }),
     loadCredentials: vi.fn().mockResolvedValue({ data: null }),

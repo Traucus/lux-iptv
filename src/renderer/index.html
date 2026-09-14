@@ -27,6 +27,9 @@
           enrichment: {
             getStatus: function() { return Promise.resolve({ data: { queueLength: 0, lastEnrichedAt: null, isRunning: false } }); },
           },
+          epg: {
+            nowNext: function() { return Promise.resolve({ data: { items: [] } }); },
+          },
           tmdb: {
             setKey: function() { return Promise.resolve({ data: { valid: false } }); },
             hasKey: function() { return Promise.resolve({ data: false }); },

@@ -27,6 +27,7 @@ const mockApi = vi.hoisted(() => ({
   ingest: { start: vi.fn(), cancel: vi.fn(), getProgress: vi.fn(), onProgress: vi.fn(() => () => undefined) },
   enrichment: { getStatus: vi.fn() },
   tmdb: { setKey: vi.fn(), hasKey: vi.fn(), clearKey: vi.fn() },
+  epg: { nowNext: vi.fn().mockResolvedValue({ data: { items: [] } }) },
 }));
 
 vi.mock('../../../src/renderer/lib/api', () => ({

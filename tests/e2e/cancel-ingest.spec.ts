@@ -25,6 +25,7 @@ test.describe('cancel-ingest flow', () => {
         },
         enrichment: { getStatus: async () => ({ data: { queueLength: 0, lastEnrichedAt: null, isRunning: false } }) },
         tmdb: { setKey: async () => ({ data: { valid: false } }), hasKey: async () => ({ data: false }), clearKey: async () => ({ data: undefined }) },
+        epg: { nowNext: async () => ({ data: { items: [] } }) },
       };
     });
   });

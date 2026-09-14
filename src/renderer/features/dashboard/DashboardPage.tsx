@@ -10,6 +10,7 @@ import { SeriesPosterCard, type SeriesPosterData } from '../../components/molecu
 import { useDashboardData } from './useDashboardData';
 import { ListRefreshButton } from '../ingest/ListRefreshButton';
 import { useTmdbKey } from '../../queries/use-tmdb-key';
+import { useEpgNowNext } from '../../queries/use-epg-now-next';
 import type { EnrichedCatalogItem } from '../../../shared/types/ipc';
 
 function itemToMovie(item: EnrichedCatalogItem): MoviePosterData {
@@ -42,13 +43,16 @@ function itemToSeries(item: EnrichedCatalogItem): SeriesPosterData {
   };
 }
 
-function itemToChannel(item: EnrichedCatalogItem): ChannelCardData {
+function itemToChannel(
+  item: EnrichedCatalogItem,
+  currentProgram: string | null = null,
+): ChannelCardData {
   return {
     id: item.id,
     name: item.name,
     groupTitle: item.groupTitle,
     logo: item.posterUrl ?? item.cover,
-    currentProgram: null,
+    currentProgram,
   };
 }
 
@@ -72,6 +76,8 @@ export function DashboardPage(): React.ReactElement {
   const location = useLocation();
   const data = useDashboardData();
   const { data: hasTmdbKey } = useTmdbKey();
+  const liveIds = data.liveChannels.map((item) => item.id);
+  const { data: epgByChannel } = useEpgNowNext(liveIds);
 
   const activeSection = routeToSection(location.pathname);
 
@@ -146,7 +152,9 @@ export function DashboardPage(): React.ReactElement {
 
             <ContentCarousel
               title="Live Channels"
-              items={data.liveChannels.map(itemToChannel)}
+              items={data.liveChannels.map((item) =>
+                itemToChannel(item, epgByChannel?.get(item.id)?.now?.title ?? null),
+              )}
               renderItem={(ch) => (
                 <ChannelCard key={ch.id} channel={ch} onSelect={(channel) => navigate(`/watch/live/${channel.id}`)} />
               )}

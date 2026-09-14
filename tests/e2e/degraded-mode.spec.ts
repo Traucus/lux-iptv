@@ -33,6 +33,7 @@ test.describe('degraded-mode flow', () => {
           hasKey: async () => ({ data: false }), // No TMDB key configured
           clearKey: async () => ({ data: undefined }),
         },
+        epg: { nowNext: async () => ({ data: { items: [] } }) },
       };
     });
   });

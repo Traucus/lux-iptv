@@ -19,6 +19,9 @@ describe('renderer api', () => {
         enrichment: {
           getStatus: vi.fn().mockResolvedValue({ data: { queueLength: 0, lastEnrichedAt: null, isRunning: false } }),
         },
+        epg: {
+          nowNext: vi.fn().mockResolvedValue({ data: { items: [] } }),
+        },
         tmdb: {
           setKey: vi.fn().mockResolvedValue({ data: { valid: true } }),
           hasKey: vi.fn().mockResolvedValue({ data: true }),

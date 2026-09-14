@@ -26,6 +26,9 @@ const mockApi = vi.hoisted(() => ({
     hasKey: vi.fn(),
     clearKey: vi.fn(),
   },
+  epg: {
+    nowNext: vi.fn(),
+  },
 }));
 
 vi.mock('../../../src/renderer/lib/api', () => ({

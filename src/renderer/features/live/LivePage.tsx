@@ -7,12 +7,15 @@ import { Spinner } from '../../components/atoms/Spinner';
 import { useCatalogGrouped } from '../../queries/use-catalog';
 import { ListRefreshButton } from '../ingest/ListRefreshButton';
 import { GroupSeeAll } from '../catalog/GroupSeeAll';
+import { useEpgNowNext } from '../../queries/use-epg-now-next';
 
 export function LivePage(): React.ReactElement {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const group = params.get('group');
   const { data, isLoading, error } = useCatalogGrouped('live', 20);
+  const channelIds = data?.groups.flatMap((entry) => entry.items.map((item) => item.id)) ?? [];
+  const { data: epgByChannel } = useEpgNowNext(channelIds);
 
   const onSidebarSelect = (section: SidebarSection): void => {
     switch (section) {
@@ -31,7 +34,7 @@ export function LivePage(): React.ReactElement {
         name: item.name,
         groupTitle: item.name,
         logo: item.cover,
-        currentProgram: null,
+        currentProgram: epgByChannel?.get(item.id)?.now?.title ?? null,
       }}
       onSelect={(c) => navigate(`/watch/live/${c.id}`)}
     />
@@ -55,7 +58,7 @@ export function LivePage(): React.ReactElement {
                   name: item.name,
                   groupTitle: group,
                   logo: item.cover,
-                  currentProgram: null,
+                  currentProgram: epgByChannel?.get(item.id)?.now?.title ?? null,
                 }}
                 onSelect={(c) => navigate(`/watch/live/${c.id}`)}
               />

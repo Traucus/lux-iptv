@@ -10,6 +10,7 @@ import { registerEnrichmentHandlers } from './handlers/enrichment.js';
 import { registerCatalogHandlers } from './handlers/catalog.js';
 import { registerPlayerHandlers } from './handlers/player.js';
 import { registerConfigHandlers } from './handlers/config.js';
+import { registerEpgHandlers } from './handlers/epg.js';
 
 export type HandlerContext = {
   mainWindow: BrowserWindow;
@@ -62,6 +63,14 @@ export function registerHandlers(deps: HandlerDeps): void {
     mainWindow: deps.mainWindow,
   });
   registerConfigHandlers(ipcMain, deps.configService);
+  registerEpgHandlers(ipcMain, {
+    db: deps.db,
+    loadXtreamCredentials: () => {
+      const creds = deps.configService.loadCredentials();
+      if (!creds?.server || !creds.username || !creds.password) return null;
+      return { server: creds.server, username: creds.username, password: creds.password };
+    },
+  });
   console.log('[ipc] all handlers registered');
 }
 

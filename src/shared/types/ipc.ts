@@ -156,6 +156,15 @@ export type TmdbKeyInput = { key: string };
 export type TmdbKeyOutput = { valid: boolean };
 export type TmdbKeyPlainOutput = { key: string } | null;
 
+export type EpgNowNextInput = { channelIds: number[] };
+export type EpgProgrammeSummary = { title: string; startAt?: number; endAt?: number };
+export type EpgNowNextItem = {
+  channelId: number;
+  now: { title: string; endAt: number } | null;
+  next: { title: string; startAt: number } | null;
+};
+export type EpgNowNextOutput = { items: EpgNowNextItem[] };
+
 // ─── LuxAPI Interface ─────────────────────────────────────────────────────────
 export interface LuxAPI {
   // Ingest
@@ -177,6 +186,9 @@ export interface LuxAPI {
   'tmdb:hasKey': () => Promise<IpcResult<boolean>>;
   'tmdb:getKey': () => Promise<IpcResult<TmdbKeyPlainOutput>>;
   'tmdb:clearKey': () => Promise<IpcResult<void>>;
+
+  // EPG
+  'epg:nowNext': (input: EpgNowNextInput) => Promise<IpcResult<EpgNowNextOutput>>;
 
   // Config (F2 vault — renderer must not call loadCredentials)
   'config:hasSource': () => Promise<IpcResult<HasSource>>;

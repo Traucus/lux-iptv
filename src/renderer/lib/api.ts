@@ -1,4 +1,4 @@
-import type { IpcResult, IngestStartInput, IngestStartOutput, IngestCancelInput, IngestProgressInput, IngestProgress, CatalogListInput, CatalogListOutput, CatalogGetByIdInput, CatalogItem, CatalogType, CatalogGroupedInput, CatalogGroupedOutput, SeriesDetail, EnrichmentStatus,   TmdbKeyInput, TmdbKeyOutput, TmdbKeyPlainOutput, HasSource, SourceSummary, Episode } from '../../shared/types/ipc';
+import type { IpcResult, IngestStartInput, IngestStartOutput, IngestCancelInput, IngestProgressInput, IngestProgress, CatalogListInput, CatalogListOutput, CatalogGetByIdInput, CatalogItem, CatalogType, CatalogGroupedInput, CatalogGroupedOutput, SeriesDetail, EnrichmentStatus,   TmdbKeyInput, TmdbKeyOutput, TmdbKeyPlainOutput, EpgNowNextInput, EpgNowNextOutput, HasSource, SourceSummary, Episode } from '../../shared/types/ipc';
 import type { MediaFormat } from '../../shared/types/player';
 import type {
   PlayerGetSourceInputParsed,
@@ -31,6 +31,9 @@ export type TypedLuxAPI = {
   };
   enrichment: {
     getStatus: () => Promise<IpcResult<EnrichmentStatus>>;
+  };
+  epg: {
+    nowNext: (input: EpgNowNextInput) => Promise<IpcResult<EpgNowNextOutput>>;
   };
   tmdb: {
     setKey: (input: TmdbKeyInput) => Promise<IpcResult<TmdbKeyOutput>>;

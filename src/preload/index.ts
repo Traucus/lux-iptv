@@ -23,6 +23,9 @@ const luxAPI = {
   enrichment: {
     getStatus: () => ipcRenderer.invoke('enrichment:getStatus'),
   },
+  epg: {
+    nowNext: (input: unknown) => ipcRenderer.invoke('epg:nowNext', input),
+  },
   tmdb: {
     setKey: (input: unknown) => ipcRenderer.invoke('tmdb:setKey', input),
     hasKey: () => ipcRenderer.invoke('tmdb:hasKey'),
