@@ -25,9 +25,9 @@ Role on every screen: **Usuario**.
 | --- | --- |
 | Purpose | Add or replace Xtream/M3U. Configured: host only; never username/password. |
 | Layout | Form (empty/replace) or configured summary (no password) · overlay |
-| Components | `CredentialsForm`, progress overlay |
-| Visible states | Empty · ingesting (counts) · configured (host only) · error |
-| Actions | Start ingest · cancel · replace source (retype) |
+| Components | `CredentialsForm`, progress overlay, `TmdbKeyOnboarding` |
+| Visible states | Empty · ingesting (counts) · configured (host only) · TMDB key missing/saved · error |
+| Actions | Start ingest · cancel · replace source (retype) · save TMDB key |
 | Broadcasts | `ingest:start`, `ingest:getProgress` |
 | Phase | F3; TMDB key slot F4 |
 | Flows | FL-01, T-01 |

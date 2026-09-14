@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { CredentialsForm, type CredentialsFormValue, validateCredentials } from './CredentialsForm';
 import { IngestOverlay } from './IngestOverlay';
 import { SourceVaultCard } from './SourceVaultCard';
+import { TmdbKeyOnboarding } from './TmdbKeyOnboarding';
 import { useStartIngest, useCancelIngest, useIngestProgress } from '../../queries/use-ingest';
 import { useSourceSummary } from '../../queries/use-source';
 import { createLuxAPI } from '../../lib/api';
@@ -234,6 +235,7 @@ export function IngestPage(): React.ReactElement {
               />
             </>
           )}
+          <TmdbKeyOnboarding />
         </div>
 
         {showOverlay && progress.phase ? (

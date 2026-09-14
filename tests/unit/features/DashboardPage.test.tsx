@@ -98,6 +98,7 @@ function makeEnrichmentResults(
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockApi.tmdb.hasKey.mockResolvedValue({ data: true });
   // Default: no enrichment records are present (degraded mode).
   mockEnrichmentBatch.mockImplementation(
     (ids: ReadonlyArray<string | number>) => makeEnrichmentResults(ids.map(String)),
@@ -237,5 +238,17 @@ describe('DashboardPage', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Play Inception' }));
     expect(screen.getByTestId('location-pathname').textContent).toBe('/watch/movie/42');
+  });
+
+  it('prompts for a required TMDB key without blocking play (FA-08)', async () => {
+    mockApi.tmdb.hasKey.mockResolvedValue({ data: false });
+    mockApi.catalog.list.mockResolvedValue({ data: { items: [], total: 0 } });
+    const { wrapper } = setup();
+    render(<DashboardPage />, { wrapper });
+    await waitFor(() => {
+      expect(screen.getByTestId('tmdb-required-banner')).toBeTruthy();
+    });
+    expect(screen.getByRole('button', { name: /Add TMDB key/i })).toBeTruthy();
+    expect(screen.getByText(/Welcome to Lux IPTV/i)).toBeTruthy();
   });
 });

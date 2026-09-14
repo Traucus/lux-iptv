@@ -69,6 +69,8 @@ beforeEach(() => {
   mockApi.config.hasSource.mockResolvedValue({ data: { configured: false } });
   mockApi.config.loadCredentials.mockResolvedValue({ data: null });
   mockApi.config.saveCredentials.mockResolvedValue({ data: { ok: true } });
+  mockApi.tmdb.hasKey.mockResolvedValue({ data: false });
+  mockApi.tmdb.setKey.mockResolvedValue({ data: { valid: true } });
 });
 
 describe('IngestPage', () => {
@@ -224,5 +226,45 @@ describe('IngestPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /Start Ingestion/i }));
     expect(mockApi.ingest.start).not.toHaveBeenCalled();
+  });
+
+  it('requires a TMDB key on the vault and never displays the saved key (FA-08)', async () => {
+    const { wrapper } = setup();
+    render(<IngestPage />, { wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('tmdb-key-onboarding')).toBeTruthy();
+    });
+    fireEvent.change(document.getElementById('tmdb-api-key') as HTMLInputElement, {
+      target: { value: 'abc123def456' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Save TMDB key/i }));
+
+    await waitFor(() => {
+      expect(mockApi.tmdb.setKey).toHaveBeenCalledWith({ key: 'abc123def456' });
+      expect(screen.getByTestId('tmdb-key-configured')).toBeTruthy();
+    });
+    expect(screen.queryByDisplayValue('abc123def456')).toBeNull();
+    expect(screen.queryByText('abc123def456')).toBeNull();
+  });
+
+  it('keeps the TMDB slot required when the key is rejected', async () => {
+    mockApi.tmdb.setKey.mockResolvedValue({ data: { valid: false } });
+    const { wrapper } = setup();
+    render(<IngestPage />, { wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('tmdb-key-onboarding')).toBeTruthy();
+    });
+    fireEvent.change(document.getElementById('tmdb-api-key') as HTMLInputElement, {
+      target: { value: 'abc123def456' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Save TMDB key/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/rejected by TMDB/i)).toBeTruthy();
+    });
+    expect(screen.getByTestId('tmdb-key-onboarding')).toBeTruthy();
+    expect(screen.queryByTestId('tmdb-key-configured')).toBeNull();
   });
 });

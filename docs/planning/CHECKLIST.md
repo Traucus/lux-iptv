@@ -23,7 +23,7 @@ Refresh on Home/Live/Movies/Series and host-only vault shipped. Not backlog.
 | ID | Class | Item | Evidence |
 | --- | --- | --- | --- |
 | PA-06 | PARCIAL | Hydrate posters/synopsis on Movies/Series rows (not only Home). Pages still pass `enriched: false`. | `src/renderer/features/movies/MoviesPage.tsx:34` |
-| FA-08 | FALTA | TMDB key is required product onboarding, not an optional stub. | `src/renderer/queries/use-tmdb-key.ts:10` |
+| FA-08 | PARCIAL | S2 requires a TMDB key and Home prompts when missing. Play is not blocked. Enrichment still does not start from the saved key (no getPlain / worker start). | `TmdbKeyOnboarding.tsx`; `tmdb-required-banner` on Home |
 
 ## F5 — VOD flows (1)
 
@@ -62,8 +62,8 @@ See-all (`?group=`), resume duration, next-episode navigate, Hero Play → `/wat
 | Class | Count |
 | --- | --- |
 | ROTO | 0 |
-| PARCIAL | 5 |
-| FALTA | 4 |
+| PARCIAL | 6 |
+| FALTA | 3 |
 | **Windows remaining** | **9** |
 
 ## Consistency

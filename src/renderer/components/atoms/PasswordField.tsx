@@ -18,6 +18,8 @@ export interface PasswordFieldProps {
   className?: string;
   visible?: boolean;
   onToggleVisible?: () => void;
+  showLabel?: string;
+  hideLabel?: string;
 }
 
 export function PasswordField({
@@ -33,6 +35,8 @@ export function PasswordField({
   className = '',
   visible = false,
   onToggleVisible,
+  showLabel = 'Show password',
+  hideLabel = 'Hide password',
 }: PasswordFieldProps): React.ReactElement {
   const inputId = id ?? `pf-${label.replace(/\s+/g, '-').toLowerCase()}`;
   const hasError = Boolean(error);
@@ -62,7 +66,7 @@ export function PasswordField({
             type="button"
             onClick={onToggleVisible}
             tabIndex={-1}
-            aria-label={visible ? 'Hide password' : 'Show password'}
+            aria-label={visible ? hideLabel : showLabel}
             className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-gray-400 hover:text-white hover:bg-glass-light transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/60"
           >
             {visible ? <EyeOffIcon /> : <EyeIcon />}

@@ -9,6 +9,7 @@ import { MoviePosterCard, type MoviePosterData } from '../../components/molecule
 import { SeriesPosterCard, type SeriesPosterData } from '../../components/molecules/SeriesPosterCard';
 import { useDashboardData } from './useDashboardData';
 import { ListRefreshButton } from '../ingest/ListRefreshButton';
+import { useTmdbKey } from '../../queries/use-tmdb-key';
 import type { EnrichedCatalogItem } from '../../../shared/types/ipc';
 
 function itemToMovie(item: EnrichedCatalogItem): MoviePosterData {
@@ -61,6 +62,7 @@ export function DashboardPage(): React.ReactElement {
   const navigate = useNavigate();
   const location = useLocation();
   const data = useDashboardData();
+  const { data: hasTmdbKey } = useTmdbKey();
 
   const activeSection = routeToSection(location.pathname);
 
@@ -101,6 +103,9 @@ export function DashboardPage(): React.ReactElement {
           <ErrorState message={data.error.message} onRetry={() => window.location.reload()} />
         ) : (
           <div className="flex flex-col gap-8">
+            {hasTmdbKey === false ? (
+              <TmdbRequiredBanner onAddKey={() => navigate('/ingest')} />
+            ) : null}
             {featured ? (
               <HeroBanner
                 data={{
@@ -181,6 +186,26 @@ function ErrorState({ message, onRetry }: { message: string; onRetry: () => void
         Retry
       </button>
     </div>
+  );
+}
+
+function TmdbRequiredBanner({ onAddKey }: { onAddKey: () => void }): React.ReactElement {
+  return (
+    <section
+      className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
+      data-testid="tmdb-required-banner"
+    >
+      <p className="text-sm text-amber-100">
+        Add a TMDB API key so posters and synopses can load. Playback still works.
+      </p>
+      <button
+        type="button"
+        onClick={onAddKey}
+        className="self-start px-4 py-2 rounded-lg bg-primary-500 text-white hover:bg-primary-600 transition-colors font-medium"
+      >
+        Add TMDB key
+      </button>
+    </section>
   );
 }
 
