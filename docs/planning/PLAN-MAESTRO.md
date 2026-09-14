@@ -2,7 +2,9 @@
 
 Lux is a quality IPTV product. First ship is the **complete Windows app**, not a Chromium prototype. Android, Samsung, and LG come after, each with its own decoder.
 
-Owner freeze **2026-08-30**: **9 screens, 12 flows, 50 checklist items, 7 Windows phases (F1–F7) + 3 platforms (F8–F10) + 4 backlog (F11–F14)**.
+Owner freeze **2026-08-30**: **9 screens, 12 flows, 7 Windows phases (F1–F7) + 3 platforms (F8–F10) + 4 backlog (F11–F14)**.
+
+Reconciliation **2026-09-14**: **9 remaining Windows checklist items** (see `CHECKLIST.md`). FA-17/FA-18 have code on `242a36e`; they stay PARCIAL until Windows proves them.
 
 This freeze **supersedes** 2026-08-28 (hls.js as product player, F3 before F4, D-6, pending D-3).
 
@@ -79,14 +81,13 @@ flowchart TD
 
 | We have | We lack (blocks Windows done) |
 | --- | --- |
-| Xtream + M3U ingest, sql.js catalog | Honest URL builder (today lies `.mp4`) |
-| Rows Live / Movies / Series, detail `/content/:type/:id` | **libmpv** product engine |
-| Lazy `get_series_info` (episodes list) | Episodes that actually play (mkv / extra audio) |
-| Chromium VideoPlayer + OSD markup | Real audio/sid, load `.srt`, exclusive fullscreen, OSD tooltips |
-| Proxy via Node http (no `net.request` crash) | Vault chrome refresh on every list screen |
-| TMDB key encryption + stubs | TMDB as required visual layer on rows |
-| Resume IndexedDB stubs | Continue Watching, real clock, next-episode |
-| — | EPG; Windows installer that bundles mpv |
+| Xtream + M3U ingest, sql.js catalog, honest URLs | Windows click-test of OSD inset bands (FA-17) |
+| In-process libmpv + HWND child + OSD inset 88/168 (`0204b9c`) | Windows proof live `.m3u8` does not curl-abort (FA-18) |
+| Origin live URL + HLS reconnect (`242a36e`) | OSD control to load `.srt` (FA-03) |
+| Vault host-only + refresh on list screens | TMDB required onboarding + row hydration (FA-08, PA-06) |
+| Resume clock, next-episode, Continue Watching movies | Continue Watching episodes (FA-09) |
+| — | EPG S9 + now/next (FA-11, FA-12) |
+| — | Installer that bundles libmpv (FA-13); Chromium GPU stays off |
 
 ## Modules
 
@@ -132,13 +133,13 @@ F2 does **not** wait for TMDB. Play does not depend on art. Quality bar for list
 
 | Phase | Name | Enables when done | Status |
 | --- | --- | --- | --- |
-| **F1** | Lists | Browse Live / Movies / Series, open detail, list episodes | Mostly done |
-| **F2** | Windows player | Honest URL; **in-process libmpv**; all origin formats; no freeze; audio/subs; load `.srt`; exclusive fullscreen (no taskbar); OSD tooltips/icons | Chromium shell only; tracks are no-ops |
-| **F3** | Secure source | Refresh on Home/Live/Movies/Series; vault never shows secrets | Missing |
-| **F4** | TMDB layer | Posters, fanart, synopsis, rating on Home, rows, detail. Key is part of the product | Pipeline exists; product still degraded |
-| **F5** | VOD flows | See-all, Continue Watching, resume clock, next-episode | Partial / broken |
+| **F1** | Lists | Browse Live / Movies / Series, open detail, list episodes | Done |
+| **F2** | Windows player | Honest URL; **in-process libmpv**; all origin formats; no freeze; audio/subs; load `.srt`; exclusive fullscreen; OSD usable | Engine + OSD inset + origin HLS in tree. Remaining: Windows proof of FA-17/FA-18, then subtitle file control (FA-03) |
+| **F3** | Secure source | Refresh on Home/Live/Movies/Series; vault never shows secrets | Done |
+| **F4** | TMDB layer | Posters, fanart, synopsis, rating on Home, rows, detail. Key is part of the product | Pipeline exists; rows + onboarding still open |
+| **F5** | VOD flows | See-all, Continue Watching, resume clock, next-episode | See-all/resume/next done. Remaining: Continue Watching episodes |
 | **F6** | EPG | Guide + now/next on Live, zap to S7 | Missing |
-| **F7** | Windows package | Installer bundles libmpv; GPU on; no `--disable-gpu` in prod | Missing |
+| **F7** | Windows package | Installer bundles libmpv. Chromium GPU **off** unless `LUX_HW_ACCEL=true` (D-14) | Missing |
 
 ## Platforms after Windows (3)
 
@@ -177,7 +178,7 @@ F2 does **not** wait for TMDB. Play does not depend on art. Quality bar for list
 
 ## Open for owner
 
-None blocking this freeze. Next implementation gate: SDD for F2 (`lux-iptv-player-mpv`) after this doc set.
+None blocking this freeze. F2 SDD is archived (`a9f014f`). Next product gate: FA-03, then Windows proof of FA-17/FA-18, then F4/F5 leftovers, then F6, then F7.
 
 ## Consistency
 
@@ -185,7 +186,7 @@ None blocking this freeze. Next implementation gate: SDD for F2 (`lux-iptv-playe
 | --- | --- |
 | Screens | 9 |
 | Flows | 12 |
-| Checklist items | 50 |
+| Checklist remaining (Windows) | 9 |
 | Windows develop | F1–F7 |
 | Platforms | F8–F10 |
 | Backlog | F11–F14 |

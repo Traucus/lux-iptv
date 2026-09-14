@@ -2,7 +2,9 @@
 
 Pass/fail as written. Isolated unit tests do not close a flow.
 
-Freeze 2026-08-30: **12 flows**, **9 screens**, **50 checklist items**, **F1–F7 Windows** + **F8–F10 platforms** + **F11–F14 backlog**.
+Freeze 2026-08-30: **12 flows**, **9 screens**, **F1–F7 Windows** + **F8–F10 platforms** + **F11–F14 backlog**.
+
+Reconciliation **2026-09-14**: **9 remaining Windows checklist items**. Linux unit tests do not close FA-17/FA-18.
 
 Role: **Usuario**.
 
@@ -36,7 +38,7 @@ Role: **Usuario**.
 
 - [ ] `/live` category rows. Channel → `/watch/live/{id}` **libmpv**, no SeekBar.
 - [ ] See-all (S8) for a live group shows the full grid; select still plays on S7.
-- [ ] Live profile: ~20s cache, reconnect, `hwdec=auto-safe`. Picture does not freeze on a late segment.
+- [ ] Live profile: origin `.m3u8` (no `.ts` rewrite), ~20s cache, reconnect, `hwdec=auto-safe`. Picture does not freeze on a late segment. Proven on Windows, not by Linux unit tests.
 - [ ] OSD 4s; Back to Live.
 
 ## FL-04 — Movies play + resume — F1+F2+F5
@@ -115,7 +117,7 @@ F8–F10 have no Windows flows in this freeze (other runtimes). F11–F14 have n
 | --- | --- |
 | Screens | 9 |
 | Flows | 12 |
-| Checklist items | 50 |
+| Checklist remaining (Windows) | 9 |
 | Windows develop | F1–F7 |
 | Platforms | F8–F10 |
 | Backlog | F11–F14 |

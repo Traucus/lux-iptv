@@ -1,6 +1,8 @@
 # PANTALLAS-POR-FLUJO — Lux IPTV
 
-Freeze 2026-08-30: **9 screens**, **12 flows**, **50 checklist items**, **F1–F7 Windows** + **F8–F10 platforms** + **F11–F14 backlog**.
+Freeze 2026-08-30: **9 screens**, **12 flows**, **F1–F7 Windows** + **F8–F10 platforms** + **F11–F14 backlog**.
+
+Reconciliation **2026-09-14**: **9 remaining Windows checklist items**. FA-17/FA-18 code is PARCIAL pending Windows proof.
 
 Role on every screen: **Usuario**.
 
@@ -87,8 +89,8 @@ Role on every screen: **Usuario**.
 | Field | Content |
 | --- | --- |
 | Purpose | Windows product player: **libmpv**, not Chromium happy path. |
-| Layout | Full-bleed video · OSD top · controls · seek (VOD only) |
-| Components | libmpv surface (F2); current `VideoPlayer` is the Chromium shell to replace |
+| Layout | libmpv child HWND with Chromium OSD in 88/168 inset bands · seek (VOD only) |
+| Components | In-process libmpv surface. Remaining: Windows click-test (FA-17); load `.srt` control (FA-03) |
 | Visible states | Loading · playing · recovering (>1s stall) · error · resume dialog (VOD) · next-episode card |
 | Actions | Play/pause · ±10s (VOD) · audio · subs · load `.srt` · aspect · **exclusive fullscreen** · back |
 | Broadcasts | engine events; `setFullScreen`; resume throttle |
@@ -143,7 +145,7 @@ F7 is installer (no new screen). F8–F10 are other apps. F11–F14 backlog.
 | --- | --- |
 | Screens | 9 |
 | Flows | 12 |
-| Checklist items | 50 |
+| Checklist remaining (Windows) | 9 |
 | Windows develop | F1–F7 |
 | Platforms | F8–F10 |
 | Backlog | F11–F14 |
