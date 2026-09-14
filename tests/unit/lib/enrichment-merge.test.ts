@@ -60,6 +60,8 @@ describe('buildTmdbImageUrl', () => {
     expect(buildTmdbImageUrl(null)).toBeNull();
     expect(buildTmdbImageUrl(undefined)).toBeNull();
     expect(buildTmdbImageUrl('')).toBeNull();
+    expect(buildTmdbImageUrl('   ')).toBeNull();
+    expect(buildTmdbImageUrl('/')).toBeNull();
   });
 
   it('handles paths that are missing the leading slash', () => {

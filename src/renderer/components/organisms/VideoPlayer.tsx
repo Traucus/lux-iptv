@@ -39,8 +39,10 @@ export interface VideoPlayerProps {
   onEnded?: () => void;
   /** Called when a fatal playback error occurs */
   onError?: (error: Error) => void;
-  /** Called periodically with current playback position */
-  onTimeUpdate?: (position: number) => void;
+  /** Called periodically with current playback position and duration */
+  onTimeUpdate?: (position: number, duration: number) => void;
+  /** Navigate to the next episode */
+  onNextEpisode?: (episode: Episode) => void;
   /** Series seasons for next-episode resolution (episode type only) */
   seasons?: Season[];
   /** Current episode for next-episode card (episode type only) */
@@ -60,6 +62,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   seasons,
   currentEpisode,
   showNextEpisodeCard = false,
+  onNextEpisode,
   className = '',
 }) => {
   const [engineState, setEngineState] = useState<'idle' | 'loading' | 'playing' | 'recovering' | 'error'>('idle');
@@ -73,7 +76,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [audioTracks, setAudioTracks] = useState<PlayerTrack[]>([]);
   const [subtitleTracks, setSubtitleTracks] = useState<PlayerTrack[]>([]);
   const [aspectRatio, setAspectRatio] = useState<'16:9' | '4:3' | 'zoom' | 'fit'>('16:9');
-  const [nextEpisode] = useState<Episode | null>(null);
+  const [nextEpisode, setNextEpisode] = useState<Episode | null>(null);
   const [showNextEpisodeCardState, setShowNextEpisodeCardState] = useState(false);
 
   const { visible: osdVisible } = useIdleOSD(4000);
@@ -88,14 +91,30 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       }
       const status = await api.getStatus?.();
       if (status && 'data' in status && status.data) {
-        setCurrentTime(status.data.currentTime);
-        setDuration(status.data.duration);
+        const pos = status.data.currentTime;
+        const dur = status.data.duration;
+        setCurrentTime(pos);
+        setDuration(dur);
         setBuffered([{ start: 0, end: status.data.buffered }]);
+        onTimeUpdate?.(pos, dur);
+        if (
+          showNextEpisodeCard &&
+          source.type === 'episode' &&
+          currentEpisode &&
+          dur > 0 &&
+          pos / dur >= 0.95
+        ) {
+          const next = await api.getNextEpisode?.({ episodeId: currentEpisode.id });
+          if (next && 'data' in next && next.data) {
+            setNextEpisode(next.data);
+            setShowNextEpisodeCardState(true);
+          }
+        }
       }
     } catch {
       // Renderer tests and unload without luxAPI must still mount.
     }
-  }, []);
+  }, [onTimeUpdate, showNextEpisodeCard, source.type, currentEpisode]);
 
   useEffect(() => {
     setEngineState(diagnosis ? 'error' : 'playing');
@@ -104,6 +123,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       setErrorMessage('libmpv failed to load');
     }
     void refreshTracks();
+    const poll = setInterval(() => {
+      void refreshTracks();
+    }, 1000);
     const onEscape = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
       try {
@@ -114,6 +136,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     };
     window.addEventListener('keydown', onEscape);
     return () => {
+      clearInterval(poll);
       window.removeEventListener('keydown', onEscape);
     };
   }, [source, diagnosis, onEnded, onError, onTimeUpdate, seasons, currentEpisode, showNextEpisodeCard, refreshTracks]);
@@ -364,8 +387,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         <NextEpisodeCard
           episode={nextEpisode}
           onWatchNow={() => {
-            // Parent handles navigation
             setShowNextEpisodeCardState(false);
+            if (nextEpisode) onNextEpisode?.(nextEpisode);
           }}
           onDismiss={() => setShowNextEpisodeCardState(false)}
           visible={true}

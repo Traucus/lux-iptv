@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useQueries } from '@tanstack/react-query';
 import { createLuxAPI } from '../../lib/api';
+import { listPositions } from '../../db/playback-resume';
 import { useEnrichmentBatch } from '../../queries/use-enrichment-data';
 import { enrichItems } from '../../lib/enrichment-merge';
 import type { ContentEnrichmentRecord } from '../../db/schema';
@@ -26,11 +27,17 @@ export function useDashboardData(): DashboardData {
   const results = useQueries({
     queries: [
       {
-        queryKey: ['catalog', 'movie', { limit: 25, search: 'continue' }] as const,
+        queryKey: ['catalog', 'continue-watching'] as const,
         queryFn: async (): Promise<CatalogListOutput> => {
-          const res = await api.catalog.list({ type: 'movie', limit: 25, search: 'continue' });
-          if (res.error) throw new Error(`${res.error.code}: ${res.error.message}`);
-          return res.data;
+          const positions = (await listPositions()).filter((row) => row.id.startsWith('movie:'));
+          const items: CatalogItem[] = [];
+          for (const row of positions.slice(0, 25)) {
+            const id = Number(row.id.slice('movie:'.length));
+            if (!Number.isFinite(id)) continue;
+            const res = await api.catalog.getById({ type: 'movie', id });
+            if (res.data && 'id' in res.data) items.push(res.data as CatalogItem);
+          }
+          return { items, total: items.length };
         },
       },
       {

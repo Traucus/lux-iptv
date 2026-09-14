@@ -18,8 +18,9 @@ export function buildTmdbImageUrl(
   path: string | null | undefined,
   size: TmdbPosterSize | TmdbBackdropSize = DEFAULT_BACKDROP_SIZE,
 ): string | null {
-  if (!path) return null;
-  const normalized = path.startsWith('/') ? path : `/${path}`;
+  const trimmed = path?.trim();
+  if (!trimmed || trimmed === '/') return null;
+  const normalized = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
   return `${TMDB_IMAGE_BASE_URL}/${size}${normalized}`;
 }
 

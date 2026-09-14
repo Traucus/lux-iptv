@@ -64,6 +64,13 @@ export async function getPosition(type: string, id: number): Promise<StoredPosit
   return (await db.get('positions', key)) ?? null;
 }
 
+export async function listPositions(): Promise<StoredPosition[]> {
+  if (typeof indexedDB === 'undefined') return [];
+  const db = await getDB();
+  const rows = await db.getAll('positions');
+  return rows.sort((a, b) => b.updatedAt - a.updatedAt);
+}
+
 /**
  * Sets the playback position for a content item.
  * @param type - Content type: 'movie' | 'episode'

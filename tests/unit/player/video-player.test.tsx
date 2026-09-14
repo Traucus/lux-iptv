@@ -75,6 +75,7 @@ vi.mock('../../../src/renderer/lib/api', () => ({
       addSubtitle: playerMocks.mockAddSubtitle,
       seek: playerMocks.mockSeek,
       getStatus: playerMocks.mockGetStatus,
+      getNextEpisode: vi.fn().mockResolvedValue({ data: null }),
       setFullScreen: playerMocks.mockSetFullScreen,
       setPaused: playerMocks.mockSetPaused,
     },

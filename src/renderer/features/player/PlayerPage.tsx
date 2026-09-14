@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { VideoPlayer } from '../../components/organisms/VideoPlayer';
@@ -109,6 +109,7 @@ export const PlayerPage: React.FC = () => {
   const [showResumeDialog, setShowResumeDialog] = useState(false);
   const [seasons, setSeasons] = useState<Season[]>([]);
   const [currentEpisode, setCurrentEpisode] = useState<Episode | null>(null);
+  const throttlerRef = useRef(createPositionThrottler());
 
   // Validate content type
   useEffect(() => {
@@ -275,7 +276,7 @@ export const PlayerPage: React.FC = () => {
     );
   }
 
-  const throttler = createPositionThrottler();
+  const throttler = throttlerRef.current;
 
   return (
     <div className="h-screen w-screen bg-black relative overflow-hidden" data-testid="player-shell">
@@ -284,14 +285,21 @@ export const PlayerPage: React.FC = () => {
         diagnosis={diagnosis}
         onEnded={() => {
           throttler.flush().catch(console.error);
-          // For episodes, next-episode card handles navigation
         }}
         onError={(err) => {
           throttler.flush().catch(console.error);
           console.error('[PlayerPage] Playback error:', err);
         }}
-        onTimeUpdate={(pos) => {
-          throttler.throttle(playbackSource.type, contentId, pos, playbackSource.mediaFormat === 'hls' ? 0 : 0);
+        onTimeUpdate={(pos, dur) => {
+          if (playbackSource.type === 'live') return;
+          const id =
+            playbackSource.type === 'episode' && currentEpisode
+              ? currentEpisode.id
+              : contentId;
+          throttler.throttle(playbackSource.type, id, pos, dur);
+        }}
+        onNextEpisode={(episode) => {
+          navigate(`/watch/episode/${episode.id}`);
         }}
         seasons={seasons}
         currentEpisode={currentEpisode}
