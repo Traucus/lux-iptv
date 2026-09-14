@@ -82,9 +82,9 @@ Chromium HW accel MUST be off by default on Linux and Windows unless `LUX_HW_ACC
 
 ### Requirement: Player IPC Channels
 
-Player preload MUST expose `getSource`, `getProxiedUrl`, `reportError`, and `reportProgress`. `getSource` MUST return format and live/VOD metadata only, not a playback URL.
+Player preload MUST expose `getSource`, `getProxiedUrl`, `reportError`, and `reportProgress`. `getSource` MUST return format and live/VOD metadata only, not a playback URL. Product playback MUST use libmpv origin play, not `getProxiedUrl` as the happy path. `getProxiedUrl` MAY remain for non-happy-path proxy use.
 
-(Previously: getSource returned the proxied stream URL.)
+(Previously: `getProxiedUrl` was the required playback URL.)
 
 #### Scenario: getSource returns format metadata
 
@@ -98,12 +98,12 @@ Player preload MUST expose `getSource`, `getProxiedUrl`, `reportError`, and `rep
 - WHEN `reportError({code, message})` is called
 - THEN main MUST log it
 
-#### Scenario: getProxiedUrl returns playback URL
+#### Scenario: getProxiedUrl is not the happy path
 
 - GIVEN a catalog id
-- WHEN `getProxiedUrl(id)` is called
-- THEN it MUST return the local proxy URL
-
+- WHEN playback starts
+- THEN libmpv MUST use the origin URL
+- AND `getProxiedUrl` MUST NOT be required for the happy path
 ### Requirement: getNextEpisode IPC Handler
 
 The system MUST register a `player:getNextEpisode` IPC handler that, given a current episode ID, returns the next episode's metadata (or null if none exists).
@@ -121,3 +121,30 @@ The system MUST register a `player:getNextEpisode` IPC handler that, given a cur
 - GIVEN the last episode in a series
 - WHEN `getNextEpisode(lastEpisode)` is called
 - THEN it MUST return null
+### Requirement: Preload Remains Sandboxed CommonJS
+
+Player IPC on `window.luxAPI.player` MUST be exposed from the sandboxed preload compiled as CommonJS.
+
+#### Scenario: luxAPI.player is defined
+
+- GIVEN the renderer loads with sandbox and contextIsolation
+- WHEN `window.luxAPI.player` is accessed
+- THEN it MUST be a defined object with callable player IPC methods
+
+### Requirement: libmpv Player IPC
+
+Main MUST expose player IPC to load, control, and diagnose in-process libmpv, with the Lux `BrowserWindow`. Diagnosis MUST report libmpv load failure, not missing `mpv.exe`.
+
+#### Scenario: Play IPC loads origin in-process
+
+- GIVEN a catalog id with an origin URL
+- WHEN the renderer requests play
+- THEN main MUST load that URL in-process in the Lux window
+
+#### Scenario: Load failure IPC
+
+- GIVEN libmpv cannot load
+- WHEN play is requested
+- THEN IPC MUST return a load-failure diagnosis
+- AND MUST NOT start hls.js or spawn `mpv.exe`
+
