@@ -164,8 +164,9 @@ static HWND create_embed_hwnd(HWND parent) {
   SetWindowLongPtrA(parent, GWL_STYLE, style | WS_CLIPCHILDREN);
   RECT rc{};
   GetClientRect(parent, &rc);
-  const int kOsdTop = 72;
-  const int kOsdBottom = 120;
+  // Must match src/shared/player-chrome.ts OSD_HWND_INSET.
+  const int kOsdTop = 88;
+  const int kOsdBottom = 168;
   const int width = rc.right - rc.left;
   const int fullHeight = rc.bottom - rc.top;
   const int height = fullHeight > kOsdTop + kOsdBottom + 1

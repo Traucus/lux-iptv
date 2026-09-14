@@ -100,6 +100,13 @@ describe('Production VideoPlayer libmpv host', () => {
     expect(createMediaEngine).not.toHaveBeenCalled();
   });
 
+  it('places OSD chrome in HWND inset bands', () => {
+    render(<ProductionVideoPlayer source={source} />);
+    expect(screen.getByTestId('osd-chrome-top')).toHaveStyle({ height: '88px' });
+    expect(screen.getByTestId('osd-chrome-bottom')).toHaveStyle({ height: '168px' });
+    expect(screen.getByTestId('osd-controls')).toBeInTheDocument();
+  });
+
   it('shows diagnosis UI when libmpv failed to load', () => {
     render(
       <ProductionVideoPlayer

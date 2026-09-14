@@ -174,4 +174,10 @@ describe('OSD chrome contracts (slice 3)', () => {
     expect(exclusiveFullscreenPayload(true)).toEqual({ fullscreen: true });
     expect(exclusiveFullscreenPayload(false)).toEqual({ fullscreen: false });
   });
+
+  it('HWND inset leaves Chromium bands for OSD chrome', async () => {
+    const { OSD_HWND_INSET } = await import('../../../src/shared/player-chrome');
+    expect(OSD_HWND_INSET.top).toBe(88);
+    expect(OSD_HWND_INSET.bottom).toBe(168);
+  });
 });

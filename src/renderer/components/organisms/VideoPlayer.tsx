@@ -12,6 +12,7 @@ import {
   exclusiveFullscreenPayload,
   isExternalSubtitleFile,
   isLiveRewindEnabled,
+  OSD_HWND_INSET,
   type PlayerTrack,
 } from '../../features/player/player-chrome';
 
@@ -335,50 +336,70 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         </div>
       )}
 
-      {/* OSD Overlay */}
       {osdVisible && (
         <>
-          {/* Top Bar */}
-          <OsdTopBar
-            title={source.type === 'live' ? 'Live TV' : 'Content Title'}
-            resolution={undefined}
-            audioTrack={audioTracks[audioTrackIndex]?.name}
-            onBack={() => {
-              // Navigation handled by parent
-              window.history.back();
+          <div
+            data-testid="osd-chrome-top"
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: OSD_HWND_INSET.top,
+              zIndex: 20,
             }}
-            visible={true}
-          />
-
-          {/* Controls */}
-          <OsdControls
-            isPlaying={isPlaying}
-            audioTrackIndex={audioTrackIndex}
-            audioTracks={audioTracks}
-            subtitleTrackIndex={subtitleTrackIndex}
-            subtitleTracks={subtitleTracks}
-            aspectRatio={aspectRatio}
-            visible={true}
-            onRewind10={handleRewind10}
-            onPlayPause={handlePlayPause}
-            onForward10={handleForward10}
-            onAudioTrackChange={handleAudioTrackChange}
-            onSubtitleTrackChange={handleSubtitleTrackChange}
-            onAspectRatioChange={setAspectRatio}
-            onFullscreen={handleFullscreen}
-            rewindDisabled={!isLiveRewindEnabled(source.type)}
-          />
-
-          {/* SeekBar (hidden for live) */}
-          {source.type !== 'live' && (
-            <SeekBar
-              currentTime={currentTime}
-              duration={duration}
-              buffered={buffered}
-              onSeek={handleSeek}
-              disabled={duration <= 0}
+          >
+            <OsdTopBar
+              title={source.type === 'live' ? 'Live TV' : 'Content Title'}
+              resolution={undefined}
+              audioTrack={audioTracks[audioTrackIndex]?.name}
+              onBack={() => {
+                window.history.back();
+              }}
+              visible={true}
             />
-          )}
+          </div>
+
+          <div
+            data-testid="osd-chrome-bottom"
+            style={{
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              height: OSD_HWND_INSET.bottom,
+              zIndex: 20,
+            }}
+          >
+            {source.type !== 'live' && (
+              <div style={{ padding: '12px 24px 0' }}>
+                <SeekBar
+                  currentTime={currentTime}
+                  duration={duration}
+                  buffered={buffered}
+                  onSeek={handleSeek}
+                  disabled={duration <= 0}
+                />
+              </div>
+            )}
+            <OsdControls
+              isPlaying={isPlaying}
+              audioTrackIndex={audioTrackIndex}
+              audioTracks={audioTracks}
+              subtitleTrackIndex={subtitleTrackIndex}
+              subtitleTracks={subtitleTracks}
+              aspectRatio={aspectRatio}
+              visible={true}
+              onRewind10={handleRewind10}
+              onPlayPause={handlePlayPause}
+              onForward10={handleForward10}
+              onAudioTrackChange={handleAudioTrackChange}
+              onSubtitleTrackChange={handleSubtitleTrackChange}
+              onAspectRatioChange={setAspectRatio}
+              onFullscreen={handleFullscreen}
+              rewindDisabled={!isLiveRewindEnabled(source.type)}
+            />
+          </div>
         </>
       )}
 

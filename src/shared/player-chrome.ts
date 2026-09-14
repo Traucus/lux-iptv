@@ -38,6 +38,9 @@ export function exclusiveFullscreenPayload(fullscreen: boolean): { fullscreen: b
   return { fullscreen };
 }
 
+/** HWND hole so Chromium OSD is not covered. Keep native/lux-libmpv addon.cc in sync. */
+export const OSD_HWND_INSET = { top: 88, bottom: 168 } as const;
+
 export const OSD_CONTROL_TITLES = {
   rewind: 'Rewind 10 seconds',
   playPause: 'Play/Pause',
