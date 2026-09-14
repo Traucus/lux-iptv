@@ -90,7 +90,7 @@ Role on every screen: **Usuario**.
 | --- | --- |
 | Purpose | Windows product player: **libmpv**, not Chromium happy path. |
 | Layout | libmpv child HWND with Chromium OSD in 88/168 inset bands · seek (VOD only) |
-| Components | In-process libmpv surface. Remaining: Windows click-test (FA-17); load `.srt` control (FA-03) |
+| Components | In-process libmpv surface + visible load-subtitle OSD. Remaining: Windows click-test (FA-17); Windows subtitle file path (FA-03) |
 | Visible states | Loading · playing · recovering (>1s stall) · error · resume dialog (VOD) · next-episode card |
 | Actions | Play/pause · ±10s (VOD) · audio · subs · load `.srt` · aspect · **exclusive fullscreen** · back |
 | Broadcasts | engine events; `setFullScreen`; resume throttle |

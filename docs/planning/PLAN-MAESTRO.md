@@ -83,7 +83,7 @@ flowchart TD
 | --- | --- |
 | Xtream + M3U ingest, sql.js catalog, honest URLs | Windows click-test of OSD inset bands (FA-17) |
 | In-process libmpv + HWND child + OSD inset 88/168 (`0204b9c`) | Windows proof live `.m3u8` does not curl-abort (FA-18) |
-| Origin live URL + HLS reconnect (`242a36e`) | OSD control to load `.srt` (FA-03) |
+| Origin live URL + HLS reconnect (`242a36e`); OSD load `.srt`/`.ass` | Windows proof subtitle file path reaches libmpv (FA-03) |
 | Vault host-only + refresh on list screens | TMDB required onboarding + row hydration (FA-08, PA-06) |
 | Resume clock, next-episode, Continue Watching movies | Continue Watching episodes (FA-09) |
 | — | EPG S9 + now/next (FA-11, FA-12) |
@@ -134,7 +134,7 @@ F2 does **not** wait for TMDB. Play does not depend on art. Quality bar for list
 | Phase | Name | Enables when done | Status |
 | --- | --- | --- | --- |
 | **F1** | Lists | Browse Live / Movies / Series, open detail, list episodes | Done |
-| **F2** | Windows player | Honest URL; **in-process libmpv**; all origin formats; no freeze; audio/subs; load `.srt`; exclusive fullscreen; OSD usable | Engine + OSD inset + origin HLS in tree. Remaining: Windows proof of FA-17/FA-18, then subtitle file control (FA-03) |
+| **F2** | Windows player | Honest URL; **in-process libmpv**; all origin formats; no freeze; audio/subs; load `.srt`; exclusive fullscreen; OSD usable | Engine + OSD inset + origin HLS + load-subtitle control in tree. Remaining: Windows proof of FA-17/FA-18/FA-03 |
 | **F3** | Secure source | Refresh on Home/Live/Movies/Series; vault never shows secrets | Done |
 | **F4** | TMDB layer | Posters, fanart, synopsis, rating on Home, rows, detail. Key is part of the product | Pipeline exists; rows + onboarding still open |
 | **F5** | VOD flows | See-all, Continue Watching, resume clock, next-episode | See-all/resume/next done. Remaining: Continue Watching episodes |
@@ -178,7 +178,7 @@ F2 does **not** wait for TMDB. Play does not depend on art. Quality bar for list
 
 ## Open for owner
 
-None blocking this freeze. F2 SDD is archived (`a9f014f`). Next product gate: FA-03, then Windows proof of FA-17/FA-18, then F4/F5 leftovers, then F6, then F7.
+None blocking this freeze. F2 SDD is archived (`a9f014f`). Next product gate: Windows proof of FA-17/FA-18/FA-03, then F4 (FA-08 then PA-06), then FA-09, then F6, then F7.
 
 ## Consistency
 

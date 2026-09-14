@@ -33,6 +33,7 @@ export interface OsdControlsProps {
   onSubtitleTrackChange: (index: number) => void;
   onAspectRatioChange: (ratio: '16:9' | '4:3' | 'zoom' | 'fit') => void;
   onFullscreen?: () => void;
+  onLoadSubtitle?: () => void;
   rewindDisabled?: boolean;
   /** Custom className */
   className?: string;
@@ -53,6 +54,7 @@ export const OsdControls: React.FC<OsdControlsProps> = ({
   onSubtitleTrackChange,
   onAspectRatioChange,
   onFullscreen,
+  onLoadSubtitle,
   rewindDisabled = false,
   className = '',
 }) => {
@@ -239,14 +241,13 @@ export const OsdControls: React.FC<OsdControlsProps> = ({
           title={OSD_CONTROL_TITLES.subtitle}
           aria-label={OSD_CONTROL_TITLES.subtitle}
           aria-expanded={showSubtitleModal}
-          disabled={subtitleTracks.length === 0}
         >
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M4 19h16M4 15h16M10 5v14" />
           </svg>
         </button>
         
-        {showSubtitleModal && subtitleTracks.length > 0 && (
+        {showSubtitleModal && (
           <TrackSelectorModal
             tracks={subtitleTracks}
             selectedIndex={subtitleTrackIndex}
@@ -257,6 +258,25 @@ export const OsdControls: React.FC<OsdControlsProps> = ({
           />
         )}
         </div>
+
+      {onLoadSubtitle && (
+        <button
+          onClick={onLoadSubtitle}
+          style={buttonStyle}
+          onMouseOver={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.4)')}
+          onMouseOut={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.2)')}
+          data-testid="osd-load-subtitle"
+          title={OSD_CONTROL_TITLES.loadSubtitle}
+          aria-label={OSD_CONTROL_TITLES.loadSubtitle}
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <line x1="12" y1="18" x2="12" y2="12" />
+            <polyline points="9 15 12 12 15 15" />
+          </svg>
+        </button>
+      )}
 
       <button
         onClick={onFullscreen}

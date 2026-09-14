@@ -166,6 +166,7 @@ describe('OSD chrome contracts (slice 3)', () => {
     expect(OSD_CONTROL_TITLES.forward).toMatch(/forward/i);
     expect(OSD_CONTROL_TITLES.audio).toBeTruthy();
     expect(OSD_CONTROL_TITLES.subtitle).toBeTruthy();
+    expect(OSD_CONTROL_TITLES.loadSubtitle).toMatch(/subtitle/i);
     expect(OSD_CONTROL_TITLES.fullscreen).toMatch(/full/i);
   });
 

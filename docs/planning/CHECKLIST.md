@@ -12,7 +12,7 @@ Freeze 2026-08-30 had **50** items. Closed work is **out of this file**. This li
 | --- | --- | --- | --- |
 | FA-17 | PARCIAL | OSD chrome lives in HWND inset bands (88/168). Not a Chromium overlay (D-14 GPU off). Windows click-test still required. | `0204b9c`; `OSD_HWND_INSET` in `src/shared/player-chrome.ts` |
 | FA-18 | PARCIAL | `player:play` loads catalog origin URL (no `.m3u8`→`.ts` rewrite) plus live HLS reconnect. Windows must prove libmpv does not curl-abort. | `242a36e`; `src/main/ipc/handlers/player.ts` |
-| FA-03 | PARCIAL | Load external `.srt`/`.ass` from OSD. `sub-add` IPC exists; the file input is `display:none` with no control. | `src/renderer/components/organisms/VideoPlayer.tsx:247` |
+| FA-03 | PARCIAL | Visible OSD control opens `.srt`/`.ass` picker; subtitle button stays enabled with zero embedded tracks. Windows must prove Electron `file.path` reaches libmpv `sub-add`. | `osd-load-subtitle` in `OsdControls.tsx`; hidden input in `VideoPlayer.tsx` |
 
 ## F3 — vault / refresh (0)
 

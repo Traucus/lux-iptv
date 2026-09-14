@@ -47,5 +47,6 @@ export const OSD_CONTROL_TITLES = {
   forward: 'Forward 10 seconds',
   audio: 'Audio tracks',
   subtitle: 'Subtitles',
+  loadSubtitle: 'Load subtitle file',
   fullscreen: 'Fullscreen',
 } as const;

@@ -154,6 +154,26 @@ describe('Production VideoPlayer tracks (slice 3)', () => {
     expect(playerMocks.mockSetSubtitleTrack).toHaveBeenCalledWith({ sid: -1 });
   });
 
+  it('keeps a visible OSD control to open the subtitle file picker', () => {
+    render(<ProductionVideoPlayer source={source} />);
+    const input = screen.getByTestId('osd-add-subtitle') as HTMLInputElement;
+    const click = vi.spyOn(input, 'click');
+    const load = screen.getByTestId('osd-load-subtitle');
+    expect(load).toBeVisible();
+    expect(load).not.toBeDisabled();
+    fireEvent.click(load);
+    expect(click).toHaveBeenCalled();
+  });
+
+  it('opens the subtitle picker when no embedded tracks exist', async () => {
+    playerMocks.state.subtitles = [];
+    render(<ProductionVideoPlayer source={source} />);
+    const button = await screen.findByTestId('osd-subtitle-button');
+    expect(button).not.toBeDisabled();
+    fireEvent.click(button);
+    expect(screen.getByText('Off')).toBeInTheDocument();
+  });
+
   it('makes loaded .srt and .ass files selectable', async () => {
     render(<ProductionVideoPlayer source={source} />);
     const input = await screen.findByTestId('osd-add-subtitle');

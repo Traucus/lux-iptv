@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { SeekBar } from '../molecules/osd/SeekBar';
 import { OsdTopBar } from '../molecules/osd/OsdTopBar';
 import { OsdControls } from '../molecules/osd/OsdControls';
@@ -199,6 +199,12 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     }
   }, []);
 
+  const subtitleFileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleLoadSubtitle = useCallback(() => {
+    subtitleFileInputRef.current?.click();
+  }, []);
+
   const handleAddSubtitle = useCallback(
     (path: string) => {
       if (!isExternalSubtitleFile(path)) return;
@@ -246,6 +252,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         aria-label="libmpv surface"
       />
       <input
+        ref={subtitleFileInputRef}
         type="file"
         accept=".srt,.ass"
         data-testid="osd-add-subtitle"
@@ -397,6 +404,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               onSubtitleTrackChange={handleSubtitleTrackChange}
               onAspectRatioChange={setAspectRatio}
               onFullscreen={handleFullscreen}
+              onLoadSubtitle={handleLoadSubtitle}
               rewindDisabled={!isLiveRewindEnabled(source.type)}
             />
           </div>
