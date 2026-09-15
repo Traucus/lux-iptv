@@ -80,4 +80,11 @@ describe('entry.cjs applies GPU policy before ESM import', () => {
       /if \(process\.platform === 'linux'\) \{\s*app\.disableHardwareAcceleration\(\);\s*\}/,
     );
   });
+
+  it('points packaged LUX_LIBMPV_DIR at extraResources libmpv, not vendor/', () => {
+    expect(source).toMatch(/app\.isPackaged/);
+    expect(source).toMatch(/resourcesPath/);
+    expect(source).toMatch(/['"]libmpv['"]/);
+    expect(source.indexOf('isPackaged')).toBeLessThan(source.indexOf("import('./index.js')"));
+  });
 });

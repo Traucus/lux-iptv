@@ -87,7 +87,7 @@ flowchart TD
 | Vault host-only + refresh; TMDB key onboarding UI; enrichment host | Windows proof Movies/Series posters after saved key (PA-06) |
 | Resume clock, next-episode, Continue Watching movies + episodes | Windows proof episode resume appears on Home (FA-09) |
 | EPG now/next IPC + live cards + S9 now/next list | Windows proof of guide zap and Xtream titles (FA-11/FA-12) |
-| — | Installer that bundles libmpv (FA-13); Chromium GPU stays off |
+| Installer extraResources for libmpv + `.node` | Windows NSIS run with DLL present (FA-13) |
 
 ## Modules
 
@@ -139,7 +139,7 @@ F2 does **not** wait for TMDB. Play does not depend on art. Quality bar for list
 | **F4** | TMDB layer | Posters, fanart, synopsis, rating on Home, rows, detail. Key is part of the product | Onboarding + worker start + row merge in tree. Remaining: Windows proof of posters (PA-06) |
 | **F5** | VOD flows | See-all, Continue Watching, resume clock, next-episode | See-all/resume/next + episode Continue Watching in tree. Remaining: Windows proof |
 | **F6** | EPG | Guide + now/next on Live, zap to S7 | Now/next list + `/epg` in tree. Remaining: Windows proof |
-| **F7** | Windows package | Installer bundles libmpv. Chromium GPU **off** unless `LUX_HW_ACCEL=true` (D-14) | Missing |
+| **F7** | Windows package | Installer bundles libmpv. Chromium GPU **off** unless `LUX_HW_ACCEL=true` (D-14) | extraResources in tree. Remaining: Windows NSIS proof |
 
 ## Platforms after Windows (3)
 

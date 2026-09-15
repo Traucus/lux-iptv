@@ -108,6 +108,19 @@
       "dist/**/*",
       "package.json"
     ],
+    "extraResources": [
+      {
+        "from": "vendor/libmpv",
+        "to": "libmpv",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "native/lux-libmpv/build/Release/lux-libmpv.node",
+        "to": "libmpv/lux-libmpv.node"
+      }
+    ],
     "mac": {
       "target": "dmg"
     },

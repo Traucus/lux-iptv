@@ -3,7 +3,9 @@ const { app } = require('electron');
 const path = require('node:path');
 
 if (!process.env.LUX_LIBMPV_DIR) {
-  process.env.LUX_LIBMPV_DIR = path.join(__dirname, '..', '..', 'vendor', 'libmpv');
+  process.env.LUX_LIBMPV_DIR = app.isPackaged
+    ? path.join(process.resourcesPath, 'libmpv')
+    : path.join(__dirname, '..', '..', 'vendor', 'libmpv');
 }
 
 // Linux/Windows Chromium GPU off unless LUX_HW_ACCEL=true, before ESM import.

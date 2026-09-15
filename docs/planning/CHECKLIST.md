@@ -44,7 +44,7 @@ See-all (`?group=`), resume duration, next-episode navigate, Hero Play → `/wat
 
 | ID | Class | Item | Evidence |
 | --- | --- | --- | --- |
-| FA-13 | FALTA | Windows installer bundles libmpv DLL + `lux-libmpv.node`. Untracked `vendor/libmpv` is not a ship. Chromium GPU stays **off** unless `LUX_HW_ACCEL=true` (D-14). | `package.json` electron-builder `dist/**` only |
+| FA-13 | PARCIAL | electron-builder extraResources copies `vendor/libmpv` + `lux-libmpv.node`. Packaged `LUX_LIBMPV_DIR` is `resources/libmpv`. GPU still off unless `LUX_HW_ACCEL=true`. Windows must run NSIS with those files present. | `package.json` `build.extraResources`; `src/main/entry.cjs` |
 
 ## Not this train
 
@@ -62,8 +62,8 @@ See-all (`?group=`), resume duration, next-episode navigate, Hero Play → `/wat
 | Class | Count |
 | --- | --- |
 | ROTO | 0 |
-| PARCIAL | 8 |
-| FALTA | 1 |
+| PARCIAL | 9 |
+| FALTA | 0 |
 | **Windows remaining** | **9** |
 
 ## Consistency

@@ -17,6 +17,7 @@ out/
 # Electron
 # ============================================
 release/
+vendor/libmpv/
 *.app
 *.exe
 *.dmg
