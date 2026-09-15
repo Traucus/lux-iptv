@@ -122,6 +122,7 @@ describe('DashboardPage', () => {
     render(<DashboardPage />, { wrapper });
     expect(screen.getByLabelText('Home')).toBeTruthy();
     expect(screen.getByLabelText('Live TV')).toBeTruthy();
+    expect(screen.getByLabelText('TV Guide')).toBeTruthy();
     expect(screen.getByLabelText('Movies')).toBeTruthy();
     expect(screen.getByLabelText('Series')).toBeTruthy();
   });

@@ -116,7 +116,7 @@ Role on every screen: **Usuario**.
 | --- | --- |
 | Purpose | Live guide. Select current/next → play. |
 | Layout | Channels × time **or** now/next list (minimum) |
-| Components | guide grid / now-next list |
+| Components | now-next list on `/epg` (`EpgPage`) |
 | Visible states | Loading · data · no EPG |
 | Actions | Select program → S7 live |
 | Broadcasts | EPG fetch |

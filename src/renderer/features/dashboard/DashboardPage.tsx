@@ -67,6 +67,7 @@ function routeToSection(pathname: string): SidebarSection {
   if (pathname.startsWith('/live')) return 'live';
   if (pathname.startsWith('/movies')) return 'movies';
   if (pathname.startsWith('/series')) return 'series';
+  if (pathname.startsWith('/epg')) return 'epg';
   if (pathname.startsWith('/ingest')) return 'settings';
   return 'home';
 }
@@ -94,6 +95,9 @@ export function DashboardPage(): React.ReactElement {
         break;
       case 'series':
         navigate('/series');
+        break;
+      case 'epg':
+        navigate('/epg');
         break;
       case 'settings':
         navigate('/ingest');

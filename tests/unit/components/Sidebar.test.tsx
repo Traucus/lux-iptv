@@ -33,12 +33,13 @@ beforeEach(() => {
 });
 
 describe('Sidebar — navigation entries', () => {
-  it('renders Home, Live TV, Movies, Series, Settings entries', () => {
+  it('renders Home, Live TV, Movies, Series, TV Guide, Settings entries', () => {
     render(<Sidebar active="home" />);
     expect(screen.getByLabelText('Home')).toBeTruthy();
     expect(screen.getByLabelText('Live TV')).toBeTruthy();
     expect(screen.getByLabelText('Movies')).toBeTruthy();
     expect(screen.getByLabelText('Series')).toBeTruthy();
+    expect(screen.getByLabelText('TV Guide')).toBeTruthy();
     expect(screen.getByLabelText('Settings')).toBeTruthy();
   });
 

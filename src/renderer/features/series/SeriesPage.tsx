@@ -26,6 +26,7 @@ export function SeriesPage(): React.ReactElement {
       case 'live': navigate('/live'); break;
       case 'movies': navigate('/movies'); break;
       case 'series': navigate('/series'); break;
+      case 'epg': navigate('/epg'); break;
       case 'settings': navigate('/ingest'); break;
     }
   };

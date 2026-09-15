@@ -9,6 +9,7 @@ import { DetailPage } from './features/detail/DetailPage';
 import { PlayerPage } from './features/player/PlayerPage';
 import { IngestProgressHost } from './features/ingest/IngestProgressHost';
 import { EnrichmentHost } from './features/catalog/EnrichmentHost';
+import { EpgPage } from './features/epg/EpgPage';
 
 /**
  * Application root component.
@@ -24,6 +25,7 @@ import { EnrichmentHost } from './features/catalog/EnrichmentHost';
  *   /series            → SeriesPage
  *   /content/:type/:id → DetailPage (Screen 4). Type is movie|series — never inferred from id.
  *   /watch/:type/:id   → PlayerPage
+ *   /epg               → EpgPage (Screen 9)
  */
 function App(): React.ReactElement {
   return (
@@ -36,6 +38,7 @@ function App(): React.ReactElement {
         <Route path="/live" element={<LivePage />} />
         <Route path="/movies" element={<MoviesPage />} />
         <Route path="/series" element={<SeriesPage />} />
+        <Route path="/epg" element={<EpgPage />} />
         <Route path="/content/:type/:id" element={<DetailPage />} />
         <Route path="/watch/:type/:id" element={<PlayerPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />

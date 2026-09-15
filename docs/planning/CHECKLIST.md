@@ -37,7 +37,7 @@ See-all (`?group=`), resume duration, next-episode navigate, Hero Play → `/wat
 
 | ID | Class | Item | Evidence |
 | --- | --- | --- | --- |
-| FA-11 | FALTA | EPG guide S9 | `src/renderer/App.tsx` — no `/epg` route |
+| FA-11 | PARCIAL | S9 `/epg` now/next list plays live. Full channels×time grid is not required for the minimum. Windows must prove titles and zap. | `EpgPage.tsx`; route `/epg` |
 | FA-12 | PARCIAL | Live/Home cards show current programme from `epg:nowNext`. Windows must prove Xtream short EPG fills titles. | `use-epg-now-next.ts`; `LivePage.tsx` |
 
 ## F7 — installer (1)
@@ -62,8 +62,8 @@ See-all (`?group=`), resume duration, next-episode navigate, Hero Play → `/wat
 | Class | Count |
 | --- | --- |
 | ROTO | 0 |
-| PARCIAL | 7 |
-| FALTA | 2 |
+| PARCIAL | 8 |
+| FALTA | 1 |
 | **Windows remaining** | **9** |
 
 ## Consistency

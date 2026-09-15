@@ -117,6 +117,17 @@ describe('App.tsx router selection', () => {
     expect(source).not.toMatch(/import \{ PlayerPlaceholder \}/);
     expect(source).toMatch(/element=\{<PlayerPage/);
   });
+
+  it('declares the /epg route', async () => {
+    const { readFile } = await import('node:fs/promises');
+    const { fileURLToPath } = await import('node:url');
+    const path = await import('node:path');
+    const here = path.dirname(fileURLToPath(import.meta.url));
+    const appPath = path.resolve(here, '../../src/renderer/App.tsx');
+    const source = await readFile(appPath, 'utf8');
+    expect(source).toMatch(/path=["']\/epg["']/);
+    expect(source).toMatch(/element=\{<EpgPage/);
+  });
 });
 
 function renderApp(): void {
