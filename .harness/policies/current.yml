@@ -1,8 +1,12 @@
-id: chore/harness-fase-0
+id: FA-17
 allowed:
-  - AGENTS.md
+  - src/**/libmpv-engine.ts
+  - src/**/VideoPlayer.tsx
+  - src/**/player/**
+  - tests/**/player/**
+  - native/lux-libmpv/**
   - docs/harness/**
+  - AGENTS.md
   - .harness/policies/**
   - .opencode/plugins/**
-  - opencode.json
   - .githooks/**
