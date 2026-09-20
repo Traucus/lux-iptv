@@ -30,4 +30,20 @@ describe('createForwardingBinding', () => {
     expect(binding.getTrackList?.()).toEqual([]);
     expect(binding.getProperty?.('duration')).toBeUndefined();
   });
+
+  it('returns native play false so open-failed is not swallowed', () => {
+    const native = session();
+    (native.play as ReturnType<typeof vi.fn>).mockReturnValue(false);
+    const binding = createForwardingBinding(() => native);
+    expect(binding.play('https://origin.example/movie.mkv', {})).toBe(false);
+  });
+
+  it('returns a play promise so the engine can await open', async () => {
+    const native = session();
+    (native.play as ReturnType<typeof vi.fn>).mockReturnValue(Promise.resolve(false));
+    const binding = createForwardingBinding(() => native);
+    await expect(Promise.resolve(binding.play('https://origin.example/movie.mkv', {}))).resolves.toBe(
+      false,
+    );
+  });
 });

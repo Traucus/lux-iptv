@@ -10,9 +10,11 @@ import { fileURLToPath } from 'node:url';
 const require = createRequire(import.meta.url);
 const here = dirname(fileURLToPath(import.meta.url));
 
+export type LibmpvPlayOpened = boolean | void | Promise<boolean | void>;
+
 export interface LibmpvBinding {
   loadLibrary(): boolean;
-  play(url: string, headers: Record<string, string>, wid?: Buffer): boolean | void;
+  play(url: string, headers: Record<string, string>, wid?: Buffer): LibmpvPlayOpened;
   stop(): void;
   setOptions?(options: Record<string, string | number>): void;
   getTrackList?(): Array<{ id: number; type: string; title?: string; lang?: string }>;
@@ -83,12 +85,12 @@ export function createForwardingBinding(getSession: () => NativeSession | null):
     loadLibrary(): boolean {
       return getSession() != null;
     },
-    play(url: string, headers: Record<string, string>, wid?: Buffer): void {
+    play(url: string, headers: Record<string, string>, wid?: Buffer): LibmpvPlayOpened {
       const session = getSession();
       if (!session) {
         throw new Error('libmpv is not loaded');
       }
-      session.play(url, headers, wid);
+      return session.play(url, headers, wid);
     },
     stop(): void {
       getSession()?.stop();

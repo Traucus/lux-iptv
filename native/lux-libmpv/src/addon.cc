@@ -88,6 +88,8 @@ struct MpvApi {
 };
 
 static MpvApi g_api;
+static constexpr int kNetworkTimeoutSec = 30;
+static constexpr int kOpenWaitSec = 32;
 #ifdef _WIN32
 static HMODULE g_lib = nullptr;
 #else
@@ -208,6 +210,25 @@ static HWND hwnd_from_buffer(const Napi::Buffer<uint8_t> &buf) {
 }
 #endif
 
+enum class OpenState { Idle, Pending, Loaded, Failed };
+
+class Session;
+
+class OpenWaitWorker : public Napi::AsyncWorker {
+ public:
+  OpenWaitWorker(Napi::Env env, Session *session, Napi::Promise::Deferred deferred)
+      : Napi::AsyncWorker(env), session_(session), deferred_(deferred) {}
+
+  void Execute() override;
+  void OnOK() override;
+  void OnError(const Napi::Error &error) override;
+
+ private:
+  Session *session_;
+  Napi::Promise::Deferred deferred_;
+  bool ok_ = false;
+};
+
 class Session : public Napi::ObjectWrap<Session> {
  public:
   static Napi::Function Init(Napi::Env env) {
@@ -226,14 +247,7 @@ class Session : public Napi::ObjectWrap<Session> {
       : Napi::ObjectWrap<Session>(info), ctx_(nullptr), initialized_(false) {
     if (!load_libmpv()) return;
     ctx_ = g_api.create();
-    if (ctx_ && g_api.set_option_string) {
-      g_api.set_option_string(ctx_, "config", "no");
-      g_api.set_option_string(ctx_, "load-scripts", "no");
-      g_api.set_option_string(ctx_, "ytdl", "no");
-      g_api.set_option_string(ctx_, "osc", "no");
-      g_api.set_option_string(ctx_, "user-agent",
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
-    }
+    apply_base_options();
   }
 
   ~Session() {
@@ -247,9 +261,13 @@ class Session : public Napi::ObjectWrap<Session> {
 
   bool ok() const { return ctx_ != nullptr; }
 
-  private:
-  enum class OpenState { Idle, Pending, Loaded, Failed };
+  bool WaitUntilOpen(int timeout_sec) {
+    std::unique_lock<std::mutex> lock(mu_);
+    cv_.wait_for(lock, std::chrono::seconds(timeout_sec), [this] { return open_ != OpenState::Pending; });
+    return open_ == OpenState::Loaded;
+  }
 
+  private:
   mpv_handle *ctx_;
   bool initialized_;
   std::atomic<bool> pump_run_{false};
@@ -267,6 +285,42 @@ class Session : public Napi::ObjectWrap<Session> {
     }
   }
 #endif
+
+  void apply_base_options() {
+    if (!ctx_ || !g_api.set_option_string) return;
+    g_api.set_option_string(ctx_, "config", "no");
+    g_api.set_option_string(ctx_, "load-scripts", "no");
+    g_api.set_option_string(ctx_, "ytdl", "no");
+    g_api.set_option_string(ctx_, "osc", "no");
+    g_api.set_option_string(ctx_, "user-agent",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
+  }
+
+  void fail_pending_open() {
+    std::lock_guard<std::mutex> lock(mu_);
+    if (open_ == OpenState::Pending) {
+      open_ = OpenState::Failed;
+      cv_.notify_all();
+    } else {
+      open_ = OpenState::Idle;
+    }
+  }
+
+  void recreate_handle() {
+    fail_pending_open();
+    if (ctx_ && g_api.command) {
+      const char *cmd[] = {"stop", nullptr};
+      g_api.command(ctx_, cmd);
+    }
+    stop_pump();
+#ifdef _WIN32
+    destroy_embed();
+#endif
+    if (ctx_ && g_api.terminate_destroy) g_api.terminate_destroy(ctx_);
+    ctx_ = g_api.create ? g_api.create() : nullptr;
+    initialized_ = false;
+    apply_base_options();
+  }
 
   void start_pump() {
     if (!g_api.wait_event || pump_.joinable()) return;
@@ -323,13 +377,14 @@ class Session : public Napi::ObjectWrap<Session> {
       g_api.set_option_string(ctx_, "vo", "gpu");
       g_api.set_option_string(ctx_, "terminal", "yes");
       g_api.set_option_string(ctx_, "msg-level", "all=v,curl=debug,ffmpeg=debug");
-      g_api.set_option_string(ctx_, "network-timeout", "30");
+      g_api.set_option_string(ctx_, "network-timeout", std::to_string(kNetworkTimeoutSec).c_str());
     }
 #else
     (void)parent_hwnd;
     if (g_api.set_option_string) {
       g_api.set_option_string(ctx_, "terminal", "yes");
       g_api.set_option_string(ctx_, "msg-level", "all=v");
+      g_api.set_option_string(ctx_, "network-timeout", std::to_string(kNetworkTimeoutSec).c_str());
     }
 #endif
     const int init = g_api.initialize(ctx_);
@@ -385,22 +440,14 @@ class Session : public Napi::ObjectWrap<Session> {
     std::fprintf(stderr, "[lux-libmpv] loadfile=%d url=%s\n", loaded, url.c_str());
     std::fflush(stderr);
     if (loaded < 0) return Napi::Boolean::New(env, false);
-    std::unique_lock<std::mutex> lock(mu_);
-    cv_.wait_for(lock, std::chrono::seconds(20), [this] { return open_ != OpenState::Pending; });
-    const bool ok = open_ == OpenState::Loaded;
-    std::fprintf(stderr, "[lux-libmpv] open=%s\n", ok ? "loaded" : "failed");
-    std::fflush(stderr);
-    return Napi::Boolean::New(env, ok);
+    Napi::Promise::Deferred deferred = Napi::Promise::Deferred::New(env);
+    auto *worker = new OpenWaitWorker(env, this, deferred);
+    worker->Queue();
+    return deferred.Promise();
   }
 
   Napi::Value Stop(const Napi::CallbackInfo &info) {
-    if (ctx_ && g_api.command) {
-      const char *cmd[] = {"stop", nullptr};
-      g_api.command(ctx_, cmd);
-    }
-#ifdef _WIN32
-    if (embed_) ShowWindow(embed_, SW_HIDE);
-#endif
+    recreate_handle();
     return info.Env().Undefined();
   }
 
@@ -494,6 +541,22 @@ class Session : public Napi::ObjectWrap<Session> {
     return out;
   }
 };
+
+void OpenWaitWorker::Execute() {
+  ok_ = session_ != nullptr && session_->WaitUntilOpen(kOpenWaitSec);
+}
+
+void OpenWaitWorker::OnOK() {
+  std::fprintf(stderr, "[lux-libmpv] open=%s\n", ok_ ? "loaded" : "failed");
+  std::fflush(stderr);
+  deferred_.Resolve(Napi::Boolean::New(Env(), ok_));
+}
+
+void OpenWaitWorker::OnError(const Napi::Error &error) {
+  std::fprintf(stderr, "[lux-libmpv] open=failed\n");
+  std::fflush(stderr);
+  deferred_.Reject(error.Value());
+}
 
 static Napi::FunctionReference g_ctor;
 

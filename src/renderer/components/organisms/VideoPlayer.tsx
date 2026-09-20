@@ -288,7 +288,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         </div>
       )}
 
-      {diagnosis?.kind === 'libmpv-load-failed' && (
+      {(diagnosis?.kind === 'libmpv-load-failed' || diagnosis?.kind === 'libmpv-open-failed') && (
         <div
           style={{
             position: 'absolute',
@@ -305,9 +305,13 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           }}
           data-testid="libmpv-diagnosis"
         >
-          <h3 style={{ margin: '0 0 8px', fontSize: '1.25rem' }}>libmpv failed to load</h3>
+          <h3 style={{ margin: '0 0 8px', fontSize: '1.25rem' }}>
+            {diagnosis.kind === 'libmpv-open-failed' ? 'libmpv failed to open' : 'libmpv failed to load'}
+          </h3>
           <p style={{ margin: 0, color: '#888' }}>
-            In-process libmpv is unavailable. Chromium playback is not a fallback.
+            {diagnosis.kind === 'libmpv-open-failed'
+              ? 'The origin stream did not start. Chromium playback is not a fallback.'
+              : 'In-process libmpv is unavailable. Chromium playback is not a fallback.'}
           </p>
         </div>
       )}

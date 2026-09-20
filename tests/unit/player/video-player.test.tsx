@@ -118,6 +118,17 @@ describe('Production VideoPlayer libmpv host', () => {
     expect(screen.getByTestId('libmpv-diagnosis')).toHaveTextContent(/libmpv/i);
   });
 
+  it('shows diagnosis UI when libmpv failed to open the origin', () => {
+    render(
+      <ProductionVideoPlayer
+        source={source}
+        diagnosis={{ kind: 'libmpv-open-failed' }}
+      />,
+    );
+    expect(screen.getByTestId('libmpv-diagnosis')).toBeInTheDocument();
+    expect(screen.getByTestId('libmpv-diagnosis')).toHaveTextContent(/failed to open/i);
+  });
+
   it('does not stop libmpv when the OSD effect re-runs', () => {
     const { unmount } = render(<ProductionVideoPlayer source={source} />);
     unmount();

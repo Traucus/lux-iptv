@@ -95,6 +95,23 @@ describe('PlayerPage libmpv playback', () => {
     expect(mockApi.player.getProxiedUrl).not.toHaveBeenCalled();
   });
 
+  it('shows libmpv diagnosis when play returns libmpv-open-failed', async () => {
+    mockApi.player.play.mockResolvedValue({
+      error: { code: 'INTERNAL', details: { kind: 'libmpv-open-failed' } },
+    });
+    renderWatch('/watch/movie/42');
+    await waitFor(() => expect(screen.getByTestId('libmpv-diagnosis')).toBeInTheDocument());
+    expect(screen.getByTestId('libmpv-diagnosis')).toHaveTextContent('libmpv-open-failed');
+    expect(screen.queryByTestId('player-error')).not.toBeInTheDocument();
+  });
+
+  it('stops libmpv when leaving the player', async () => {
+    const view = renderWatch('/watch/movie/42');
+    await waitFor(() => expect(mockApi.player.play).toHaveBeenCalled());
+    view.unmount();
+    expect(mockApi.player.stop).toHaveBeenCalled();
+  });
+
   it('plays live/9 via libmpv and hides SeekBar', async () => {
     mockApi.catalog.getById.mockResolvedValue({ data: { ...movieItem, id: 9, contentType: 'live', name: 'CNN' } });
     renderWatch('/watch/live/9');

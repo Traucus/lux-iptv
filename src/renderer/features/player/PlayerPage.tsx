@@ -187,7 +187,7 @@ export const PlayerPage: React.FC = () => {
       ]);
       if (cancelled) return;
       const loadKind = (played.error?.details as { kind?: string } | undefined)?.kind;
-      if (loadKind === 'libmpv-load-failed') {
+      if (loadKind === 'libmpv-load-failed' || loadKind === 'libmpv-open-failed') {
         setDiagnosis({ kind: loadKind });
         setPlaybackSource({
           url: '',
@@ -215,6 +215,7 @@ export const PlayerPage: React.FC = () => {
 
     return () => {
       cancelled = true;
+      void createLuxAPI().player.stop();
     };
   }, [catalogItem, contentType, contentId]);
 

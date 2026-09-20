@@ -35,17 +35,21 @@ export type LibmpvEngine = {
 export function libmpvPlaybackOptions(
   profile: LibmpvPlaybackProfile,
 ): Record<string, string | number> {
+  const network = {
+    cache: 'yes' as const,
+    'cache-secs': 20,
+    reconnect: 'yes' as const,
+    hwdec: 'auto-safe',
+    'network-timeout': 30,
+    'stream-lavf-o': 'reconnect=1,reconnect_streamed=1,reconnect_delay_max=5',
+  };
   if (profile === 'live') {
     return {
-      cache: 'yes',
-      'cache-secs': 20,
-      reconnect: 'yes',
-      hwdec: 'auto-safe',
+      ...network,
       'hls-bitrate': 'max',
-      'stream-lavf-o': 'reconnect=1,reconnect_streamed=1,reconnect_delay_max=5',
     };
   }
-  return {};
+  return network;
 }
 
 export function createLibmpvEngine(binding: LibmpvBinding = createNativeLibmpvBinding()): LibmpvEngine {
@@ -61,7 +65,9 @@ export function createLibmpvEngine(binding: LibmpvBinding = createNativeLibmpvBi
         };
       }
       binding.setOptions?.(libmpvPlaybackOptions(request.profile ?? 'vod'));
-      const opened = binding.play(request.url, request.httpHeaders, request.nativeWindowHandle);
+      const opened = await Promise.resolve(
+        binding.play(request.url, request.httpHeaders, request.nativeWindowHandle),
+      );
       if (opened === false) {
         return {
           ok: false,

@@ -103,6 +103,20 @@ describe('LibmpvEngine', () => {
     });
   });
 
+  it('returns libmpv-open-failed when native play resolves false later', async () => {
+    const binding = playingBinding();
+    (binding.play as ReturnType<typeof vi.fn>).mockReturnValue(Promise.resolve(false));
+    const engine = createLibmpvEngine(binding);
+    const result = await engine.play({
+      url: 'https://origin.example/slow.mp4',
+      httpHeaders: {},
+    });
+    expect(result).toEqual({
+      ok: false,
+      error: { code: 'INTERNAL', details: { kind: 'libmpv-open-failed' } },
+    });
+  });
+
   it('reuses the same in-process session across two plays', async () => {
     const binding = playingBinding();
     const engine = createLibmpvEngine(binding);
@@ -143,13 +157,17 @@ describe('LibmpvEngine', () => {
     );
   });
 
-  it('VOD options keep origin quality without live cache or downscale', () => {
+  it('VOD options reconnect without live HLS bitrate downscale', () => {
     const vod = libmpvPlaybackOptions('vod');
-    expect(vod).not.toHaveProperty('cache');
-    expect(vod).not.toHaveProperty('cache-secs');
-    expect(vod).not.toHaveProperty('reconnect');
+    expect(vod.cache).toBe('yes');
+    expect(vod['cache-secs']).toBe(20);
+    expect(vod.reconnect).toBe('yes');
+    expect(vod['network-timeout']).toBe(30);
+    expect(vod['stream-lavf-o']).toBe(
+      'reconnect=1,reconnect_streamed=1,reconnect_delay_max=5',
+    );
     expect(vod).not.toHaveProperty('vf');
-    expect(vod['hls-bitrate']).not.toBe('min');
+    expect(vod).not.toHaveProperty('hls-bitrate');
   });
 
   it('reads track-list and sets aid 2 in-process', async () => {
