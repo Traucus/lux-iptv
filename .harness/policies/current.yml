@@ -1,0 +1,6 @@
+id: chore/harness-fase-0
+allowed:
+  - AGENTS.md
+  - docs/harness/**
+  - .harness/policies/**
+  - .opencode/plugins/**
