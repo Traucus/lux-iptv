@@ -1,0 +1,103 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(git rev-parse --show-toplevel)"
+cd "$ROOT"
+
+POLICY=".harness/policies/current.yml"
+
+if [[ ! -f "$POLICY" ]]; then
+  echo "pre-commit: missing .harness/policies/current.yml" >&2
+  exit 1
+fi
+
+ALLOWED=()
+while IFS= read -r line || [[ -n "$line" ]]; do
+  if [[ "$line" =~ ^[[:space:]]*-[[:space:]]+([^[:space:]]+)[[:space:]]*$ ]]; then
+    ALLOWED+=("${BASH_REMATCH[1]}")
+  fi
+done < "$POLICY"
+
+if [[ ${#ALLOWED[@]} -eq 0 ]]; then
+  echo "pre-commit: current.yml has no allowed globs" >&2
+  exit 1
+fi
+
+glob_to_ere() {
+  local g="$1"
+  local out="" i=0
+  local c
+  local len=${#g}
+  while (( i < len )); do
+    c="${g:i:1}"
+    if [[ "$c" == "*" ]]; then
+      if (( i + 1 < len )) && [[ "${g:i+1:1}" == "*" ]]; then
+        out+=".*"
+        i=$((i + 2))
+        continue
+      fi
+      out+="[^/]*"
+      i=$((i + 1))
+      continue
+    fi
+    case "$c" in
+      '.'|'+'|'^'|'$'|'('|')'|'['|']'|'{'|'}'|'|'|'\\')
+        out+="\\$c"
+        ;;
+      *)
+        out+="$c"
+        ;;
+    esac
+    i=$((i + 1))
+  done
+  printf '^%s$' "$out"
+}
+
+is_never_allowed() {
+  local rel="$1"
+  local base="${rel##*/}"
+  case "$base" in
+    package.json|package-lock.json|.env|.env.*)
+      return 0
+      ;;
+  esac
+  if [[ "$rel" == "openspec/config.yaml" ]]; then
+    return 0
+  fi
+  return 1
+}
+
+is_allowed() {
+  local rel="$1"
+  local glob ere
+  for glob in "${ALLOWED[@]}"; do
+    ere="$(glob_to_ere "$glob")"
+    if [[ "$rel" =~ $ere ]]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+run_verify=0
+
+while IFS= read -r rel || [[ -n "${rel:-}" ]]; do
+  [[ -z "${rel:-}" ]] && continue
+  if is_never_allowed "$rel"; then
+    echo "pre-commit: never-allowed path: $rel" >&2
+    exit 1
+  fi
+  if ! is_allowed "$rel"; then
+    echo "pre-commit: path not in allowlist: $rel" >&2
+    exit 1
+  fi
+  case "$rel" in
+    src/*|native/*|tests/*)
+      run_verify=1
+      ;;
+  esac
+done < <(git diff --cached --name-only)
+
+if [[ "$run_verify" -eq 1 ]]; then
+  npm run typecheck && npm run lint && npm test
+fi
