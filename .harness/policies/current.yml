@@ -10,3 +10,5 @@ allowed:
   - .harness/policies/**
   - .opencode/plugins/**
   - .githooks/**
+  - .github/workflows/**
+  - todo.md

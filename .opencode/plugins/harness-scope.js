@@ -130,7 +130,21 @@ export const HarnessScope = async ({ directory, worktree }) => {
           throw new Error(`harness-scope: never-allowed path: ${rel}`)
         }
         if (!matchesAllowed(rel, policy.allowed)) {
-          throw new Error(`harness-scope: path not in allowlist (${policy.id}): ${rel}`)
+          const globs =
+            policy.allowed.length > 0
+              ? policy.allowed.map((glob) => `    - ${glob}`).join("\n")
+              : "    (none)"
+          throw new Error(
+            [
+              `harness-scope: blocked ${tool} — path is not in the allowlist.`,
+              `  Path:    ${rel}`,
+              `  Policy:  ${policy.id || "(missing id)"} (${POLICY_REL})`,
+              `  Tool:    ${tool}`,
+              `  Allowed globs:`,
+              globs,
+              `  The write was not applied. Fail-closed: only a person may expand ${POLICY_REL}.`,
+            ].join("\n"),
+          )
         }
       }
     },

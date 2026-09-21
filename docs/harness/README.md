@@ -32,7 +32,11 @@ Esto vale en cualquier proyecto. El comando de “verde” y el enchufe del agen
 8. Linux no firma lo que pide Windows (ni al revés).
 
 9. Una excepción la da una persona y tiene fecha de vencimiento.
-   No vale para las reglas 2, 3, 5 y 6.
+    No vale para las reglas 2, 3, 5 y 6.
+
+10. Memoria persistente: en tareas de más de 2 pasos, el agente crea y
+    mantiene `todo.md` en la raíz del workspace. Plan primero; marcar
+    progreso antes de cada edición.
 
 ## Qué cuenta como evidencia
 

@@ -14,3 +14,7 @@ En este repo, verde significa, en este orden:
 No declares el trabajo terminado sin pegar esas salidas.
 No commitees ni hagas push salvo que el humano lo pida.
 No mezcles un change de producto con cambios de proceso.
+
+En tareas de más de 2 pasos, el agente debe crear y mantener un archivo
+`todo.md` en la raíz del workspace para registrar el plan de trabajo y
+marcar el progreso antes de cada edición.

@@ -81,6 +81,45 @@ is_allowed() {
 
 run_verify=0
 
+SECRET_NAMES=(
+  "OpenAI/Anthropic API key"
+  "AWS access key id"
+  "JWT"
+  "PEM private key"
+)
+SECRET_ERES=(
+  'sk-(ant-|proj-)?[A-Za-z0-9_-]{20,}'
+  'AKIA[0-9A-Z]{16}'
+  'eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+'
+  '-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----'
+)
+
+scan_staged_secrets() {
+  local rel="$1"
+  local numstat add del lineno content idx
+  numstat="$(git diff --cached --numstat -- "$rel" || true)"
+  [[ -z "$numstat" ]] && return 0
+  add="$(awk '{print $1}' <<<"$numstat")"
+  del="$(awk '{print $2}' <<<"$numstat")"
+  if [[ "$add" == "-" && "$del" == "-" ]]; then
+    return 0
+  fi
+  if ! git cat-file -e ":${rel}" 2>/dev/null; then
+    return 0
+  fi
+  lineno=0
+  while IFS= read -r content || [[ -n "${content}" ]]; do
+    lineno=$((lineno + 1))
+    for idx in "${!SECRET_ERES[@]}"; do
+      if [[ "$content" =~ ${SECRET_ERES[$idx]} ]]; then
+        echo "pre-commit: possible secret (${SECRET_NAMES[$idx]}) in ${rel}:${lineno}" >&2
+        echo "pre-commit: commit aborted" >&2
+        exit 1
+      fi
+    done
+  done < <(git show ":${rel}")
+}
+
 while IFS= read -r rel || [[ -n "${rel:-}" ]]; do
   [[ -z "${rel:-}" ]] && continue
   if is_never_allowed "$rel"; then
@@ -91,6 +130,7 @@ while IFS= read -r rel || [[ -n "${rel:-}" ]]; do
     echo "pre-commit: path not in allowlist: $rel" >&2
     exit 1
   fi
+  scan_staged_secrets "$rel"
   case "$rel" in
     src/*|native/*|tests/*)
       run_verify=1
