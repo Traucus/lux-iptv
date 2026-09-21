@@ -1,22 +1,11 @@
 import type { IpcMain } from 'electron';
-import type { SqlJsCompatDb } from '../../db/sqljs-adapter.js';
 import type { CatalogListInputParsed, CatalogGetByIdInputParsed } from '../../../shared/schemas/catalog.js';
-import type {
-  CatalogItem,
-  CatalogListOutput,
-  SeriesDetail,
-  CatalogType,
-} from '../../../shared/types/ipc.js';
+import type { CatalogListOutput, SeriesDetail } from '../../../shared/types/ipc.js';
 import { CatalogListInputSchema, CatalogGetByIdInputSchema, CatalogGroupedInputSchema } from '../../../shared/schemas/catalog.js';
-import { seriesShowTitle } from '../../services/classifier.js';
-import {
-  fetchXtreamSeriesInfo,
-  parseXtreamSeriesId,
-  xtreamEpisodeUrl,
-  type XtreamCredentials,
-  type XtreamSeriesInfo,
-} from '../../services/xtream-client.js';
-import { detectMediaFormat } from '../../services/m3u-client.js';
+import { invalidInput, notFound } from './catalog/errors.js';
+import { mapEpisodeRow, mapRowForType, mapSeriesRow, tableForType } from './catalog/mappers.js';
+import { hydrateSeriesEpisodes, loadSeriesEpisodes, uniqueSeriesRows } from './catalog/series.js';
+import type { CatalogHandlerDeps } from './catalog/types.js';
 
 /**
  * Catalog IPC handler — exposes paginated reads against the SQLite catalog DB
@@ -26,207 +15,8 @@ import { detectMediaFormat } from '../../services/m3u-client.js';
  * small enough to scan with a primary-key or indexed lookup, and the cost
  * of an extra cache layer is not justified at this scale.
  */
-export interface CatalogHandlerDeps {
-  db: SqlJsCompatDb;
-  loadXtreamCredentials?: () => XtreamCredentials | null;
-  fetchSeriesInfo?: typeof fetchXtreamSeriesInfo;
-}
 
-function invalidInput(details: unknown) {
-  return { error: { code: 'INVALID_INPUT' as const, message: 'Invalid input', details } };
-}
-
-function notFound(message: string) {
-  return { error: { code: 'NOT_FOUND' as const, message } };
-}
-
-function honestSourceFields(row: Record<string, unknown>): {
-  containerExtension: string;
-  directSource: string;
-} {
-  return {
-    containerExtension: typeof row.container_extension === 'string' ? row.container_extension : '',
-    directSource: typeof row.direct_source === 'string' ? row.direct_source : '',
-  };
-}
-
-function mapLiveRow(row: Record<string, unknown>): CatalogItem {
-  return {
-    id: row.id as number,
-    name: row.name as string,
-    url: row.url as string,
-    groupTitle: (row.group_title as string | null) ?? null,
-    cover: (row.stream_icon as string | null) ?? (row.tvg_logo as string | null) ?? null,
-    year: null,
-    contentType: (row.stream_type as 'live' | 'movie' | 'series' | 'episode') ?? 'live',
-    mediaFormat: ((row.media_format as string) ?? 'unknown') as CatalogItem['mediaFormat'],
-    httpHeaders: parseHttpHeaders(row.http_headers),
-    ...honestSourceFields(row),
-  };
-}
-
-function mapMovieRow(row: Record<string, unknown>): CatalogItem {
-  return {
-    id: row.id as number,
-    name: row.name as string,
-    url: row.url as string,
-    groupTitle: (row.group_title as string | null) ?? null,
-    cover: (row.cover as string | null) ?? null,
-    year: (row.year as number | null) ?? null,
-    contentType: 'movie',
-    mediaFormat: ((row.media_format as string) ?? 'unknown') as CatalogItem['mediaFormat'],
-    httpHeaders: parseHttpHeaders(row.http_headers),
-    ...honestSourceFields(row),
-  };
-}
-
-function mapEpisodeRow(row: Record<string, unknown>): CatalogItem {
-  return {
-    id: row.id as number,
-    name: row.name as string,
-    url: row.url as string,
-    groupTitle: (row.group_title as string | null) ?? null,
-    cover: (row.cover as string | null) ?? null,
-    year: null,
-    contentType: 'episode',
-    mediaFormat: ((row.media_format as string) ?? 'unknown') as CatalogItem['mediaFormat'],
-    httpHeaders: parseHttpHeaders(row.http_headers),
-    ...honestSourceFields(row),
-  };
-}
-
-function mapSeriesRow(row: Record<string, unknown>): CatalogItem {
-  return {
-    id: row.id as number,
-    name: row.name as string,
-    url: (row.url as string | null) ?? '',
-    groupTitle: (row.group_title as string | null) ?? null,
-    cover: (row.cover as string | null) ?? null,
-    year: (row.year as number | null) ?? null,
-    contentType: 'series',
-    mediaFormat: ((row.media_format as string) ?? 'unknown') as CatalogItem['mediaFormat'],
-    httpHeaders: parseHttpHeaders(row.http_headers),
-    ...honestSourceFields(row),
-  };
-}
-
-/**
- * Defensive JSON parser for the http_headers column. SQLite stores it as TEXT
- * (Drizzle's `mode: 'json'`). Falls back to `{}` on any parse error so a single
- * bad row never breaks the whole list endpoint.
- */
-function parseHttpHeaders(raw: unknown): Record<string, string> {
-  if (!raw) return {};
-  if (typeof raw !== 'string') {
-    if (typeof raw === 'object') return raw as Record<string, string>;
-    return {};
-  }
-  try {
-    const parsed = JSON.parse(raw);
-    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-      return parsed as Record<string, string>;
-    }
-    return {};
-  } catch {
-    return {};
-  }
-}
-
-function tableForType(type: CatalogType): string {
-  switch (type) {
-    case 'live':
-      return 'live_channels';
-    case 'movie':
-      return 'vod_movies';
-    case 'series':
-      return 'series';
-    case 'episode':
-      // Episodes are not a top-level catalog table; they live under series
-      throw new Error('Episode type not supported for direct catalog queries');
-  }
-}
-
-function uniqueSeriesRows(rows: Record<string, unknown>[]): Record<string, unknown>[] {
-  const seen = new Set<string>();
-  const unique: Record<string, unknown>[] = [];
-  for (const row of rows) {
-    const show = seriesShowTitle(String(row.name ?? ''));
-    const key = `${show.toLowerCase()}\0${String(row.group_title ?? '')}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    unique.push({ ...row, name: show });
-  }
-  return unique;
-}
-
-type EpisodeRow = {
-  id: number;
-  series_id: number;
-  name: string;
-  url: string;
-  season: number;
-  episode: number;
-  cover: string | null;
-  added_at: number;
-};
-
-function loadSeriesEpisodes(db: SqlJsCompatDb, seriesId: number): EpisodeRow[] {
-  return db
-    .prepare(
-      `SELECT id, series_id, name, url, season, episode, cover, added_at
-       FROM episodes
-       WHERE series_id = ?
-       ORDER BY season, episode`,
-    )
-    .all(seriesId) as EpisodeRow[];
-}
-
-async function hydrateSeriesEpisodes(
-  deps: CatalogHandlerDeps,
-  sqliteSeriesId: number,
-  row: Record<string, unknown>,
-): Promise<XtreamSeriesInfo | null> {
-  const creds = deps.loadXtreamCredentials?.() ?? null;
-  if (!creds) return null;
-  const xtreamId = Number(row.xtream_id) || parseXtreamSeriesId(String(row.url ?? ''));
-  if (!xtreamId) return null;
-  const fetchInfo = deps.fetchSeriesInfo ?? fetchXtreamSeriesInfo;
-  let info: XtreamSeriesInfo;
-  try {
-    info = await fetchInfo(creds, xtreamId);
-  } catch {
-    return null;
-  }
-  const now = Date.now();
-  const insert = deps.db.prepare(
-    `INSERT INTO episodes (series_id, name, url, season, episode, cover, http_headers, media_format, added_at)
-     VALUES (?, ?, ?, ?, ?, ?, '{}', ?, ?)
-     ON CONFLICT(url) DO UPDATE SET
-       name = excluded.name,
-       season = excluded.season,
-       episode = excluded.episode,
-       cover = excluded.cover`,
-  );
-  for (const ep of info.episodes) {
-    const url = xtreamEpisodeUrl(creds, ep.streamId, ep.extension);
-    const format = detectMediaFormat(url);
-    insert.run(sqliteSeriesId, ep.name, url, ep.season, ep.episode, ep.cover, format, now);
-  }
-  return info;
-}
-
-function mapRowForType(type: CatalogType, row: Record<string, unknown>): CatalogItem {
-  switch (type) {
-    case 'live':
-      return mapLiveRow(row);
-    case 'movie':
-      return mapMovieRow(row);
-    case 'series':
-      return mapSeriesRow(row);
-    case 'episode':
-      return mapEpisodeRow(row);
-  }
-}
+export type { CatalogHandlerDeps } from './catalog/types.js';
 
 export function registerCatalogHandlers(ipcMain: IpcMain, deps: CatalogHandlerDeps): void {
   ipcMain.handle('catalog:list', async (_event, input: unknown) => {
@@ -302,7 +92,7 @@ export function registerCatalogHandlers(ipcMain: IpcMain, deps: CatalogHandlerDe
     }
 
     if (parsed.type === 'series') {
-      let xtreamInfo: XtreamSeriesInfo | null = null;
+      let xtreamInfo = null;
       let episodes = loadSeriesEpisodes(deps.db, parsed.id);
 
       if (episodes.length === 0) {
