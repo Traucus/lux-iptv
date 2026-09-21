@@ -92,8 +92,8 @@ describe('down-migration', () => {
     const recorded = db
       .prepare(`SELECT version FROM schema_version ORDER BY version`)
       .all() as Array<{ version: number }>;
-    // After rolling back 0001 (version 2), 0000/0002/0003 remain (versions 1, 3, 4).
-    expect(recorded.map((r) => r.version)).toEqual([1, 3, 4]);
+    // After rolling back 0001 (version 2), later migrations remain (1, 3, 4, 5).
+    expect(recorded.map((r) => r.version)).toEqual([1, 3, 4, 5]);
 
     // Re-applying the up migration MUST succeed (no-op since version 3 > 2).
     // Columns http_headers/media_format remain absent until version 2 is re-applied.

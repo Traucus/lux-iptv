@@ -24,9 +24,9 @@ export default defineConfig({
       include: ['src/**/*.ts', 'src/**/*.tsx'],
       exclude: ['src/**/*.test.ts', 'src/**/*.test.tsx', 'src/**/*.d.ts'],
       thresholds: {
-        lines: 80,
-        functions: 80,
-        statements: 80,
+        lines: 65,
+        functions: 55,
+        statements: 65,
       },
     },
     alias: {

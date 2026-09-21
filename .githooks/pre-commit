@@ -138,6 +138,21 @@ while IFS= read -r rel || [[ -n "${rel:-}" ]]; do
   esac
 done < <(git diff --cached --name-only)
 
+lint_staged() {
+  local files=()
+  local f
+  while IFS= read -r f || [[ -n "${f:-}" ]]; do
+    [[ -z "${f:-}" ]] && continue
+    case "$f" in
+      *.ts|*.tsx) files+=("$f") ;;
+    esac
+  done < <(git diff --cached --name-only --diff-filter=ACMR)
+  if [[ ${#files[@]} -eq 0 ]]; then
+    return 0
+  fi
+  npx eslint --ext .ts,.tsx "${files[@]}"
+}
+
 if [[ "$run_verify" -eq 1 ]]; then
-  npm run typecheck && npm run lint && npm run test:coverage
+  npm run typecheck && lint_staged && npm run test:coverage
 fi

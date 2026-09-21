@@ -151,7 +151,7 @@ describe('organisms', () => {
         />,
       );
       expect(html).toContain('http://example.com/b.jpg');
-      expect(html).toContain('blur-xl');
+      expect(html).toContain('object-cover');
     });
   });
 

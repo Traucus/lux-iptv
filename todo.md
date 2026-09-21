@@ -1,7 +1,14 @@
-# Harness v1.0 security patches
+# Fix failing Vitest baseline
 
-- [x] Secret scan in `.githooks/pre-commit`
-- [x] GitHub Actions workflow `.github/workflows/harness-ci.yml`
-- [x] Persistent memory rule in `AGENTS.md` and `docs/harness/README.md`
-- [x] Fail-closed allowlist message in `.opencode/plugins/harness-scope.js`
-- [x] Local verify: typecheck passed; lint failed with 12 pre-existing errors (product files, not harness); `npm test` run separately after the chain stopped
+## Done
+
+- [x] `down-migration.test.ts` — expect versions `[1, 3, 4, 5]`
+- [x] `config-handlers.test.ts` — expect `host` in three D-2 cases
+- [x] `organisms.test.tsx` — `object-cover` instead of `blur-xl`
+- [x] `npx vitest run` — 767 passed / 0 failed
+- [x] eslint on the three test files — clean
+- [x] Restore `current.yml` to harness-only
+
+## Coverage
+
+`npm run test:coverage` failed on unrelated perf: `repo > bulkInserts 8000 live channels` 1616ms > 1500ms (coverage overhead). Out of this allowlist. Thresholds not evaluated because that test failed first.

@@ -52,6 +52,7 @@ describe('config vault IPC', () => {
       configured: true,
       listName: 'Home IPTV',
       source: 'xtream',
+      host: 'secret.example:8080',
     });
     expect(result.data).not.toHaveProperty('server');
     expect(result.data).not.toHaveProperty('username');
@@ -75,6 +76,7 @@ describe('config vault IPC', () => {
       configured: true,
       listName: 'Legacy List',
       source: 'xtream',
+      host: 'legacy.example:8080',
     });
     expect(summary.data).not.toHaveProperty('password');
   });
@@ -92,6 +94,7 @@ describe('config vault IPC', () => {
       configured: true,
       listName: 'M3U List',
       source: 'm3u',
+      host: 'secret.example',
     });
     expect(result.data).not.toHaveProperty('url');
   });
