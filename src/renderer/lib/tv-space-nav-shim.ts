@@ -28,7 +28,7 @@ interface ViewProps {
 
 function passthrough<T extends keyof JSX.IntrinsicElements>(tag: T) {
   return function Shim(props: ViewProps): React.ReactElement {
-    const { viewProps, children, onSelect, onFocus, onBlur, ...rest } = props;
+    const { viewProps, children, onSelect, ...rest } = props;
     // Wire onSelect → onClick so mouse/touch works on desktop/Electron.
     // The real react-tv-space-navigation library handles this internally
     // for D-pad/remote, but the shim is used in dev and non-TV builds.
