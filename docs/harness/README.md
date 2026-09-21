@@ -60,6 +60,10 @@ Esto vale en cualquier proyecto. El comando de “verde” y el enchufe del agen
     o introduce `any`. `no-explicit-any` es error; `max-lines` 300.
     Vitest exige 80% líneas/funciones/sentencias (`test:coverage`).
 
+14. Spec-first: todo change de producto (feature o refactor) exige spec
+    previa en `openspec/` o `docs/specs/`. No se agregan paths de producto
+    a `current.yml` hasta que esa spec exista y esté aprobada.
+
 ## Qué cuenta como evidencia
 
 Un hallazgo o un “listo” sin comando pegado o sin ruta de archivo no cuenta.

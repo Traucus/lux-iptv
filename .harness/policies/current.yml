@@ -1,16 +1,11 @@
-id: FA-17
+id: harness-v2.5
 allowed:
-  - src/**/libmpv-engine.ts
-  - src/**/VideoPlayer.tsx
-  - src/**/player/**
-  - tests/**/player/**
-  - native/lux-libmpv/**
-  - docs/harness/**
   - AGENTS.md
+  - todo.md
+  - docs/harness/**
   - .harness/policies/**
   - .opencode/plugins/**
   - .githooks/**
   - .github/workflows/**
-  - todo.md
   - .eslintrc.cjs
   - vitest.config.ts
