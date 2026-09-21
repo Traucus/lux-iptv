@@ -40,3 +40,8 @@ Permitido: `renderer → shared`, `main → shared`, `licensing-api` aislada.
 Prohibido: `renderer → main` / `electron` / APIs Node; `shared → main`
 o `shared → renderer`; dominio/servicios (`src/main`, `src/main/services`,
 `src/licensing-api`) → React o UI de `renderer`.
+
+Regla 13 — puertas de calidad: un change de producto no está terminado si
+baja la cobertura o introduce `any`. ESLint: `no-explicit-any` es error;
+`max-lines` 300. Vitest: umbral 80% líneas/funciones/sentencias
+(`npm run test:coverage`). Verde sigue siendo typecheck, lint y test.

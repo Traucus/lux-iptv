@@ -56,6 +56,10 @@ Esto vale en cualquier proyecto. El comando de “verde” y el enchufe del agen
     React o UI de renderer. Aliases: @shared, @main, @renderer,
     @licensing-api.
 
+13. Calidad: un change de producto no está terminado si baja la cobertura
+    o introduce `any`. `no-explicit-any` es error; `max-lines` 300.
+    Vitest exige 80% líneas/funciones/sentencias (`test:coverage`).
+
 ## Qué cuenta como evidencia
 
 Un hallazgo o un “listo” sin comando pegado o sin ruta de archivo no cuenta.

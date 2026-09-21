@@ -12,3 +12,5 @@ allowed:
   - .githooks/**
   - .github/workflows/**
   - todo.md
+  - .eslintrc.cjs
+  - vitest.config.ts
