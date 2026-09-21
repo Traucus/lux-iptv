@@ -64,15 +64,14 @@ export class SqlJsCompatDb {
   }
 
   transaction<T, Args extends unknown[]>(fn: (...args: Args) => T): (...args: Args) => T {
-    const self = this;
-    return function transactionWrapper(...args: Args) {
-      self.db.run('BEGIN TRANSACTION');
+    return (...args: Args) => {
+      this.db.run('BEGIN TRANSACTION');
       try {
         const result = fn(...args);
-        self.db.run('COMMIT');
+        this.db.run('COMMIT');
         return result;
       } catch (e) {
-        self.db.run('ROLLBACK');
+        this.db.run('ROLLBACK');
         throw e;
       }
     };
@@ -135,14 +134,14 @@ class SqlJsCompatStatement {
    * We support both: if the first argument is an object, use it as named params;
    * otherwise treat all arguments as positional params.
    */
-  private normalizeParams(params: unknown[]): any {
+  private normalizeParams(params: unknown[]): Record<string, unknown> | unknown[] {
     if (params.length === 1 && params[0] !== null && typeof params[0] === 'object' && !Array.isArray(params[0])) {
       return params[0] as Record<string, unknown>;
     }
     return params;
   }
 
-  private buildPositionalArgs(normalizedParams: any): unknown[] {
+  private buildPositionalArgs(normalizedParams: Record<string, unknown> | unknown[]): unknown[] {
     // If already an array, use as-is (positional params)
     if (Array.isArray(normalizedParams)) {
       return normalizedParams;
