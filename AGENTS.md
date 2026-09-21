@@ -33,3 +33,10 @@ Comandos de shell permitidos (inspección, diagnóstico y pruebas):
 Comandos de shell prohibidos: `rm -rf`, `git commit --no-verify`,
 `git push --force`. `npm install <pkg>` y `npm uninstall <pkg>` solo si
 la especificación de la tarea los aprobó antes.
+
+Regla 12 — capas: respetar el grafo de dependencias. ESLint lo enforcea
+con `no-restricted-imports`.
+Permitido: `renderer → shared`, `main → shared`, `licensing-api` aislada.
+Prohibido: `renderer → main` / `electron` / APIs Node; `shared → main`
+o `shared → renderer`; dominio/servicios (`src/main`, `src/main/services`,
+`src/licensing-api`) → React o UI de `renderer`.

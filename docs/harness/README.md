@@ -49,6 +49,13 @@ Esto vale en cualquier proyecto. El comando de “verde” y el enchufe del agen
     `npm install` / `npm uninstall` de un paquete solo si la spec de la
     tarea lo aprobó antes.
 
+12. Capas: el grafo de imports lo enforcea ESLint (`no-restricted-imports`).
+    Permitido: renderer → shared; main → shared; licensing-api aislada.
+    Prohibido: renderer → main / electron / Node; shared → main o renderer;
+    dominio/servicios (src/main, src/main/services, src/licensing-api) →
+    React o UI de renderer. Aliases: @shared, @main, @renderer,
+    @licensing-api.
+
 ## Qué cuenta como evidencia
 
 Un hallazgo o un “listo” sin comando pegado o sin ruta de archivo no cuenta.
