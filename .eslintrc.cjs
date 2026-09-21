@@ -112,11 +112,7 @@ module.exports = {
       },
     },
     {
-      files: [
-        'src/main/**/*.{ts,tsx}',
-        'src/main/services/**/*.{ts,tsx}',
-        'src/licensing-api/**/*.{ts,tsx}',
-      ],
+      files: ['src/main/**/*.{ts,tsx}', 'src/main/services/**/*.{ts,tsx}'],
       rules: {
         'no-restricted-imports': [
           'error',
@@ -139,6 +135,41 @@ module.exports = {
               {
                 group: ['**/src/renderer/**', '**/renderer/**'],
                 message: 'Domain/services cannot import renderer UI.',
+              },
+            ],
+          },
+        ],
+      },
+    },
+    {
+      files: ['src/licensing-api/**/*.{ts,tsx}'],
+      rules: {
+        'no-restricted-imports': [
+          'error',
+          {
+            paths: [
+              {
+                name: 'react',
+                message: 'licensing-api cannot import React.',
+              },
+              {
+                name: 'react-dom',
+                message: 'licensing-api cannot import React DOM.',
+              },
+            ],
+            patterns: [
+              {
+                group: ['@main', '@main/*', '@renderer', '@renderer/*'],
+                message: 'licensing-api cannot import @main or @renderer.',
+              },
+              {
+                group: [
+                  '**/src/main/**',
+                  '**/main/**',
+                  '**/src/renderer/**',
+                  '**/renderer/**',
+                ],
+                message: 'licensing-api cannot import src/main or renderer.',
               },
             ],
           },
