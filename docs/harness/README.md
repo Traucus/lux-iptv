@@ -38,6 +38,17 @@ Esto vale en cualquier proyecto. El comando de “verde” y el enchufe del agen
     mantiene `todo.md` en la raíz del workspace. Plan primero; marcar
     progreso antes de cada edición.
 
+11. Terminal: crear, modificar o borrar archivos solo con las
+    herramientas nativas (`write`, `edit`, `apply_patch`). Prohibido
+    reescribir el disco con redirecciones de shell (`echo >`, `echo >>`,
+    `cat >`, `cat >>`, `cat <<EOF >`, `tee`), `sed -i` o scripts ad-hoc.
+    El plugin de alcance no intercepta bash.
+    Permitidos: `git status`, `git diff`, `git log`, `ls`, `cat`, `rg`,
+    `npm run typecheck`, `npm run lint`, `npm test`, `npx vitest`.
+    Prohibidos: `rm -rf`, `git commit --no-verify`, `git push --force`.
+    `npm install` / `npm uninstall` de un paquete solo si la spec de la
+    tarea lo aprobó antes.
+
 ## Qué cuenta como evidencia
 
 Un hallazgo o un “listo” sin comando pegado o sin ruta de archivo no cuenta.

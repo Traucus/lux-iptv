@@ -18,3 +18,18 @@ No mezcles un change de producto con cambios de proceso.
 En tareas de más de 2 pasos, el agente debe crear y mantener un archivo
 `todo.md` en la raíz del workspace para registrar el plan de trabajo y
 marcar el progreso antes de cada edición.
+
+Uso obligatorio de herramientas de edición nativas: toda creación,
+modificación o eliminación de archivos DEBE hacerse solo con `write`,
+`edit` o `apply_patch`. Queda prohibido crear o reescribir archivos desde
+la consola con redirecciones de shell (`echo >`, `echo >>`, `cat >`,
+`cat >>`, `cat <<EOF >`, `tee`), `sed -i` o scripts ad-hoc. El plugin de
+alcance no ve esos comandos.
+
+Comandos de shell permitidos (inspección, diagnóstico y pruebas):
+`git status`, `git diff`, `git log`, `ls`, `cat`, `rg`,
+`npm run typecheck`, `npm run lint`, `npm test`, `npx vitest`.
+
+Comandos de shell prohibidos: `rm -rf`, `git commit --no-verify`,
+`git push --force`. `npm install <pkg>` y `npm uninstall <pkg>` solo si
+la especificación de la tarea los aprobó antes.
