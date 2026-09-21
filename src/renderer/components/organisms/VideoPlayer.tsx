@@ -1,20 +1,8 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { SeekBar } from '../molecules/osd/SeekBar';
-import { OsdTopBar } from '../molecules/osd/OsdTopBar';
-import { OsdControls } from '../molecules/osd/OsdControls';
-import { NextEpisodeCard } from '../molecules/osd/NextEpisodeCard';
-import { useIdleOSD } from '../../hooks/useIdleOSD';
-import { Spinner } from '../atoms/Spinner';
-import type { Season } from '../../features/player/next-episode';
-import type { Episode } from '../../../shared/types/ipc';
-import { createLuxAPI } from '../../lib/api';
-import {
-  exclusiveFullscreenPayload,
-  isExternalSubtitleFile,
-  isLiveRewindEnabled,
-  OSD_HWND_INSET,
-  type PlayerTrack,
-} from '../../features/player/player-chrome';
+import React from 'react';
+import { VideoPlayerOsdChrome } from './video-player/osd-chrome';
+import { VideoPlayerOverlays } from './video-player/overlays';
+import type { VideoPlayerProps } from './video-player/types';
+import { useVideoPlayer } from './video-player/use-video-player';
 
 /**
  * VideoPlayer — Fullscreen video player organism with OSD overlay.
@@ -23,213 +11,22 @@ import {
  * `<video>` engines are not the product playback path.
  */
 
-type PlaybackSource = {
-  url: string;
-  mediaFormat: 'hls' | 'mp4' | 'dash' | 'ts' | 'unknown';
-  httpHeaders?: Record<string, string>;
-  type: 'live' | 'movie' | 'episode';
-  engine?: 'libmpv';
-};
+export type { PlaybackSource, VideoPlayerProps } from './video-player/types';
 
-export interface VideoPlayerProps {
-  /** Playback source (URL, format, headers) */
-  source: PlaybackSource;
-  /** In-process libmpv load failure. No Chromium fallback. */
-  diagnosis?: { kind: string } | null;
-  /** Called when playback ends naturally */
-  onEnded?: () => void;
-  /** Called when a fatal playback error occurs */
-  onError?: (error: Error) => void;
-  /** Called periodically with current playback position and duration */
-  onTimeUpdate?: (position: number, duration: number) => void;
-  /** Navigate to the next episode */
-  onNextEpisode?: (episode: Episode) => void;
-  /** Series seasons for next-episode resolution (episode type only) */
-  seasons?: Season[];
-  /** Current episode for next-episode card (episode type only) */
-  currentEpisode?: Episode | null;
-  /** Whether to show next-episode card */
-  showNextEpisodeCard?: boolean;
-  /** Custom className */
-  className?: string;
-}
-
-export const VideoPlayer: React.FC<VideoPlayerProps> = ({
-  source,
-  diagnosis = null,
-  onEnded,
-  onError,
-  onTimeUpdate,
-  seasons,
-  currentEpisode,
-  showNextEpisodeCard = false,
-  onNextEpisode,
-  className = '',
-}) => {
-  const [engineState, setEngineState] = useState<'idle' | 'loading' | 'playing' | 'recovering' | 'error'>('idle');
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [buffered, setBuffered] = useState<Array<{ start: number; end: number }>>([]);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [audioTrackIndex, setAudioTrackIndex] = useState(0);
-  const [subtitleTrackIndex, setSubtitleTrackIndex] = useState(-1);
-  const [audioTracks, setAudioTracks] = useState<PlayerTrack[]>([]);
-  const [subtitleTracks, setSubtitleTracks] = useState<PlayerTrack[]>([]);
-  const [aspectRatio, setAspectRatio] = useState<'16:9' | '4:3' | 'zoom' | 'fit'>('16:9');
-  const [nextEpisode, setNextEpisode] = useState<Episode | null>(null);
-  const [showNextEpisodeCardState, setShowNextEpisodeCardState] = useState(false);
-
-  const { visible: osdVisible } = useIdleOSD(4000);
-
-  const refreshTracks = useCallback(async () => {
-    try {
-      const api = createLuxAPI().player;
-      const result = await api.getTracks();
-      if (result && 'data' in result && result.data) {
-        setAudioTracks(result.data.audio);
-        setSubtitleTracks(result.data.subtitles);
-      }
-      const status = await api.getStatus?.();
-      if (status && 'data' in status && status.data) {
-        const pos = status.data.currentTime;
-        const dur = status.data.duration;
-        setCurrentTime(pos);
-        setDuration(dur);
-        setBuffered([{ start: 0, end: status.data.buffered }]);
-        onTimeUpdate?.(pos, dur);
-        if (
-          showNextEpisodeCard &&
-          source.type === 'episode' &&
-          currentEpisode &&
-          dur > 0 &&
-          pos / dur >= 0.95
-        ) {
-          const next = await api.getNextEpisode?.({ episodeId: currentEpisode.id });
-          if (next && 'data' in next && next.data) {
-            setNextEpisode(next.data);
-            setShowNextEpisodeCardState(true);
-          }
-        }
-      }
-    } catch {
-      // Renderer tests and unload without luxAPI must still mount.
-    }
-  }, [onTimeUpdate, showNextEpisodeCard, source.type, currentEpisode]);
-
-  useEffect(() => {
-    setEngineState(diagnosis ? 'error' : 'playing');
-    setIsPlaying(!diagnosis);
-    if (diagnosis) {
-      setErrorMessage('libmpv failed to load');
-    }
-    void refreshTracks();
-    const poll = setInterval(() => {
-      void refreshTracks();
-    }, 1000);
-    const onEscape = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') return;
-      try {
-        void createLuxAPI().player.setFullScreen(exclusiveFullscreenPayload(false));
-      } catch {
-        // Escape without luxAPI is a no-op in unit tests without the mock.
-      }
-    };
-    window.addEventListener('keydown', onEscape);
-    return () => {
-      clearInterval(poll);
-      window.removeEventListener('keydown', onEscape);
-    };
-  }, [source, diagnosis, onEnded, onError, onTimeUpdate, seasons, currentEpisode, showNextEpisodeCard, refreshTracks]);
-
-  const handleSeek = useCallback((time: number) => {
-    setCurrentTime(time);
-    try {
-      void createLuxAPI().player.seek({ time });
-    } catch {
-      // Seek is best-effort when luxAPI is incomplete.
-    }
-  }, []);
-
-  const handleRewind10 = useCallback(() => {
-    if (!isLiveRewindEnabled(source.type)) return;
-    handleSeek(Math.max(0, currentTime - 10));
-  }, [currentTime, handleSeek, source.type]);
-
-  const handleFullscreen = useCallback(() => {
-    try {
-      void createLuxAPI().player.setFullScreen(exclusiveFullscreenPayload(true));
-    } catch {
-      // Exclusive fullscreen is main-process only.
-    }
-  }, []);
-
-  const handleForward10 = useCallback(() => {
-    const next = currentTime + 10;
-    handleSeek(duration > 0 ? Math.min(duration, next) : next);
-  }, [currentTime, duration, handleSeek]);
-
-  const handlePlayPause = useCallback(() => {
-    setIsPlaying((playing) => {
-      const nextPlaying = !playing;
-      try {
-        void createLuxAPI().player.setPaused({ paused: !nextPlaying });
-      } catch {
-        // Tests without a full luxAPI still toggle the OSD icon.
-      }
-      return nextPlaying;
-    });
-  }, []);
-
-  const handleAudioTrackChange = useCallback((aid: number) => {
-    setAudioTrackIndex(aid);
-    try {
-      void createLuxAPI().player.setAudioTrack({ aid });
-    } catch {
-      // Tests without a full luxAPI still change the selected track.
-    }
-  }, []);
-
-  const handleSubtitleTrackChange = useCallback((sid: number) => {
-    setSubtitleTrackIndex(sid);
-    try {
-      void createLuxAPI().player.setSubtitleTrack({ sid });
-    } catch {
-      // Tests without a full luxAPI still change the selected track.
-    }
-  }, []);
-
-  const subtitleFileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleLoadSubtitle = useCallback(() => {
-    subtitleFileInputRef.current?.click();
-  }, []);
-
-  const handleAddSubtitle = useCallback(
-    (path: string) => {
-      if (!isExternalSubtitleFile(path)) return;
-      void (async () => {
-        try {
-          await createLuxAPI().player.addSubtitle({ path });
-          await refreshTracks();
-        } catch {
-          // External subtitle load is best-effort in unit tests.
-        }
-      })();
-    },
-    [refreshTracks],
-  );
+export const VideoPlayer: React.FC<VideoPlayerProps> = (props) => {
+  const { source, diagnosis = null, onNextEpisode, className = '' } = props;
+  const player = useVideoPlayer(props);
 
   const videoStyle: React.CSSProperties = {
     position: 'absolute',
     inset: 0,
     width: '100%',
     height: '100%',
-    objectFit: aspectRatio === 'zoom' ? 'cover' : 'contain',
+    objectFit: player.aspectRatio === 'zoom' ? 'cover' : 'contain',
     background: '#000',
   };
 
-  if (aspectRatio === '4:3') {
+  if (player.aspectRatio === '4:3') {
     videoStyle.aspectRatio = '4/3';
   }
 
@@ -252,7 +49,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         aria-label="libmpv surface"
       />
       <input
-        ref={subtitleFileInputRef}
+        ref={player.subtitleFileInputRef}
         type="file"
         accept=".srt,.ass"
         data-testid="osd-add-subtitle"
@@ -263,200 +60,48 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           if (!file) return;
           const path =
             'path' in file && typeof file.path === 'string' ? file.path : file.name;
-          handleAddSubtitle(path);
+          player.handleAddSubtitle(path);
         }}
       />
 
-      {/* Spinner during recovering */}
-      {engineState === 'recovering' && (
-        <div
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: 'rgba(0,0,0,0.7)',
-            zIndex: 5,
-          }}
-          data-testid="recovering-spinner"
-        >
-          <Spinner size="lg" />
-        </div>
-      )}
+      <VideoPlayerOverlays
+        engineState={player.engineState}
+        diagnosis={diagnosis}
+        errorMessage={player.errorMessage}
+        osdVisible={player.osdVisible}
+        sourceType={source.type}
+        showNextEpisodeCardState={player.showNextEpisodeCardState}
+        nextEpisode={player.nextEpisode}
+        onWatchNow={() => {
+          player.setShowNextEpisodeCardState(false);
+          if (player.nextEpisode) onNextEpisode?.(player.nextEpisode);
+        }}
+        onDismiss={() => player.setShowNextEpisodeCardState(false)}
+      />
 
-      {(diagnosis?.kind === 'libmpv-load-failed' || diagnosis?.kind === 'libmpv-open-failed') && (
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: 'rgba(0,0,0,0.9)',
-            color: '#fff',
-            padding: '24px',
-            textAlign: 'center',
-            zIndex: 12,
-          }}
-          data-testid="libmpv-diagnosis"
-        >
-          <h3 style={{ margin: '0 0 8px', fontSize: '1.25rem' }}>
-            {diagnosis.kind === 'libmpv-open-failed' ? 'libmpv failed to open' : 'libmpv failed to load'}
-          </h3>
-          <p style={{ margin: 0, color: '#888' }}>
-            {diagnosis.kind === 'libmpv-open-failed'
-              ? 'The origin stream did not start. Chromium playback is not a fallback.'
-              : 'In-process libmpv is unavailable. Chromium playback is not a fallback.'}
-          </p>
-        </div>
-      )}
-
-      {/* Error UI */}
-      {engineState === 'error' && !diagnosis && (
-        <div
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: 'rgba(0,0,0,0.9)',
-            color: '#fff',
-            padding: '24px',
-            textAlign: 'center',
-            zIndex: 10,
-          }}
-          data-testid="error-ui"
-        >
-          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ marginBottom: '16px' }}>
-            <circle cx="12" cy="12" r="10" />
-            <line x1="12" y1="8" x2="12" y2="12" />
-            <line x1="12" y1="16" x2="12.01" y2="16" />
-          </svg>
-          <h3 style={{ margin: '0 0 8px', fontSize: '1.25rem' }}>Playback Error</h3>
-          <p style={{ margin: 0, color: '#888' }}>{errorMessage}</p>
-        </div>
-      )}
-
-      {osdVisible && (
-        <>
-          <div
-            data-testid="osd-chrome-top"
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              height: OSD_HWND_INSET.top,
-              zIndex: 20,
-            }}
-          >
-            <OsdTopBar
-              title={source.type === 'live' ? 'Live TV' : 'Content Title'}
-              resolution={undefined}
-              audioTrack={audioTracks[audioTrackIndex]?.name}
-              onBack={() => {
-                window.history.back();
-              }}
-              visible={true}
-            />
-          </div>
-
-          <div
-            data-testid="osd-chrome-bottom"
-            style={{
-              position: 'absolute',
-              bottom: 0,
-              left: 0,
-              right: 0,
-              height: OSD_HWND_INSET.bottom,
-              zIndex: 20,
-            }}
-          >
-            {source.type !== 'live' && (
-              <div style={{ padding: '12px 24px 0' }}>
-                <SeekBar
-                  currentTime={currentTime}
-                  duration={duration}
-                  buffered={buffered}
-                  onSeek={handleSeek}
-                  disabled={duration <= 0}
-                />
-              </div>
-            )}
-            <OsdControls
-              isPlaying={isPlaying}
-              audioTrackIndex={audioTrackIndex}
-              audioTracks={audioTracks}
-              subtitleTrackIndex={subtitleTrackIndex}
-              subtitleTracks={subtitleTracks}
-              aspectRatio={aspectRatio}
-              visible={true}
-              onRewind10={handleRewind10}
-              onPlayPause={handlePlayPause}
-              onForward10={handleForward10}
-              onAudioTrackChange={handleAudioTrackChange}
-              onSubtitleTrackChange={handleSubtitleTrackChange}
-              onAspectRatioChange={setAspectRatio}
-              onFullscreen={handleFullscreen}
-              onLoadSubtitle={handleLoadSubtitle}
-              rewindDisabled={!isLiveRewindEnabled(source.type)}
-            />
-          </div>
-        </>
-      )}
-
-      {/* Next Episode Card */}
-      {showNextEpisodeCardState && nextEpisode && (
-        <NextEpisodeCard
-          episode={nextEpisode}
-          onWatchNow={() => {
-            setShowNextEpisodeCardState(false);
-            if (nextEpisode) onNextEpisode?.(nextEpisode);
-          }}
-          onDismiss={() => setShowNextEpisodeCardState(false)}
-          visible={true}
+      {player.osdVisible && (
+        <VideoPlayerOsdChrome
+          sourceType={source.type}
+          currentTime={player.currentTime}
+          duration={player.duration}
+          buffered={player.buffered}
+          isPlaying={player.isPlaying}
+          audioTrackIndex={player.audioTrackIndex}
+          audioTracks={player.audioTracks}
+          subtitleTrackIndex={player.subtitleTrackIndex}
+          subtitleTracks={player.subtitleTracks}
+          aspectRatio={player.aspectRatio}
+          onSeek={player.handleSeek}
+          onRewind10={player.handleRewind10}
+          onPlayPause={player.handlePlayPause}
+          onForward10={player.handleForward10}
+          onAudioTrackChange={player.handleAudioTrackChange}
+          onSubtitleTrackChange={player.handleSubtitleTrackChange}
+          onAspectRatioChange={player.setAspectRatio}
+          onFullscreen={player.handleFullscreen}
+          onLoadSubtitle={player.handleLoadSubtitle}
         />
       )}
-
-      {/* LIVE badge */}
-      {source.type === 'live' && osdVisible && (
-        <div
-          style={{
-            position: 'absolute',
-            top: '60px',
-            right: '24px',
-            background: '#ff0000',
-            color: '#fff',
-            padding: '4px 12px',
-            borderRadius: '4px',
-            fontSize: '0.75rem',
-            fontWeight: 700,
-            letterSpacing: '0.1em',
-            animation: 'pulse 1.5s infinite',
-            zIndex: 10,
-          }}
-          data-testid="live-badge"
-        >
-          LIVE
-        </div>
-      )}
-
-      <style>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.5; }
-        }
-      `}</style>
     </div>
   );
 };
