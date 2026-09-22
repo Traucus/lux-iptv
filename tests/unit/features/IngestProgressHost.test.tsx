@@ -4,6 +4,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 import { render, screen, act } from '@testing-library/react';
 
+void React;
+
 const progressListeners: Array<(p: Record<string, unknown>) => void> = [];
 
 const mockApi = vi.hoisted(() => ({

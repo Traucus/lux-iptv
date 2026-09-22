@@ -6,7 +6,7 @@
  *
  * Spec: media-harness §HTMLMediaElement Mock, §hls.js Mock, §MediaSource/SourceBuffer Mock
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   createMediaElementMock,
   createHlsJsMock,

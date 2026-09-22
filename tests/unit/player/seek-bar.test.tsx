@@ -1,8 +1,10 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
-import '@testing-library/jest-dom';
 import React from 'react';
+import { render, screen, fireEvent } from '@testing-library/react';
+
+void React;
+import '@testing-library/jest-dom';
 import { SeekBar } from '../../../src/renderer/components/molecules/osd/SeekBar';
 
 function mockBarRect(width = 200) {

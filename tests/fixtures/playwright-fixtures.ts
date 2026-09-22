@@ -16,7 +16,7 @@
  *     expect(...).toBe(...);
  *   });
  */
-import { test as base, type TestFixture } from '@playwright/test';
+import { test as base } from '@playwright/test';
 import { startM3u8FixtureServer, type M3u8FixtureServer } from '../helpers/m3u8-fixture-server';
 
 export type M3u8ServerFixture = M3u8FixtureServer;
@@ -25,21 +25,19 @@ export type M3u8ServerFixture = M3u8FixtureServer;
  * Standalone lifecycle hook (mirrors what Playwright does internally).
  * Exported for Vitest-side smoke tests (see `playwright-fixtures.test.ts`).
  */
-export async function m3u8ServerFixture(): Promise<M3u8FixtureServer> {
+export async function m3u8ServerFixture(): Promise<M3u8ServerFixture> {
   return startM3u8FixtureServer();
 }
 
-const fixture: TestFixture<M3u8ServerFixture, {}> = async ({}, use) => {
-  const server = await startM3u8FixtureServer();
-  try {
-    await use(server);
-  } finally {
-    await server.close();
-  }
-};
-
 export const test = base.extend<{ m3u8Server: M3u8ServerFixture }>({
-  m3u8Server: fixture,
+  m3u8Server: async (_fixtures, use) => {
+    const server = await startM3u8FixtureServer();
+    try {
+      await use(server);
+    } finally {
+      await server.close();
+    }
+  },
 });
 
 export { expect } from '@playwright/test';

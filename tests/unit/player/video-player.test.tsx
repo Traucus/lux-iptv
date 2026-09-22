@@ -1,9 +1,10 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import '@testing-library/jest-dom';
 import React from 'react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 
+void React;
+import '@testing-library/jest-dom';
 /**
  * TASK-067: VideoPlayer tests
  *
