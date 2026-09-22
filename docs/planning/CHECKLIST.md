@@ -23,7 +23,7 @@ Refresh on Home/Live/Movies/Series and host-only vault shipped. Not backlog.
 | ID | Class | Item | Evidence |
 | --- | --- | --- | --- |
 | PA-06 | PARCIAL | Movies/Series rows merge IndexedDB enrichment and enqueue TMDB work. Windows/runtime must prove posters appear after a saved key. | `useEnrichedPosters.ts`; `EnrichmentHost.tsx` |
-| FA-08 | PARCIAL | S2 requires a TMDB key and Home prompts when missing. Play is not blocked. Enrichment still does not start from the saved key (no getPlain / worker start). | `TmdbKeyOnboarding.tsx`; `tmdb-required-banner` on Home |
+| FA-08 | PARCIAL | S2 requires a TMDB key and Home prompts when missing. Play is not blocked. EnrichmentHost starts the TMDB worker from the saved key via `tmdb.getKey()` and `startEnrichment`. Windows must prove posters appear after a saved key. | `TmdbKeyOnboarding.tsx`; `EnrichmentHost.tsx` |
 
 ## F5 — VOD flows (1)
 
