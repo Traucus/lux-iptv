@@ -118,7 +118,6 @@ export const AspectRatioSelector: React.FC<AspectRatioSelectorProps> = ({
   return (
     <div
       className={`aspect-ratio-selector ${className}`.trim()}
-      style={{ position: 'relative' }}
       data-testid="aspect-ratio-selector"
     >
       <button
@@ -156,13 +155,12 @@ export const AspectRatioSelector: React.FC<AspectRatioSelectorProps> = ({
           aria-label="Aspect ratio"
           style={{
             position: 'absolute',
-            bottom: '56px',
-            right: 0,
+            inset: 0,
             background: 'rgba(20,20,30,0.95)',
             border: '1px solid rgba(255,255,255,0.1)',
             borderRadius: '8px',
             padding: '4px',
-            minWidth: '120px',
+            overflowY: 'auto',
             boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
             backdropFilter: 'blur(8px)',
             zIndex: 20,

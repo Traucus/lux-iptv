@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { TrackSelectorModal } from './TrackSelectorModal';
 import { AspectRatioSelector } from './AspectRatioSelector';
 import { OSD_CONTROL_TITLES } from '../../../../shared/player-chrome';
@@ -60,23 +60,6 @@ export const OsdControls: React.FC<OsdControlsProps> = ({
 }) => {
   const [showAudioModal, setShowAudioModal] = useState(false);
   const [showSubtitleModal, setShowSubtitleModal] = useState(false);
-  const audioButtonRef = useRef<HTMLButtonElement>(null);
-  const subtitleButtonRef = useRef<HTMLButtonElement>(null);
-
-  // Close modals when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (showAudioModal && audioButtonRef.current && !audioButtonRef.current.contains(e.target as Node)) {
-        setShowAudioModal(false);
-      }
-      if (showSubtitleModal && subtitleButtonRef.current && !subtitleButtonRef.current.contains(e.target as Node)) {
-        setShowSubtitleModal(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showAudioModal, showSubtitleModal]);
 
   // Close modals on Escape
   useEffect(() => {
@@ -199,9 +182,8 @@ export const OsdControls: React.FC<OsdControlsProps> = ({
       </button>
 
       {/* Audio Track Selector */}
-      <div style={{ position: 'relative' }}>
+      <div>
         <button
-          ref={audioButtonRef}
           onClick={() => setShowAudioModal(!showAudioModal)}
           style={audioTracks.length > 1 ? activeButtonStyle : buttonStyle}
           onMouseOver={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.4)')}
@@ -217,22 +199,11 @@ export const OsdControls: React.FC<OsdControlsProps> = ({
             <path d="M19 9l6 6-6 6-4-4 6-6-6-6z" />
           </svg>
         </button>
-        
-        {showAudioModal && audioTracks.length > 1 && (
-          <TrackSelectorModal
-            tracks={audioTracks}
-            selectedIndex={audioTrackIndex}
-            onSelect={onAudioTrackChange}
-            onClose={() => setShowAudioModal(false)}
-            title="Audio Track"
-          />
-        )}
         </div>
 
       {/* Subtitle Track Selector */}
-      <div style={{ position: 'relative' }}>
+      <div>
         <button
-          ref={subtitleButtonRef}
           onClick={() => setShowSubtitleModal(!showSubtitleModal)}
           style={subtitleTracks.length > 0 ? activeButtonStyle : buttonStyle}
           onMouseOver={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.4)')}
@@ -246,17 +217,6 @@ export const OsdControls: React.FC<OsdControlsProps> = ({
             <path d="M4 19h16M4 15h16M10 5v14" />
           </svg>
         </button>
-        
-        {showSubtitleModal && (
-          <TrackSelectorModal
-            tracks={subtitleTracks}
-            selectedIndex={subtitleTrackIndex}
-            onSelect={onSubtitleTrackChange}
-            onClose={() => setShowSubtitleModal(false)}
-            title="Subtitles"
-            showOffOption={true}
-          />
-        )}
         </div>
 
       {onLoadSubtitle && (
@@ -299,6 +259,26 @@ export const OsdControls: React.FC<OsdControlsProps> = ({
         onChange={onAspectRatioChange}
         disabled={!visible}
       />
+
+      {showAudioModal && audioTracks.length > 1 && (
+        <TrackSelectorModal
+          tracks={audioTracks}
+          selectedIndex={audioTrackIndex}
+          onSelect={onAudioTrackChange}
+          onClose={() => setShowAudioModal(false)}
+          title="Audio Track"
+        />
+      )}
+      {showSubtitleModal && (
+        <TrackSelectorModal
+          tracks={subtitleTracks}
+          selectedIndex={subtitleTrackIndex}
+          onSelect={onSubtitleTrackChange}
+          onClose={() => setShowSubtitleModal(false)}
+          title="Subtitles"
+          showOffOption={true}
+        />
+      )}
     </div>
   );
 };

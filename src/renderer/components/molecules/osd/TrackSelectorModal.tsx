@@ -97,18 +97,17 @@ export const TrackSelectorModal: React.FC<TrackSelectorModalProps> = ({
 
   const allTracks = showOffOption ? [{ id: -1, name: 'Off' }, ...tracks] : tracks;
 
-  // Position near anchor if provided
+  // Fill the HWND inset chrome. Never position:fixed — native video covers it.
+  void anchorRef;
   const modalStyle: React.CSSProperties = {
-    position: 'fixed',
-    bottom: anchorRef?.current ? undefined : '120px',
-    left: anchorRef?.current ? undefined : '50%',
-    transform: anchorRef?.current ? undefined : 'translateX(-50%)',
+    position: 'absolute',
+    inset: 0,
     zIndex: 20,
-    ...(anchorRef?.current && {
-      bottom: '60px',
-      left: 'auto',
-      right: '24px',
-    }),
+    display: 'flex',
+    alignItems: 'stretch',
+    justifyContent: 'center',
+    padding: 8,
+    boxSizing: 'border-box',
   };
 
   return (
@@ -127,7 +126,9 @@ export const TrackSelectorModal: React.FC<TrackSelectorModalProps> = ({
           borderRadius: '12px',
           padding: '8px',
           minWidth: '200px',
-          maxWidth: '300px',
+          maxWidth: '100%',
+          maxHeight: '100%',
+          overflowY: 'auto',
           boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
           backdropFilter: 'blur(8px)',
         }}
@@ -167,7 +168,7 @@ export const TrackSelectorModal: React.FC<TrackSelectorModalProps> = ({
         </div>
 
         {/* Track list */}
-        <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+        <div style={{ overflowY: 'auto' }}>
           {allTracks.map((track, index) => (
             <button
               key={track.id}

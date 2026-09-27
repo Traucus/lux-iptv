@@ -56,6 +56,7 @@ export function VideoPlayerOsdChrome({
           left: 0,
           right: 0,
           height: OSD_HWND_INSET.top,
+          overflow: 'hidden',
           zIndex: 20,
         }}
       >
@@ -78,6 +79,7 @@ export function VideoPlayerOsdChrome({
           left: 0,
           right: 0,
           height: OSD_HWND_INSET.bottom,
+          overflow: 'hidden',
           zIndex: 20,
         }}
       >
