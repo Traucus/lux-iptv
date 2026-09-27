@@ -25,6 +25,7 @@ export function VideoPlayerOsdChrome({
   onAspectRatioChange,
   onFullscreen,
   onLoadSubtitle,
+  onListOpenChange,
 }: {
   sourceType: PlaybackSource['type'];
   currentTime: number;
@@ -45,6 +46,7 @@ export function VideoPlayerOsdChrome({
   onAspectRatioChange: (ratio: AspectRatio) => void;
   onFullscreen: () => void;
   onLoadSubtitle: () => void;
+  onListOpenChange?: (open: boolean) => void;
 }): React.ReactElement {
   return (
     <>
@@ -110,6 +112,7 @@ export function VideoPlayerOsdChrome({
           onAspectRatioChange={onAspectRatioChange}
           onFullscreen={onFullscreen}
           onLoadSubtitle={onLoadSubtitle}
+          onListOpenChange={onListOpenChange}
           rewindDisabled={!isLiveRewindEnabled(sourceType)}
         />
       </div>

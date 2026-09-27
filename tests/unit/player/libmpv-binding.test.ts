@@ -25,6 +25,14 @@ describe('createForwardingBinding', () => {
     expect(native.command).toHaveBeenCalledWith(['sub-add', 'movie.srt']);
   });
 
+  it('forwards setEmbedVisible to the native session', () => {
+    const native = session();
+    native.setEmbedVisible = vi.fn();
+    const binding = createForwardingBinding(() => native);
+    binding.setEmbedVisible?.(false);
+    expect(native.setEmbedVisible).toHaveBeenCalledWith(false);
+  });
+
   it('returns empty tracks when no session is loaded', () => {
     const binding = createForwardingBinding(() => null);
     expect(binding.getTrackList?.()).toEqual([]);

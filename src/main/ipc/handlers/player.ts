@@ -16,6 +16,7 @@ import {
   PlayerSeekInputSchema,
   PlayerSetFullScreenInputSchema,
   PlayerSetPausedInputSchema,
+  PlayerSetEmbedVisibleInputSchema,
 } from '../../../shared/schemas/player.js';
 import { createLibmpvEngine, type LibmpvEngine } from '../../player/libmpv-engine.js';
 
@@ -207,6 +208,13 @@ export function registerPlayerHandlers(ipcMain: IpcMain, deps: PlayerHandlerDeps
     }
     engine.setPaused(parsed.data.paused);
     return { data: { paused: parsed.data.paused } };
+  });
+
+  ipcMain.handle('player:setEmbedVisible', async (_event, input: unknown) => {
+    const parsed = PlayerSetEmbedVisibleInputSchema.safeParse(input);
+    if (!parsed.success) return invalidInput(parsed.error.issues);
+    engine.setEmbedVisible(parsed.data.visible);
+    return { data: { visible: parsed.data.visible } };
   });
 
   ipcMain.handle('player:getTracks', async () => ({ data: engine.getTracks() }));

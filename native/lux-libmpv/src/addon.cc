@@ -240,6 +240,7 @@ class Session : public Napi::ObjectWrap<Session> {
       InstanceMethod("setProperty", &Session::SetProperty),
       InstanceMethod("getProperty", &Session::GetProperty),
       InstanceMethod("command", &Session::Command),
+      InstanceMethod("setEmbedVisible", &Session::SetEmbedVisible),
     });
   }
 
@@ -488,6 +489,31 @@ class Session : public Napi::ObjectWrap<Session> {
     Napi::String out = Napi::String::New(env, raw);
     if (g_api.free) g_api.free(raw);
     return out;
+  }
+
+  Napi::Value SetEmbedVisible(const Napi::CallbackInfo &info) {
+    Napi::Env env = info.Env();
+#ifdef _WIN32
+    if (!embed_ || info.Length() < 1) return env.Undefined();
+    const bool visible = info[0].ToBoolean();
+    ShowWindow(embed_, visible ? SW_SHOW : SW_HIDE);
+    if (visible) {
+      HWND parent = GetParent(embed_);
+      if (parent) {
+        RECT rc{};
+        GetClientRect(parent, &rc);
+        const int kOsdTop = 88;
+        const int kOsdBottom = 168;
+        const int width = rc.right - rc.left;
+        const int fullHeight = rc.bottom - rc.top;
+        const int height = fullHeight > kOsdTop + kOsdBottom + 1
+                               ? fullHeight - kOsdTop - kOsdBottom
+                               : fullHeight;
+        SetWindowPos(embed_, HWND_TOP, 0, kOsdTop, width, height, SWP_SHOWWINDOW);
+      }
+    }
+#endif
+    return env.Undefined();
   }
 
   Napi::Value Command(const Napi::CallbackInfo &info) {

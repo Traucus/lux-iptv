@@ -21,6 +21,7 @@ export interface LibmpvBinding {
   setProperty?(name: string, value: string | number): void;
   getProperty?(name: string): string | number | undefined;
   command?(args: Array<string | number>): void;
+  setEmbedVisible?(visible: boolean): void;
 }
 
 export type NativeSession = {
@@ -31,6 +32,7 @@ export type NativeSession = {
   setProperty?: NonNullable<LibmpvBinding['setProperty']>;
   getProperty?: NonNullable<LibmpvBinding['getProperty']>;
   command?: NonNullable<LibmpvBinding['command']>;
+  setEmbedVisible?: NonNullable<LibmpvBinding['setEmbedVisible']>;
 };
 
 type NativeAddon = NativeSession & {
@@ -74,6 +76,7 @@ function sessionFromAddon(addon: NativeAddon): NativeSession | null {
       setProperty: addon.setProperty,
       getProperty: addon.getProperty,
       command: addon.command,
+      setEmbedVisible: addon.setEmbedVisible,
     };
   }
   return null;
@@ -109,6 +112,9 @@ export function createForwardingBinding(getSession: () => NativeSession | null):
     },
     command(args: Array<string | number>): void {
       getSession()?.command?.(args);
+    },
+    setEmbedVisible(visible: boolean): void {
+      getSession()?.setEmbedVisible?.(visible);
     },
   };
 }

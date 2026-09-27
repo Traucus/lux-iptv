@@ -35,6 +35,7 @@ function renderChrome() {
       onAspectRatioChange={noop}
       onFullscreen={noop}
       onLoadSubtitle={noop}
+      onListOpenChange={noop}
     />,
   );
 }
@@ -74,5 +75,39 @@ describe('OSD menus stay in HWND inset', () => {
     renderChrome();
     expect(screen.getByTestId('osd-chrome-bottom')).toHaveStyle({ overflow: 'hidden' });
     expect(screen.getByTestId('osd-chrome-top')).toHaveStyle({ overflow: 'hidden' });
+  });
+});
+
+describe('OSD lists hide the native embed', () => {
+  it('notifies list-open when the subtitle panel opens and closes', () => {
+    const onListOpenChange = vi.fn();
+    render(
+      <VideoPlayerOsdChrome
+        sourceType="movie"
+        currentTime={10}
+        duration={100}
+        buffered={[{ start: 0, end: 20 }]}
+        isPlaying
+        audioTrackIndex={1}
+        audioTracks={[{ id: 1, name: 'English' }, { id: 2, name: 'Spanish' }]}
+        subtitleTrackIndex={1}
+        subtitleTracks={[{ id: 1, name: 'sub 1' }]}
+        aspectRatio="16:9"
+        onSeek={noop}
+        onRewind10={noop}
+        onPlayPause={noop}
+        onForward10={noop}
+        onAudioTrackChange={noop}
+        onSubtitleTrackChange={noop}
+        onAspectRatioChange={noop}
+        onFullscreen={noop}
+        onLoadSubtitle={noop}
+        onListOpenChange={onListOpenChange}
+      />,
+    );
+    fireEvent.click(screen.getByTestId('osd-subtitle-button'));
+    expect(onListOpenChange).toHaveBeenCalledWith(true);
+    fireEvent.click(screen.getByText('Off'));
+    expect(onListOpenChange).toHaveBeenCalledWith(false);
   });
 });

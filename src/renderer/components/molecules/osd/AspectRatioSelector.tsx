@@ -22,6 +22,8 @@ export interface AspectRatioSelectorProps {
   current: AspectRatio;
   /** Called when aspect ratio changes */
   onChange: (ratio: AspectRatio) => void;
+  /** Called when the option list opens or closes */
+  onOpenChange?: (open: boolean) => void;
   /** Whether the selector is disabled */
   disabled?: boolean;
   /** Custom className */
@@ -31,20 +33,25 @@ export interface AspectRatioSelectorProps {
 export const AspectRatioSelector: React.FC<AspectRatioSelectorProps> = ({
   current,
   onChange,
+  onOpenChange,
   disabled = false,
   className = '',
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const setOpen = (open: boolean) => {
+    setIsOpen(open);
+    onOpenChange?.(open);
+  };
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Toggle menu
   const toggleMenu = () => {
-    if (!disabled) setIsOpen(!isOpen);
+    if (!disabled) setOpen(!isOpen);
   };
 
   // Close menu
-  const closeMenu = () => setIsOpen(false);
+  const closeMenu = () => setOpen(false);
 
   // Handle selection
   const handleSelect = (ratio: AspectRatio) => {

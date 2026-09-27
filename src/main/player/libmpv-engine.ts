@@ -30,6 +30,7 @@ export type LibmpvEngine = {
   addSubtitle(path: string): void;
   seek(time: number): void;
   getStatus(): { currentTime: number; duration: number; buffered: number };
+  setEmbedVisible(visible: boolean): void;
 };
 
 export function libmpvPlaybackOptions(
@@ -109,6 +110,9 @@ export function createLibmpvEngine(binding: LibmpvBinding = createNativeLibmpvBi
         duration: Number(binding.getProperty?.('duration') ?? 0),
         buffered: Number(binding.getProperty?.('demuxer-cache-time') ?? 0),
       };
+    },
+    setEmbedVisible(visible: boolean): void {
+      binding.setEmbedVisible?.(visible);
     },
   };
 }

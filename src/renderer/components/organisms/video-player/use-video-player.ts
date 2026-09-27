@@ -158,6 +158,14 @@ export function useVideoPlayer({
     subtitleFileInputRef.current?.click();
   }, []);
 
+  const handleListOpenChange = useCallback((open: boolean) => {
+    try {
+      void createLuxAPI().player.setEmbedVisible({ visible: !open });
+    } catch {
+      // jsdom has no luxAPI; Windows HWND hide is the runtime proof.
+    }
+  }, []);
+
   const handleAddSubtitle = useCallback(
     (path: string) => {
       if (!isExternalSubtitleFile(path)) return;
@@ -200,5 +208,6 @@ export function useVideoPlayer({
     handleSubtitleTrackChange,
     handleLoadSubtitle,
     handleAddSubtitle,
+    handleListOpenChange,
   };
 }

@@ -218,6 +218,16 @@ describe('LibmpvEngine', () => {
     expect(binding.setProperty).toHaveBeenCalledWith('pause', 'no');
   });
 
+  it('setEmbedVisible forwards to the native binding', () => {
+    const binding = playingBinding();
+    binding.setEmbedVisible = vi.fn();
+    const engine = createLibmpvEngine(binding);
+    engine.setEmbedVisible(false);
+    expect(binding.setEmbedVisible).toHaveBeenCalledWith(false);
+    engine.setEmbedVisible(true);
+    expect(binding.setEmbedVisible).toHaveBeenCalledWith(true);
+  });
+
   it('applies live options in-process before loading the origin URL', async () => {
     const binding = playingBinding();
     const engine = createLibmpvEngine(binding);

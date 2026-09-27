@@ -34,6 +34,7 @@ export interface OsdControlsProps {
   onAspectRatioChange: (ratio: '16:9' | '4:3' | 'zoom' | 'fit') => void;
   onFullscreen?: () => void;
   onLoadSubtitle?: () => void;
+  onListOpenChange?: (open: boolean) => void;
   rewindDisabled?: boolean;
   /** Custom className */
   className?: string;
@@ -55,11 +56,19 @@ export const OsdControls: React.FC<OsdControlsProps> = ({
   onAspectRatioChange,
   onFullscreen,
   onLoadSubtitle,
+  onListOpenChange,
   rewindDisabled = false,
   className = '',
 }) => {
   const [showAudioModal, setShowAudioModal] = useState(false);
   const [showSubtitleModal, setShowSubtitleModal] = useState(false);
+  const [showAspectMenu, setShowAspectMenu] = useState(false);
+
+  useEffect(() => {
+    const open = showAudioModal || showSubtitleModal || showAspectMenu;
+    onListOpenChange?.(open);
+    return () => onListOpenChange?.(false);
+  }, [showAudioModal, showSubtitleModal, showAspectMenu, onListOpenChange]);
 
   // Close modals on Escape
   useEffect(() => {
@@ -257,6 +266,7 @@ export const OsdControls: React.FC<OsdControlsProps> = ({
       <AspectRatioSelector
         current={aspectRatio}
         onChange={onAspectRatioChange}
+        onOpenChange={setShowAspectMenu}
         disabled={!visible}
       />
 

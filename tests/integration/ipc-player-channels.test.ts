@@ -99,9 +99,10 @@ describe('player IPC channels (registration + play)', () => {
         'player:play',
         'player:stop',
         'player:setPaused',
+        'player:setEmbedVisible',
       ]),
     );
-    expect(channels).toHaveLength(15);
+    expect(channels).toHaveLength(16);
   });
 
   describe('player:play', () => {

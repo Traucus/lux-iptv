@@ -55,6 +55,7 @@ export type TypedLuxAPI = {
     play: (input: PlayerPlayInputParsed) => Promise<IpcResult<{ engine: 'libmpv' }>>;
     stop: () => Promise<IpcResult<{ stopped: true }>>;
     setPaused: (input: { paused: boolean }) => Promise<IpcResult<{ paused: boolean }>>;
+    setEmbedVisible: (input: { visible: boolean }) => Promise<IpcResult<{ visible: boolean }>>;
     getTracks: () => Promise<IpcResult<{ audio: Array<{ id: number; name: string; lang?: string }>; subtitles: Array<{ id: number; name: string; lang?: string }> }>>;
     setAudioTrack: (input: { aid: number }) => Promise<IpcResult<true>>;
     setSubtitleTrack: (input: { sid: number }) => Promise<IpcResult<true>>;

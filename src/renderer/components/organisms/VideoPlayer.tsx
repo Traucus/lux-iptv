@@ -100,6 +100,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = (props) => {
           onAspectRatioChange={player.setAspectRatio}
           onFullscreen={player.handleFullscreen}
           onLoadSubtitle={player.handleLoadSubtitle}
+          onListOpenChange={player.handleListOpenChange}
         />
       )}
     </div>

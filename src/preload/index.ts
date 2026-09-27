@@ -59,6 +59,7 @@ const luxAPI = {
     play: (input: unknown) => ipcRenderer.invoke('player:play', input),
     stop: () => ipcRenderer.invoke('player:stop'),
     setPaused: (input: unknown) => ipcRenderer.invoke('player:setPaused', input),
+    setEmbedVisible: (input: unknown) => ipcRenderer.invoke('player:setEmbedVisible', input),
     getTracks: () => ipcRenderer.invoke('player:getTracks'),
     setAudioTrack: (input: unknown) => ipcRenderer.invoke('player:setAudioTrack', input),
     setSubtitleTrack: (input: unknown) => ipcRenderer.invoke('player:setSubtitleTrack', input),
