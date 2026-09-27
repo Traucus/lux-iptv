@@ -496,21 +496,23 @@ class Session : public Napi::ObjectWrap<Session> {
 #ifdef _WIN32
     if (!embed_ || info.Length() < 1) return env.Undefined();
     const bool visible = info[0].ToBoolean();
-    ShowWindow(embed_, visible ? SW_SHOW : SW_HIDE);
-    if (visible) {
-      HWND parent = GetParent(embed_);
-      if (parent) {
-        RECT rc{};
-        GetClientRect(parent, &rc);
-        const int kOsdTop = 88;
-        const int kOsdBottom = 168;
-        const int width = rc.right - rc.left;
-        const int fullHeight = rc.bottom - rc.top;
-        const int height = fullHeight > kOsdTop + kOsdBottom + 1
-                               ? fullHeight - kOsdTop - kOsdBottom
-                               : fullHeight;
-        SetWindowPos(embed_, HWND_TOP, 0, kOsdTop, width, height, SWP_SHOWWINDOW);
-      }
+    // SW_HIDE still reserves the client hole in Electron; 0x0 releases hit-testing.
+    if (!visible) {
+      SetWindowPos(embed_, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOACTIVATE);
+      return env.Undefined();
+    }
+    HWND parent = GetParent(embed_);
+    if (parent) {
+      RECT rc{};
+      GetClientRect(parent, &rc);
+      const int kOsdTop = 88;
+      const int kOsdBottom = 168;
+      const int width = rc.right - rc.left;
+      const int fullHeight = rc.bottom - rc.top;
+      const int height = fullHeight > kOsdTop + kOsdBottom + 1
+                             ? fullHeight - kOsdTop - kOsdBottom
+                             : fullHeight;
+      SetWindowPos(embed_, HWND_TOP, 0, kOsdTop, width, height, SWP_SHOWWINDOW);
     }
 #endif
     return env.Undefined();
