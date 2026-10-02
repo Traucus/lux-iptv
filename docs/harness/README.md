@@ -58,11 +58,27 @@ Esto vale en cualquier proyecto. El comando de “verde” y el enchufe del agen
 
 13. Calidad: un change de producto no está terminado si baja la cobertura
     o introduce `any`. `no-explicit-any` es error; `max-lines` 300.
-    Vitest exige 80% líneas/funciones/sentencias (`test:coverage`).
+    El gate vigente de Vitest es líneas 65%, funciones 55% y sentencias
+    65% (`test:coverage`). El 80% escrito es DOCUMENTED TARGET,
+    NOT ENFORCED GATE.
 
-14. Spec-first: todo change de producto (feature o refactor) exige spec
-    previa en `openspec/` o `docs/specs/`. No se agregan paths de producto
-    a `current.yml` hasta que esa spec exista y esté aprobada.
+14. Spec-first: la regla de governance prevista es que todo change de
+    código de producto exige un change de OpenSpec aprobado antes de
+    implementarlo. El enforcement por máquina de que esa spec exista NO
+    está implementado. No se agregan paths de producto a `current.yml`
+    hasta que esa spec exista y esté aprobada.
+
+## Decisiones vigentes
+
+Estas frases registran decisiones ya autorizadas. No agregan controles.
+
+- Milestone de producto: "Stabilize the desktop player." El checkpoint
+  concreto siguiente, dentro de ese milestone, es la interacción Windows
+  HWND / OSD. El checklist de Windows es validación de apoyo. No redefine
+  el milestone, y FA-17 tampoco lo es.
+- Autoridad de modelos: `~/.config/opencode/opencode.json`, campo
+  `agent.*.model`. La tabla inyectada en el prompt del orquestador es
+  STALE y NON-AUTHORITATIVE.
 
 ## Qué cuenta como evidencia
 

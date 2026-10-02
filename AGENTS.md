@@ -43,10 +43,13 @@ o `shared → renderer`; dominio/servicios (`src/main`, `src/main/services`,
 
 Regla 13 — puertas de calidad: un change de producto no está terminado si
 baja la cobertura o introduce `any`. ESLint: `no-explicit-any` es error;
-`max-lines` 300. Vitest: umbral 80% líneas/funciones/sentencias
-(`npm run test:coverage`). Verde sigue siendo typecheck, lint y test.
+`max-lines` 300. El gate vigente de Vitest es líneas 65%, funciones 55%
+y sentencias 65% (`npm run test:coverage`). El 80% escrito es
+DOCUMENTED TARGET, NOT ENFORCED GATE. Verde sigue siendo typecheck,
+lint y test.
 
-Regla 14 — spec-first: todo change de producto (feature o refactor)
-exige una spec previa en `openspec/` o `docs/specs/`. Está prohibido
-agregar archivos de producto a `.harness/policies/current.yml` hasta
-que esa spec exista y esté aprobada.
+Regla 14 — spec-first: la regla de governance prevista es que todo change
+de código de producto exige un change de OpenSpec aprobado antes de
+implementarlo. El enforcement por máquina de que esa spec exista NO está
+implementado. Sigue prohibido agregar archivos de producto a
+`.harness/policies/current.yml` hasta que esa spec exista y esté aprobada.
